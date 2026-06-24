@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ARCIO · Smart Parking</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #060A13;
+      --bg2: #0A1120;
+      --bg3: #0D1526;
+      --bg4: #08101E;
+      --blue: #3B82F6;
+      --blue-deep: #1D4ED8;
+      --cyan: #5EEAD4;
+      --cyan2: #38BDF8;
+      --ink: #EAF1FF;
+      --muted: #6B7DA0;
+      --muted2: #4A5A7A;
+      --border: rgba(94,234,212,0.10);
+      --border-blue: rgba(59,130,246,0.18);
+      --green: #34D399;
+      --green2: #10B981;
+      --amber: #F59E0B;
+      --red: #F87171;
+      --panel-bg: rgba(10,17,32,0.92);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      cursor: none;
+      overflow-x: hidden;
+      user-select: none;
+      min-height: 100vh;
+    }
+
+    /* ── CURSOR ── */
+    .cur-dot {
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; width: 5px; height: 5px;
+      border-radius: 50%; background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      transform: translate(-50%,-50%); z-index: 9999;
+    }
+    .cur-ring {
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; width: 34px; height: 34px;
+      border-radius: 50%; border: 1.5px solid rgba(94,234,212,.5);
+      transform: translate(-50%,-50%); z-index: 9998;
+      transition: width .2s cubic-bezier(.2,.8,.3,1), height .2s, border-color .2s, background .2s;
+    }
+    .cur-ring.expand { width: 52px; height: 52px; border-color: var(--cyan); background: rgba(94,234,212,.05); }
+    .cur-ring.dragging { width: 44px; height: 44px; border-color: var(--amber); background: rgba(245,158,11,.07); }
+
+    /* ── BG ── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(94,234,212,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(94,234,212,.018) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .bg-atmos {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 45% at 50% -5%, rgba(59,130,246,.08) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 15% 50%, rgba(94,234,212,.04) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 85% 60%, rgba(56,189,248,.04) 0%, transparent 60%);
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 200; height: 54px;
+      background: rgba(6,10,19,.92);
+      border-bottom: 1px solid rgba(94,234,212,.08);
+      backdrop-filter: blur(20px);
+      display: flex; align-items: center;
+      padding: 0 28px; gap: 14px;
+    }
+    .topbar-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: 20px;
+      letter-spacing: -.04em; color: var(--ink);
+      text-decoration: none; flex-shrink: 0;
+    }
+    .topbar-logo span { color: var(--cyan2); }
+    .topbar-sep { width: 1px; height: 22px; background: rgba(94,234,212,.1); }
+    .topbar-center { flex: 1; display: flex; align-items: center; justify-content: center; }
+    .topbar-title-wrap { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .topbar-supertag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px; font-weight: 600;
+      letter-spacing: .22em; text-transform: uppercase;
+      color: var(--cyan2); opacity: .7;
+    }
+    .topbar-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 14px;
+      letter-spacing: -.02em; color: var(--ink);
+    }
+    .nav-back {
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); cursor: none;
+      transition: color .2s; text-decoration: none;
+      border: 1px solid rgba(94,234,212,.1);
+      padding: 5px 12px; border-radius: 6px;
+    }
+    .nav-back:hover { color: var(--cyan); border-color: rgba(94,234,212,.28); }
+    .nav-back svg { transition: transform .2s; }
+    .nav-back:hover svg { transform: translateX(-2px); }
+
+    /* live indicator */
+    .live-badge {
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; font-weight: 600;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--green);
+      background: rgba(52,211,153,.06);
+      border: 1px solid rgba(52,211,153,.22);
+      border-radius: 6px; padding: 4px 10px;
+    }
+    .live-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px var(--green);
+      animation: livePulse 1.8s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(52,211,153,.8); }
+      50% { box-shadow: 0 0 0 5px rgba(52,211,153,0); }
+    }
+
+    /* ── PAGE ── */
+    .page {
+      position: relative; z-index: 1;
+      padding-top: 54px;
+    }
+
+    /* ── HERO HEADER ── */
+    .hero {
+      padding: 48px 48px 36px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: .22em; text-transform: uppercase;
+      color: var(--cyan2);
+      background: rgba(56,189,248,.07);
+      border: 1px solid rgba(56,189,248,.2);
+      border-radius: 20px; padding: 5px 14px;
+      margin-bottom: 22px;
+    }
+    .hero-label-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--cyan2); box-shadow: 0 0 8px var(--cyan2);
+      animation: labelPulse 2s ease-in-out infinite;
+    }
+    @keyframes labelPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,.8); }
+      50% { box-shadow: 0 0 0 5px rgba(56,189,248,0); }
+    }
+    .hero-headline {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: clamp(36px, 5vw, 66px);
+      letter-spacing: -.04em; line-height: 1;
+      color: var(--ink); margin-bottom: 14px;
+    }
+    .hero-headline .accent {
+      background: linear-gradient(135deg, var(--cyan2), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 15px; color: var(--muted);
+      max-width: 480px; margin: 0 auto;
+      line-height: 1.6; font-weight: 400;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout {
+      max-width: 1320px; margin: 0 auto;
+      padding: 0 32px 80px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+    }
+
+    /* ── PANEL SHARED ── */
+    .panel {
+      background: rgba(10,17,32,.88);
+      border: 1px solid rgba(94,234,212,.1);
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+    .panel::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(94,234,212,.18) 40%, transparent);
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(94,234,212,.07);
+    }
+    .panel-title-wrap { display: flex; align-items: center; gap: 10px; }
+    .panel-icon {
+      width: 30px; height: 30px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(56,189,248,.08);
+      border: 1px solid rgba(56,189,248,.15);
+    }
+    .panel-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 13px;
+      letter-spacing: -.01em; color: var(--ink);
+    }
+    .panel-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .panel-body { padding: 20px; }
+
+    /* ── ANALYTICS STRIP (top) ── */
+    .analytics-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: rgba(10,17,32,.88);
+      border: 1px solid rgba(94,234,212,.1);
+      border-radius: 12px;
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .3s, box-shadow .3s;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(94,234,212,.15) 50%, transparent);
+    }
+    .stat-card.green-card { border-color: rgba(52,211,153,.18); }
+    .stat-card.green-card::before { background: linear-gradient(90deg, transparent, rgba(52,211,153,.3) 50%, transparent); }
+    .stat-card.red-card { border-color: rgba(248,113,113,.18); }
+    .stat-card.red-card::before { background: linear-gradient(90deg, transparent, rgba(248,113,113,.25) 50%, transparent); }
+    .stat-card.blue-card { border-color: rgba(56,189,248,.18); }
+    .stat-card.blue-card::before { background: linear-gradient(90deg, transparent, rgba(56,189,248,.25) 50%, transparent); }
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; font-weight: 600;
+      letter-spacing: .18em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .stat-label-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+    .stat-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: 38px;
+      letter-spacing: -.04em; line-height: 1;
+    }
+    .stat-card.green-card .stat-value { color: var(--green); }
+    .stat-card.red-card .stat-value { color: var(--red); }
+    .stat-card.blue-card .stat-value { color: var(--cyan2); }
+    .stat-unit {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      margin-top: 4px;
+    }
+    .stat-glow {
+      position: absolute; top: -20px; right: -20px;
+      width: 100px; height: 100px; border-radius: 50%;
+      pointer-events: none;
+    }
+    .green-card .stat-glow { background: radial-gradient(circle, rgba(52,211,153,.07), transparent 70%); }
+    .red-card .stat-glow { background: radial-gradient(circle, rgba(248,113,113,.07), transparent 70%); }
+    .blue-card .stat-glow { background: radial-gradient(circle, rgba(56,189,248,.07), transparent 70%); }
+
+    /* ── PARKING LOT CANVAS ── */
+    .lot-panel { position: relative; }
+    .lot-body {
+      padding: 24px;
+      position: relative;
+    }
+
+    /* Hint pill */
+    .drag-hint {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(245,158,11,.07);
+      border: 1px solid rgba(245,158,11,.2);
+      border-radius: 8px; padding: 7px 14px;
+      margin-bottom: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--amber);
+    }
+    .drag-hint-icon { font-size: 13px; }
+
+    /* Road / lot container */
+    .lot-scene {
+      position: relative;
+      background: #07111E;
+      border-radius: 12px;
+      border: 1px solid rgba(94,234,212,.08);
+      overflow: visible;
+      height: 380px;
+    }
+
+    /* Road surface */
+    .road {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 72px;
+      background: #0B1826;
+      border-top: 2px solid rgba(94,234,212,.12);
+    }
+    .road-stripe {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      height: 4px; border-radius: 2px;
+      background: rgba(245,158,11,.35);
+    }
+    .road-center-line {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      left: 0; right: 0; height: 2px;
+      background: repeating-linear-gradient(90deg,
+        rgba(245,158,11,.3) 0px, rgba(245,158,11,.3) 30px,
+        transparent 30px, transparent 50px);
+    }
+
+    /* Entry arrow */
+    .entry-arrow {
+      position: absolute;
+      right: 24px; bottom: 18px;
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; font-weight: 600; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--amber);
+      opacity: .6;
+    }
+
+    /* Parking slots container */
+    .slots-area {
+      position: absolute;
+      top: 20px; left: 0; right: 0;
+      display: flex; justify-content: center;
+      gap: 14px;
+      padding: 0 20px;
+    }
+
+    /* Individual slot */
+    .slot {
+      width: 92px;
+      background: rgba(6,10,19,.9);
+      border: 1.5px solid rgba(94,234,212,.16);
+      border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center;
+      padding: 10px 8px 8px;
+      position: relative;
+      transition: border-color .3s, box-shadow .3s, background .3s;
+      cursor: default;
+    }
+    .slot.available { border-color: rgba(52,211,153,.25); }
+    .slot.occupied {
+      border-color: rgba(248,113,113,.4);
+      background: rgba(15,6,6,.9);
+      box-shadow: 0 0 20px rgba(248,113,113,.08), inset 0 0 30px rgba(248,113,113,.04);
+    }
+    .slot.drag-over {
+      border-color: rgba(245,158,11,.6) !important;
+      box-shadow: 0 0 24px rgba(245,158,11,.2) !important;
+      background: rgba(245,158,11,.04) !important;
+    }
+
+    .slot-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600; letter-spacing: .16em;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* Parking bay (the drawn rectangle) */
+    .slot-bay {
+      width: 68px; height: 108px;
+      border: 1.5px solid rgba(94,234,212,.14);
+      border-radius: 4px;
+      background: rgba(94,234,212,.02);
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .3s, background .3s;
+    }
+    .slot.available .slot-bay { border-color: rgba(52,211,153,.22); background: rgba(52,211,153,.025); }
+    .slot.occupied .slot-bay { border-color: rgba(248,113,113,.28); background: rgba(248,113,113,.04); }
+    .slot.drag-over .slot-bay { border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.05); }
+
+    /* Bay markings */
+    .slot-bay::before {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+      background: rgba(245,158,11,.18);
+      border-radius: 0 0 3px 3px;
+    }
+
+    /* IR sensor dots */
+    .ir-sensors {
+      position: absolute; top: 6px; left: 6px; right: 6px;
+      display: flex; justify-content: space-between;
+    }
+    .ir-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(107,125,160,.3);
+      box-shadow: none;
+      transition: background .3s, box-shadow .3s;
+    }
+    .slot.occupied .ir-dot {
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red), 0 0 16px rgba(248,113,113,.4);
+      animation: irFlash .8s ease-in-out;
+    }
+    @keyframes irFlash {
+      0% { transform: scale(1.6); }
+      100% { transform: scale(1); }
+    }
+    .slot.available .ir-dot {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    /* IR beam line */
+    .ir-beam {
+      position: absolute; top: 8px; left: 10px; right: 10px;
+      height: 1px;
+      background: transparent;
+      transition: background .3s;
+    }
+    .slot.occupied .ir-beam {
+      background: linear-gradient(90deg, var(--red), transparent);
+      opacity: .4;
+    }
+    .slot.available .ir-beam {
+      background: linear-gradient(90deg, var(--green), transparent);
+      opacity: .25;
+    }
+
+    /* Status indicator at bottom of slot */
+    .slot-status {
+      margin-top: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px; font-weight: 600;
+      letter-spacing: .12em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 100px;
+      transition: all .3s;
+    }
+    .slot.available .slot-status {
+      color: var(--green); background: rgba(52,211,153,.08);
+      border: 1px solid rgba(52,211,153,.2);
+    }
+    .slot.occupied .slot-status {
+      color: var(--red); background: rgba(248,113,113,.08);
+      border: 1px solid rgba(248,113,113,.2);
+    }
+    .slot.drag-over .slot-status {
+      color: var(--amber); background: rgba(245,158,11,.08);
+      border: 1px solid rgba(245,158,11,.2);
+    }
+
+    /* Parked car inside bay */
+    .parked-car {
+      position: absolute;
+      width: 52px; height: 88px;
+      display: none;
+    }
+    .slot.occupied .parked-car { display: block; }
+
+    /* ── DRAGGABLE VEHICLE ── */
+    .vehicle-zone {
+      display: flex; align-items: center; gap: 16px;
+      margin-top: 20px;
+    }
+    .vehicle-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    #draggable-car {
+      position: relative;
+      width: 64px; height: 106px;
+      cursor: grab;
+      transition: filter .2s, transform .2s;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    #draggable-car:hover { filter: brightness(1.15); transform: translateY(-2px); }
+    #draggable-car.is-dragging { cursor: grabbing; opacity: 0; }
+    #draggable-car.parked { opacity: .35; cursor: not-allowed; }
+    #draggable-car.parked:hover { transform: none; filter: none; }
+
+    /* Ghost car that follows cursor */
+    #car-ghost {
+      position: fixed;
+      width: 64px; height: 106px;
+      pointer-events: none;
+      z-index: 5000;
+      display: none;
+      transform: translate(-50%, -50%);
+      filter: drop-shadow(0 0 12px rgba(245,158,11,.6));
+    }
+
+    /* Reset button */
+    .btn-reset {
+      display: flex; align-items: center; gap: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(10,17,32,.8);
+      border: 1px solid rgba(94,234,212,.14);
+      border-radius: 8px; padding: 8px 14px;
+      cursor: none;
+      transition: color .2s, border-color .2s, background .2s;
+    }
+    .btn-reset:hover {
+      color: var(--cyan); border-color: rgba(94,234,212,.3);
+      background: rgba(94,234,212,.04);
+    }
+
+    /* ── RIGHT SIDEBAR ── */
+    .sidebar { display: flex; flex-direction: column; gap: 14px; }
+
+    /* IoT feed */
+    .feed-list { display: flex; flex-direction: column; gap: 0; }
+    .feed-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(94,234,212,.06);
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-icon {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+      font-size: 11px;
+    }
+    .feed-icon.green { background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.2); }
+    .feed-icon.red { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); }
+    .feed-icon.blue { background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.18); }
+    .feed-icon.amber { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.2); }
+    .feed-text { flex: 1; }
+    .feed-event {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 600;
+      color: var(--ink); line-height: 1.3;
+    }
+    .feed-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; color: var(--muted);
+      letter-spacing: .06em; margin-top: 2px;
+    }
+
+    /* IR signal badge */
+    .ir-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; padding: 1px 7px; border-radius: 100px;
+    }
+    .ir-badge.on { color: var(--red); background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); }
+    .ir-badge.off { color: var(--green); background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.18); }
+
+    /* ── INFO SECTIONS ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .info-card {
+      background: rgba(10,17,32,.88);
+      border: 1px solid rgba(94,234,212,.1);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative; overflow: hidden;
+    }
+    .info-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(94,234,212,.15) 50%, transparent);
+    }
+    .info-card-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; font-weight: 600;
+      letter-spacing: .2em; text-transform: uppercase;
+      color: var(--cyan2); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .info-card-label::before {
+      content: '';
+      width: 14px; height: 1px;
+      background: var(--cyan2); opacity: .5;
+    }
+
+    /* Concepts */
+    .concept-list { display: flex; flex-direction: column; gap: 8px; }
+    .concept-item {
+      display: flex; align-items: center; gap: 9px;
+      font-size: 12px; color: var(--muted);
+    }
+    .concept-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* Flow */
+    .flow-steps { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+    .flow-step {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: var(--ink); font-weight: 500;
+      position: relative;
+    }
+    .flow-step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--cyan2); box-shadow: 0 0 8px var(--cyan2);
+      flex-shrink: 0;
+    }
+    .flow-connector {
+      width: 1.5px; height: 18px;
+      background: linear-gradient(180deg, var(--cyan2), transparent);
+      margin-left: 3px; opacity: .4;
+    }
+
+    /* IoT arch */
+    .arch-items { display: flex; flex-direction: column; gap: 8px; }
+    .arch-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 7px;
+      background: rgba(6,10,19,.6);
+      border: 1px solid rgba(94,234,212,.07);
+      font-size: 12px; color: var(--ink);
+      font-weight: 500;
+    }
+    .arch-icon {
+      width: 22px; height: 22px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      background: rgba(56,189,248,.08);
+      border: 1px solid rgba(56,189,248,.14);
+    }
+    .arch-arrow {
+      width: 1.5px; height: 12px;
+      background: linear-gradient(180deg, rgba(56,189,248,.3), transparent);
+      margin-left: 10px;
+    }
+
+    /* Apps */
+    .app-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .app-chip {
+      display: flex; align-items: center; gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); background: rgba(6,10,19,.7);
+      border: 1px solid rgba(94,234,212,.1); border-radius: 6px;
+      padding: 5px 10px;
+    }
+    .app-chip-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--cyan2); }
+
+    /* ── OCCUPANCY BAR ── */
+    .occ-bar-wrap {
+      margin: 16px 0 4px;
+    }
+    .occ-bar-header {
+      display: flex; justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; font-weight: 600; letter-spacing: .1em;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .occ-bar-track {
+      height: 6px; border-radius: 100px;
+      background: rgba(94,234,212,.07);
+      overflow: hidden;
+    }
+    .occ-bar-fill {
+      height: 100%; border-radius: 100px;
+      background: linear-gradient(90deg, var(--green), var(--red));
+      transition: width .6s cubic-bezier(.2,.8,.3,1);
+    }
+
+    /* ── SCAN LINE ANIMATION for occupied ── */
+    @keyframes scanLine {
+      0% { top: 0; opacity: .6; }
+      100% { top: 100%; opacity: 0; }
+    }
+    .slot.occupied .slot-bay::after {
+      content: '';
+      position: absolute; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(248,113,113,.6), transparent);
+      animation: scanLine 2s linear infinite;
+    }
+
+    /* Particle canvas */
+    #particleCanvas {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: rgba(10,17,32,.95); border: 1px solid rgba(94,234,212,.2);
+      border-radius: 10px; padding: 10px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--cyan2);
+      z-index: 3000;
+      opacity: 0; transition: opacity .3s, transform .3s;
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Responsive */
+    @media (max-width: 1080px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .sidebar { flex-direction: row; flex-wrap: wrap; }
+      .sidebar > * { flex: 1 1 280px; }
+    }
+    @media (max-width: 700px) {
+      .main-layout { padding: 0 16px 60px; }
+      .hero { padding: 36px 20px 24px; }
+      .slots-area { gap: 7px; padding: 0 10px; }
+      .slot { width: 74px; }
+      .slot-bay { width: 54px; height: 90px; }
+      .analytics-strip { grid-template-columns: repeat(3,1fr); gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="bg-grid"></div>
+<div class="bg-atmos"></div>
+<canvas id="particleCanvas"></canvas>
+
+<!-- Ghost car for drag -->
+<svg id="car-ghost" viewBox="0 0 64 106" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="8" y="18" width="48" height="72" rx="10" fill="#1A2A40" stroke="rgba(245,158,11,.5)" stroke-width="1.5"/>
+  <rect x="14" y="22" width="36" height="28" rx="6" fill="rgba(56,189,248,.12)" stroke="rgba(56,189,248,.3)" stroke-width="1"/>
+  <rect x="10" y="52" width="44" height="32" rx="6" fill="#1E3148" stroke="rgba(94,234,212,.15)" stroke-width="1"/>
+  <rect x="12" y="84" width="16" height="8" rx="4" fill="#0A1828" stroke="rgba(245,158,11,.4)" stroke-width="1"/>
+  <rect x="36" y="84" width="16" height="8" rx="4" fill="#0A1828" stroke="rgba(245,158,11,.4)" stroke-width="1"/>
+  <rect x="10" y="18" width="44" height="6" rx="3" fill="rgba(245,158,11,.25)"/>
+  <circle cx="18" cy="22" r="3" fill="rgba(245,158,11,.7)" filter="url(#glow)"/>
+  <circle cx="46" cy="22" r="3" fill="rgba(245,158,11,.7)"/>
+  <line x1="20" y1="56" x2="44" y2="56" stroke="rgba(94,234,212,.2)" stroke-width="1" stroke-dasharray="4 4"/>
+  <defs>
+    <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+</svg>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="playground.html" class="topbar-logo">ARC<span>IO</span></a>
+  <div class="topbar-sep"></div>
+  <div class="topbar-center">
+    <div class="topbar-title-wrap">
+      <span class="topbar-supertag">SIM 07</span>
+      <span class="topbar-title">Smart Parking Control Center</span>
+    </div>
+  </div>
+  <div class="live-badge">
+    <span class="live-dot"></span>
+    Live
+  </div>
+  <div class="topbar-sep"></div>
+  <a href="playground.html" class="nav-back">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,5 5,12 12,19"/></svg>
+    Back
+  </a>
+</header>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-label">
+      <span class="hero-label-dot"></span>
+      IoT Simulation · Parking Intelligence
+    </div>
+    <h1 class="hero-headline">Parking <span class="accent">Control</span> Center</h1>
+    <p class="hero-sub">Drag the vehicle into any slot. Watch IR sensors activate, occupancy update in real-time, and the smart city dashboard respond.</p>
+  </div>
+
+  <div class="main-layout">
+
+    <!-- LEFT: SIMULATION -->
+    <div class="sim-col">
+
+      <!-- ANALYTICS STRIP -->
+      <div class="analytics-strip">
+        <div class="stat-card green-card">
+          <div class="stat-glow"></div>
+          <div class="stat-label"><span class="stat-label-dot" style="color:var(--green)"></span>Available Slots</div>
+          <div class="stat-value" id="statAvailable">6</div>
+          <div class="stat-unit">of 6 slots free</div>
+        </div>
+        <div class="stat-card red-card">
+          <div class="stat-glow"></div>
+          <div class="stat-label"><span class="stat-label-dot" style="color:var(--red)"></span>Occupied Slots</div>
+          <div class="stat-value" id="statOccupied">0</div>
+          <div class="stat-unit">currently in use</div>
+        </div>
+        <div class="stat-card blue-card">
+          <div class="stat-glow"></div>
+          <div class="stat-label"><span class="stat-label-dot" style="color:var(--cyan2)"></span>Vehicle Count</div>
+          <div class="stat-value" id="statVehicles">0</div>
+          <div class="stat-unit">total entries today</div>
+        </div>
+      </div>
+
+      <!-- OCCUPANCY BAR -->
+      <div class="occ-bar-wrap" style="background:rgba(10,17,32,.7);border:1px solid rgba(94,234,212,.08);border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+        <div class="occ-bar-header">
+          <span>Occupancy Rate</span>
+          <span id="occPct" style="color:var(--ink)">0%</span>
+        </div>
+        <div class="occ-bar-track">
+          <div class="occ-bar-fill" id="occFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- PARKING LOT PANEL -->
+      <div class="panel lot-panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <div class="panel-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h3a2 2 0 0 0 0-4H9v8"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Parking Lot A · Ground Floor</div>
+              <div class="panel-sub">Zone — 01 · 6 Bay Facility</div>
+            </div>
+          </div>
+          <button class="btn-reset" id="btnReset" onclick="resetSimulation()">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+            Reset
+          </button>
+        </div>
+        <div class="lot-body">
+          <div class="drag-hint">
+            <span class="drag-hint-icon">↕</span>
+            Drag the vehicle below into any green slot to park it
+          </div>
+
+          <!-- The lot scene -->
+          <div class="lot-scene" id="lotScene">
+            <!-- Road -->
+            <div class="road">
+              <div class="road-center-line"></div>
+              <div class="entry-arrow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+                Entry / Exit
+              </div>
+            </div>
+
+            <!-- 6 Slots -->
+            <div class="slots-area" id="slotsArea">
+              <!-- JS will generate slots -->
+            </div>
+          </div>
+
+          <!-- Draggable vehicle area -->
+          <div class="vehicle-zone">
+            <div class="vehicle-label">Drag Car →</div>
+            <svg id="draggable-car" viewBox="0 0 64 106" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="8" y="18" width="48" height="72" rx="10" fill="#1A3350" stroke="rgba(56,189,248,.4)" stroke-width="1.5"/>
+              <rect x="14" y="22" width="36" height="28" rx="6" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.35)" stroke-width="1"/>
+              <!-- windshield glare -->
+              <path d="M16 24 Q32 20 48 24 L46 42 Q32 46 18 42 Z" fill="rgba(56,189,248,.06)"/>
+              <rect x="10" y="52" width="44" height="32" rx="6" fill="#1E3A54" stroke="rgba(94,234,212,.15)" stroke-width="1"/>
+              <!-- Rear lights -->
+              <rect x="12" y="84" width="16" height="8" rx="4" fill="#0A1828" stroke="rgba(56,189,248,.3)" stroke-width="1"/>
+              <rect x="36" y="84" width="16" height="8" rx="4" fill="#0A1828" stroke="rgba(56,189,248,.3)" stroke-width="1"/>
+              <!-- Headlights -->
+              <rect x="10" y="18" width="44" height="6" rx="3" fill="rgba(94,234,212,.2)"/>
+              <circle cx="18" cy="20" r="3" fill="rgba(94,234,212,.8)"/>
+              <circle cx="46" cy="20" r="3" fill="rgba(94,234,212,.8)"/>
+              <!-- Center stripe -->
+              <line x1="20" y1="56" x2="44" y2="56" stroke="rgba(94,234,212,.18)" stroke-width="1" stroke-dasharray="4 4"/>
+              <!-- Door handle -->
+              <rect x="28" y="62" width="8" height="2" rx="1" fill="rgba(56,189,248,.3)"/>
+              <!-- Wheel arches -->
+              <rect x="6" y="38" width="6" height="12" rx="3" fill="rgba(6,10,19,.9)" stroke="rgba(94,234,212,.12)" stroke-width="1"/>
+              <rect x="52" y="38" width="6" height="12" rx="3" fill="rgba(6,10,19,.9)" stroke="rgba(94,234,212,.12)" stroke-width="1"/>
+              <rect x="6" y="64" width="6" height="12" rx="3" fill="rgba(6,10,19,.9)" stroke="rgba(94,234,212,.12)" stroke-width="1"/>
+              <rect x="52" y="64" width="6" height="12" rx="3" fill="rgba(6,10,19,.9)" stroke="rgba(94,234,212,.12)" stroke-width="1"/>
+            </svg>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;">
+              VH-7742<br>
+              <span style="color:var(--green);font-size:7px;">● Ready</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- INFO GRID -->
+      <div class="info-grid">
+
+        <!-- Concepts Applied -->
+        <div class="info-card">
+          <div class="info-card-label">Concepts Applied</div>
+          <div class="concept-list">
+            <div class="concept-item">
+              <div class="concept-dot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div>
+              IR Sensors
+            </div>
+            <div class="concept-item">
+              <div class="concept-dot" style="background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);"></div>
+              Occupancy Detection
+            </div>
+            <div class="concept-item">
+              <div class="concept-dot" style="background:var(--green);box-shadow:0 0 6px var(--green);"></div>
+              Smart Transportation
+            </div>
+            <div class="concept-item">
+              <div class="concept-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></div>
+              Real-Time Analytics
+            </div>
+            <div class="concept-item">
+              <div class="concept-dot" style="background:var(--blue);box-shadow:0 0 6px var(--blue);"></div>
+              IoT Architecture
+            </div>
+          </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="info-card">
+          <div class="info-card-label">How It Works</div>
+          <div class="flow-steps">
+            <div class="flow-step"><div class="flow-step-dot"></div>Vehicle Arrives</div>
+            <div class="flow-connector"></div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--red);box-shadow:0 0 8px var(--red);"></div>IR Sensor Detects</div>
+            <div class="flow-connector" style="background:linear-gradient(180deg,var(--red),transparent)"></div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--amber);box-shadow:0 0 8px var(--amber);"></div>System Updates Slot</div>
+            <div class="flow-connector" style="background:linear-gradient(180deg,var(--amber),transparent)"></div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--green);box-shadow:0 0 8px var(--green);"></div>Dashboard Updates</div>
+          </div>
+        </div>
+
+        <!-- IoT Architecture -->
+        <div class="info-card">
+          <div class="info-card-label">IoT Architecture</div>
+          <div class="arch-items">
+            <div class="arch-item">
+              <div class="arch-icon">📡</div>
+              IR Sensor
+            </div>
+            <div class="arch-arrow"></div>
+            <div class="arch-item">
+              <div class="arch-icon">🔧</div>
+              Controller
+            </div>
+            <div class="arch-arrow"></div>
+            <div class="arch-item">
+              <div class="arch-icon">📊</div>
+              Parking Dashboard
+            </div>
+          </div>
+        </div>
+
+        <!-- Applications -->
+        <div class="info-card">
+          <div class="info-card-label">Applications</div>
+          <div class="app-chips">
+            <div class="app-chip"><span class="app-chip-dot"></span>Malls</div>
+            <div class="app-chip"><span class="app-chip-dot"></span>Airports</div>
+            <div class="app-chip"><span class="app-chip-dot"></span>Smart Cities</div>
+            <div class="app-chip"><span class="app-chip-dot"></span>Hospitals</div>
+            <div class="app-chip"><span class="app-chip-dot"></span>Hotels</div>
+            <div class="app-chip"><span class="app-chip-dot"></span>Transit Hubs</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- Slot Status Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <div class="panel-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Slot Status</div>
+              <div class="panel-sub">IR Sensor Matrix</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body" style="padding:14px 16px;">
+          <div id="slotStatusList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
+
+      <!-- Live IoT Feed -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <div class="panel-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Live IoT Feed</div>
+              <div class="panel-sub">Event Stream</div>
+            </div>
+          </div>
+          <div class="live-badge"><span class="live-dot"></span>Live</div>
+        </div>
+        <div class="panel-body" style="padding:4px 16px 12px;">
+          <div class="feed-list" id="feedList">
+            <div class="feed-item">
+              <div class="feed-icon blue">📡</div>
+              <div class="feed-text">
+                <div class="feed-event">System Initialized</div>
+                <div class="feed-time">All 6 slots ready · IR Sensors nominal</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /main-layout -->
+</div><!-- /page -->
+
+<div id="toast">Vehicle parked successfully</div>
+
+<script>
+// ── STATE ──
+const TOTAL = 6;
+const slots = Array.from({length: TOTAL}, (_, i) => ({
+  id: i + 1,
+  occupied: false,
+}));
+let totalVehicles = 0;
+let currentSlot = null; // slot index currently occupied
+
+// ── RENDER SLOTS ──
+function renderSlots() {
+  const area = document.getElementById('slotsArea');
+  area.innerHTML = '';
+  slots.forEach((slot, i) => {
+    const el = document.createElement('div');
+    el.className = 'slot ' + (slot.occupied ? 'occupied' : 'available');
+    el.id = `slot-${slot.id}`;
+    el.dataset.index = i;
+    el.innerHTML = `
+      <div class="slot-num">P${slot.id}</div>
+      <div class="slot-bay">
+        <div class="ir-sensors">
+          <div class="ir-dot"></div>
+          <div class="ir-dot"></div>
+        </div>
+        <div class="ir-beam"></div>
+        ${slot.occupied ? renderParkedCar() : ''}
+      </div>
+      <div class="slot-status">${slot.occupied ? 'Occupied' : 'Free'}</div>
+    `;
+    // Drop events
+    el.addEventListener('dragover', onDragOver);
+    el.addEventListener('dragleave', onDragLeave);
+    el.addEventListener('drop', e => onDrop(e, i));
+    area.appendChild(el);
+  });
+  renderSlotStatusList();
+}
+
+function renderParkedCar() {
+  return `<svg class="parked-car" viewBox="0 0 52 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="4" y="6" width="44" height="70" rx="8" fill="#1A2A40" stroke="rgba(248,113,113,.35)" stroke-width="1.5"/>
+    <rect x="9" y="10" width="34" height="24" rx="5" fill="rgba(248,113,113,.08)" stroke="rgba(248,113,113,.25)" stroke-width="1"/>
+    <rect x="6" y="36" width="40" height="28" rx="5" fill="#1E2E42" stroke="rgba(94,234,212,.1)" stroke-width="1"/>
+    <rect x="8" y="64" width="14" height="6" rx="3" fill="rgba(248,113,113,.6)"/>
+    <rect x="30" y="64" width="14" height="6" rx="3" fill="rgba(248,113,113,.6)"/>
+    <rect x="6" y="6" width="40" height="5" rx="2.5" fill="rgba(94,234,212,.15)"/>
+    <rect x="4" y="22" width="5" height="10" rx="2.5" fill="rgba(6,10,19,.9)"/>
+    <rect x="43" y="22" width="5" height="10" rx="2.5" fill="rgba(6,10,19,.9)"/>
+    <rect x="4" y="46" width="5" height="10" rx="2.5" fill="rgba(6,10,19,.9)"/>
+    <rect x="43" y="46" width="5" height="10" rx="2.5" fill="rgba(6,10,19,.9)"/>
+  </svg>`;
+}
+
+// ── SLOT STATUS LIST ──
+function renderSlotStatusList() {
+  const list = document.getElementById('slotStatusList');
+  list.innerHTML = '';
+  slots.forEach((slot, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:7px;background:rgba(6,10,19,.6);border:1px solid ${slot.occupied ? 'rgba(248,113,113,.18)' : 'rgba(52,211,153,.14)'};`;
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:7px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:${slot.occupied ? 'var(--red)' : 'var(--green)'};box-shadow:0 0 7px ${slot.occupied ? 'var(--red)' : 'var(--green)'};"></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--ink);">Slot P${slot.id}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:${slot.occupied ? 'var(--red)' : 'var(--green)'};">
+          IR: ${slot.occupied ? 'TRIGGERED' : 'CLEAR'}
+        </span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;padding:1px 7px;border-radius:100px;background:${slot.occupied ? 'rgba(248,113,113,.1)' : 'rgba(52,211,153,.08)'};border:1px solid ${slot.occupied ? 'rgba(248,113,113,.25)' : 'rgba(52,211,153,.2)'};color:${slot.occupied ? 'var(--red)' : 'var(--green)'};">
+          ${slot.occupied ? 'FULL' : 'FREE'}
+        </span>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ── UPDATE STATS ──
+function updateStats() {
+  const occupied = slots.filter(s => s.occupied).length;
+  const available = TOTAL - occupied;
+  const pct = Math.round((occupied / TOTAL) * 100);
+
+  document.getElementById('statAvailable').textContent = available;
+  document.getElementById('statOccupied').textContent = occupied;
+  document.getElementById('statVehicles').textContent = totalVehicles;
+  document.getElementById('occPct').textContent = pct + '%';
+  document.getElementById('occFill').style.width = pct + '%';
+}
+
+// ── FEED ──
+function addFeedEvent(icon, iconClass, title, detail) {
+  const list = document.getElementById('feedList');
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.style.opacity = '0';
+  item.style.transform = 'translateX(-8px)';
+  item.style.transition = 'opacity .4s, transform .4s';
+  item.innerHTML = `
+    <div class="feed-icon ${iconClass}">${icon}</div>
+    <div class="feed-text">
+      <div class="feed-event">${title}</div>
+      <div class="feed-time">${detail} · ${time}</div>
+    </div>
+  `;
+  list.insertBefore(item, list.firstChild);
+  requestAnimationFrame(() => {
+    item.style.opacity = '1';
+    item.style.transform = 'translateX(0)';
+  });
+  // Keep max 8 items
+  while (list.children.length > 8) list.removeChild(list.lastChild);
+}
+
+// ── DRAG & DROP ──
+const carEl = document.getElementById('draggable-car');
+const ghost = document.getElementById('car-ghost');
+const ring = document.getElementById('curRing');
+let isDragging = false;
+
+carEl.addEventListener('mousedown', startDrag);
+document.addEventListener('mousemove', onMouseMove);
+document.addEventListener('mouseup', onMouseUp);
+
+function startDrag(e) {
+  if (carEl.classList.contains('parked')) return;
+  isDragging = true;
+  carEl.classList.add('is-dragging');
+  ring.classList.add('dragging');
+  ghost.style.display = 'block';
+  ghost.style.left = e.clientX + 'px';
+  ghost.style.top = e.clientY + 'px';
+  e.preventDefault();
+}
+
+function onMouseMove(e) {
+  if (!isDragging) return;
+  ghost.style.left = e.clientX + 'px';
+  ghost.style.top = e.clientY + 'px';
+
+  // Highlight slot under cursor
+  document.querySelectorAll('.slot').forEach(slot => slot.classList.remove('drag-over'));
+  const target = getSlotUnder(e.clientX, e.clientY);
+  if (target !== null) {
+    const el = document.getElementById(`slot-${slots[target].id}`);
+    if (el && !slots[target].occupied) el.classList.add('drag-over');
+  }
+}
+
+function onMouseUp(e) {
+  if (!isDragging) return;
+  isDragging = false;
+  carEl.classList.remove('is-dragging');
+  ring.classList.remove('dragging');
+  ghost.style.display = 'none';
+
+  document.querySelectorAll('.slot').forEach(s => s.classList.remove('drag-over'));
+
+  const target = getSlotUnder(e.clientX, e.clientY);
+  if (target !== null && !slots[target].occupied) {
+    parkVehicle(target);
+  }
+}
+
+function getSlotUnder(x, y) {
+  const slotEls = document.querySelectorAll('.slot');
+  for (const el of slotEls) {
+    const r = el.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+      return parseInt(el.dataset.index);
+    }
+  }
+  return null;
+}
+
+// Also support HTML5 drag as fallback
+carEl.setAttribute('draggable', 'true');
+carEl.addEventListener('dragstart', e => {
+  e.dataTransfer.setData('text/plain', 'car');
+  e.dataTransfer.effectAllowed = 'move';
+  // hide default ghost
+  const blank = document.createElement('canvas');
+  blank.width = blank.height = 1;
+  e.dataTransfer.setDragImage(blank, 0, 0);
+});
+
+function onDragOver(e) {
+  e.preventDefault();
+  const slotEl = e.currentTarget;
+  const idx = parseInt(slotEl.dataset.index);
+  if (!slots[idx].occupied) slotEl.classList.add('drag-over');
+}
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+function onDrop(e, idx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!slots[idx].occupied && !carEl.classList.contains('parked')) {
+    parkVehicle(idx);
+  }
+}
+
+// ── PARK VEHICLE ──
+function parkVehicle(idx) {
+  slots[idx].occupied = true;
+  currentSlot = idx;
+  totalVehicles++;
+
+  carEl.classList.add('parked');
+  renderSlots();
+  updateStats();
+
+  addFeedEvent('🔴', 'red', `Slot P${slots[idx].id} — Occupied`, `IR sensor triggered · Vehicle detected`);
+  setTimeout(() => addFeedEvent('📊', 'blue', 'Dashboard Updated', `Available: ${TOTAL - slots.filter(s=>s.occupied).length} · Occupied: ${slots.filter(s=>s.occupied).length}`), 600);
+
+  showToast(`🅿️  Slot P${slots[idx].id} occupied — IR triggered`);
+}
+
+// ── RESET ──
+function resetSimulation() {
+  slots.forEach(s => s.occupied = false);
+  currentSlot = null;
+  carEl.classList.remove('parked', 'is-dragging');
+  renderSlots();
+  updateStats();
+  addFeedEvent('🔄', 'amber', 'System Reset', 'All slots cleared · Ready for vehicles');
+  showToast('✅  Parking lot reset — all slots available');
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── CURSOR ──
+const dot = document.getElementById('curDot');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+(function animCursor() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+  if (!isDragging) {
+    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  } else {
+    ring.style.left = mx + 'px'; ring.style.top = my + 'px';
+  }
+  requestAnimationFrame(animCursor);
+})();
+
+document.querySelectorAll('a, button, .slot').forEach(el => {
+  el.addEventListener('mouseenter', () => { if (!isDragging) ring.classList.add('expand'); });
+  el.addEventListener('mouseleave', () => { if (!isDragging) ring.classList.remove('expand'); });
+});
+
+// ── PARTICLES ──
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+const particles = [];
+function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+resize(); window.addEventListener('resize', resize);
+for (let i = 0; i < 50; i++) particles.push({
+  x: Math.random()*innerWidth, y: Math.random()*innerHeight,
+  r: Math.random()*1.3+0.3, vx:(Math.random()-.5)*.16, vy:(Math.random()-.5)*.16,
+  a: Math.random()*.3+.07
+});
+(function drawP() {
+  ctx.clearRect(0,0,W,H);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(94,234,212,${p.a})`; ctx.fill();
+  });
+  requestAnimationFrame(drawP);
+})();
+
+// ── INIT ──
+renderSlots();
+updateStats();
+</script>
+</body>
+</html>

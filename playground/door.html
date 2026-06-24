@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ARCIO — Automatic Door System</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    :root {
+      --bg:#060A13;--bg2:#0A1120;--bg3:#0D1526;--bg4:#08101E;
+      --blue:#3B82F6;--blue-deep:#1D4ED8;
+      --cyan:#5EEAD4;--cyan2:#38BDF8;
+      --ink:#EAF1FF;--muted:#6B7DA0;--muted2:#4A5A7A;
+      --border:rgba(94,234,212,.10);--border-blue:rgba(59,130,246,.18);
+      --green:#34D399;--green2:#10B981;--amber:#F59E0B;--red:#F87171;
+      --panel-bg:rgba(10,17,32,.92);--panel-border:rgba(94,234,212,.10);
+      --radius:12px;--radius-sm:8px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{height:100%;}
+    body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);cursor:none;overflow-x:hidden;user-select:none;}
+
+    /* CURSOR */
+    .cur-dot{position:fixed;top:0;left:0;pointer-events:none;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:translate(-50%,-50%);z-index:9999;}
+    .cur-ring{position:fixed;top:0;left:0;pointer-events:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(94,234,212,.5);transform:translate(-50%,-50%);z-index:9998;transition:width .2s cubic-bezier(.2,.8,.3,1),height .2s,border-color .2s,background .2s;}
+    .cur-ring.expand{width:52px;height:52px;border-color:var(--cyan);background:rgba(94,234,212,.05);}
+    .cur-label{position:fixed;top:0;left:0;pointer-events:none;z-index:9997;font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.14em;color:var(--cyan);transform:translate(-50%,-50%);opacity:0;transition:opacity .18s;margin-top:24px;}
+    .cur-label.show{opacity:1;}
+
+    /* BG */
+    .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(94,234,212,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,212,.018) 1px,transparent 1px);background-size:44px 44px;}
+    .bg-atmos{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 65% 40% at 50% 0%,rgba(59,130,246,.07) 0%,transparent 65%),radial-gradient(ellipse 30% 25% at 85% 50%,rgba(94,234,212,.035) 0%,transparent 60%);}
+
+    /* TOPBAR */
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:52px;background:rgba(6,10,19,.96);border-bottom:1px solid rgba(94,234,212,.08);backdrop-filter:blur(20px);display:flex;align-items:center;padding:0 20px;gap:12px;}
+    .topbar-logo{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.04em;color:var(--ink);text-decoration:none;}
+    .topbar-logo span{color:var(--cyan2);}
+    .topbar-sep{width:1px;height:22px;background:rgba(94,234,212,.1);}
+    .topbar-expnum{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan2);background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.2);border-radius:4px;padding:2px 8px;}
+    .topbar-exptitle{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.02em;color:var(--ink);}
+    .topbar-spacer{flex:1;}
+    .topbar-status{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:sPulse 2s ease-in-out infinite;}
+    .status-dot.open{background:var(--cyan2);box-shadow:0 0 10px var(--cyan2);animation:openPulse .8s ease-in-out infinite;}
+    .status-txt{color:var(--green);}
+    .status-txt.open{color:var(--cyan2);}
+    @keyframes sPulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.8);}70%{box-shadow:0 0 0 6px rgba(52,211,153,0);}100%{box-shadow:0 0 0 0 rgba(52,211,153,0);}}
+    @keyframes openPulse{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.8);}50%{box-shadow:0 0 0 8px rgba(56,189,248,0);}}
+    .nav-back{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:none;transition:color .2s;text-decoration:none;border:1px solid rgba(94,234,212,.1);padding:5px 12px;border-radius:6px;}
+    .nav-back:hover{color:var(--cyan);border-color:rgba(94,234,212,.28);}
+    .nav-back svg{transition:transform .2s;}
+    .nav-back:hover svg{transform:translateX(-2px);}
+
+    /* PAGE */
+    .page{position:relative;z-index:1;padding-top:52px;min-height:100vh;}
+
+    /* HERO */
+    .hero{padding:44px 40px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan2);background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.2);border-radius:20px;padding:4px 14px;margin-bottom:18px;}
+    .badge-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 8px var(--cyan2);animation:bdPulse 2s ease-in-out infinite;}
+    @keyframes bdPulse{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.8);}50%{box-shadow:0 0 0 5px rgba(56,189,248,0);}}
+    .hero-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:clamp(30px,5vw,54px);letter-spacing:-.04em;line-height:1;color:var(--ink);margin-bottom:10px;}
+    .hero-title .accent{background:linear-gradient(135deg,var(--cyan2),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero-sub{font-size:14px;color:var(--muted);max-width:480px;line-height:1.6;}
+
+    /* LAYOUT */
+    .body-grid{display:grid;grid-template-columns:1fr 300px;gap:20px;padding:20px 40px 60px;max-width:1400px;margin:0 auto;}
+    .sim-arena{display:flex;flex-direction:column;gap:16px;}
+    .sim-title-row{display:flex;align-items:center;gap:10px;}
+    .sim-label{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
+    .sim-label-accent{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--cyan2);}
+
+    /* DOOR SCENE */
+    .door-scene-wrap{position:relative;background:rgba(8,13,24,.95);border:1px solid rgba(94,234,212,.12);border-radius:16px;overflow:hidden;height:480px;}
+    .scene-header{position:absolute;top:0;left:0;right:0;z-index:10;height:36px;background:rgba(6,10,19,.9);border-bottom:1px solid rgba(94,234,212,.08);backdrop-filter:blur(12px);display:flex;align-items:center;padding:0 14px;gap:8px;}
+    .sh-tag{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2);}
+    .sh-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+    .sh-spacer{flex:1;}
+    .sh-status{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.14em;padding:2px 10px;border-radius:4px;transition:all .3s;}
+    .sh-status.closed{color:var(--muted);background:rgba(107,125,160,.08);border:1px solid rgba(107,125,160,.2);}
+    .sh-status.open{color:var(--cyan2);background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.3);}
+
+    /* ACCESS BADGE */
+    .access-badge{position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:15;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;padding:5px 16px;border-radius:20px;transition:all .4s cubic-bezier(.2,.8,.3,1);opacity:0;pointer-events:none;}
+    .access-badge.granted{opacity:1;color:var(--green);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.35);}
+    .access-badge.denied{opacity:0;}
+
+    #doorCanvas{display:block;width:100%;height:100%;cursor:none;}
+    .sim-hint{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted2);letter-spacing:.1em;text-align:center;}
+
+    /* CONSOLE */
+    .console-panel{background:rgba(6,10,19,.96);border:1px solid rgba(94,234,212,.1);border-radius:12px;overflow:hidden;}
+    .console-header{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(94,234,212,.07);}
+    .console-title{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:1;}
+    .console-clear{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted2);cursor:none;transition:color .2s;letter-spacing:.08em;}
+    .console-clear:hover{color:var(--cyan);}
+    #consoleLog{height:120px;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:3px;}
+    #consoleLog::-webkit-scrollbar{width:3px;}
+    #consoleLog::-webkit-scrollbar-thumb{background:rgba(94,234,212,.15);border-radius:2px;}
+    .log-line{font-family:'JetBrains Mono',monospace;font-size:8.5px;line-height:1.5;display:flex;gap:8px;}
+    .log-ts{color:var(--muted2);flex-shrink:0;}
+    .log-ok{color:var(--green);}
+    .log-warn{color:var(--amber);}
+    .log-info{color:var(--cyan2);}
+
+    /* RIGHT */
+    .right-col{display:flex;flex-direction:column;gap:16px;}
+    .panel{background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:var(--radius);overflow:hidden;}
+    .panel-header{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid rgba(94,234,212,.07);}
+    .panel-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);}
+    .panel-title{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:1;}
+    .panel-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+    .stat-row{display:flex;align-items:center;justify-content:space-between;}
+    .stat-key{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:.08em;}
+    .stat-val{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--ink);}
+    .stat-val.ok{color:var(--green);}
+    .stat-val.active{color:var(--cyan2);}
+    .stat-val.warn{color:var(--amber);}
+    .stat-sep{height:1px;background:rgba(94,234,212,.06);}
+
+    /* Distance bar */
+    .dist-bar-wrap{display:flex;flex-direction:column;gap:6px;}
+    .dist-bar-label{display:flex;justify-content:space-between;align-items:center;}
+    .dist-bar-key{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);}
+    .dist-bar-val{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--cyan2);}
+    .dist-bar-track{height:5px;background:rgba(94,234,212,.08);border-radius:3px;overflow:hidden;}
+    .dist-bar-fill{height:100%;border-radius:3px;transition:width .25s ease,background .3s;background:var(--cyan2);}
+
+    /* SECTIONS */
+    .info-section{display:flex;flex-direction:column;gap:14px;padding:28px 40px;max-width:1400px;margin:0 auto;}
+    .info-section-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--ink);margin-bottom:4px;}
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
+    .info-card{background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:14px;padding:18px 18px 20px;transition:border-color .3s,transform .35s cubic-bezier(.2,.8,.3,1),box-shadow .35s;position:relative;overflow:hidden;}
+    .info-card:hover{border-color:rgba(94,234,212,.22);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+    .info-card-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.18);}
+    .info-card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.01em;color:var(--ink);margin-bottom:5px;}
+    .info-card-desc{font-size:11.5px;color:var(--muted);line-height:1.6;}
+    .info-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.2),transparent);opacity:0;transition:opacity .3s;}
+    .info-card:hover::after{opacity:1;}
+
+    .flow-chain{display:flex;flex-direction:column;align-items:flex-start;gap:0;}
+    .flow-step{display:flex;align-items:center;gap:12px;padding:10px 18px;background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:10px;transition:border-color .3s;}
+    .flow-step:hover{border-color:rgba(94,234,212,.24);}
+    .flow-num{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.15em;color:var(--cyan2);background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.18);border-radius:4px;padding:2px 7px;flex-shrink:0;}
+    .flow-text{font-size:12.5px;color:var(--ink);font-weight:500;}
+    .flow-arrow{display:flex;justify-content:flex-start;padding:0 18px;}
+
+    .arch-chain{display:flex;flex-direction:column;align-items:stretch;gap:0;}
+    .arch-node{display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(10,17,32,.85);border:1px solid rgba(56,189,248,.12);border-radius:10px;}
+    .arch-node-icon{width:28px;height:28px;border-radius:7px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .arch-node-label{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:var(--ink);}
+    .arch-node-sub{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;}
+    .arch-arrow{display:flex;justify-content:center;padding:2px 0;}
+
+    .apps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+    .app-chip{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:10px;transition:border-color .3s,background .3s;}
+    .app-chip:hover{border-color:rgba(94,234,212,.24);background:rgba(10,17,32,.95);}
+    .app-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);flex-shrink:0;}
+    .app-chip-name{font-size:12px;font-weight:500;color:var(--ink);}
+    .section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.1),transparent);margin:8px 40px;}
+  </style>
+</head>
+<body>
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="cur-label" id="curLabel">DRAG</div>
+<div class="bg-grid"></div>
+<div class="bg-atmos"></div>
+
+<nav class="topbar">
+  <a href="playground.html" class="topbar-logo">ARC<span>IO</span></a>
+  <div class="topbar-sep"></div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="topbar-expnum">SIM 02</span>
+    <span class="topbar-exptitle">Automatic Door System</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-status" id="topStatus">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-txt" id="statusTxt">STANDBY</span>
+  </div>
+  <div class="topbar-sep"></div>
+  <a href="playground.html" class="nav-back">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+    Playground
+  </a>
+</nav>
+
+<main class="page">
+  <section class="hero">
+    <div class="hero-badge"><div class="badge-dot"></div>Smart Building Entrance</div>
+    <h1 class="hero-title">Automatic <span class="accent">Door</span> System</h1>
+    <p class="hero-sub">Automated access control using ultrasonic proximity detection for seamless, touchless entry.</p>
+  </section>
+
+  <div class="body-grid">
+    <div class="sim-arena">
+      <div class="sim-title-row">
+        <span class="sim-label">Interactive Simulation</span>
+        <div style="flex:1;height:1px;background:rgba(94,234,212,.07);margin:0 8px;"></div>
+        <span class="sim-label-accent" id="distDisplay">Distance: — cm</span>
+      </div>
+
+      <div class="door-scene-wrap">
+        <div class="scene-header">
+          <div class="sh-dot"></div>
+          <span class="sh-tag">Building Entrance — Sensor HC-SR04</span>
+          <div class="sh-spacer"></div>
+          <span class="sh-status closed" id="shStatus">DOOR CLOSED</span>
+        </div>
+        <div class="access-badge" id="accessBadge">ACCESS GRANTED</div>
+        <canvas id="doorCanvas"></canvas>
+      </div>
+
+      <div class="sim-hint">Drag the person toward the door — ultrasonic sensor activates within detection range</div>
+
+      <div class="console-panel">
+        <div class="console-header">
+          <div class="panel-dot"></div>
+          <span class="console-title">Access Log</span>
+          <span class="console-clear" id="clearBtn">CLEAR</span>
+        </div>
+        <div id="consoleLog"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-col">
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot"></div>
+          <span class="panel-title">Analytics</span>
+        </div>
+        <div class="panel-body">
+          <div class="dist-bar-wrap">
+            <div class="dist-bar-label">
+              <span class="dist-bar-key">Distance</span>
+              <span class="dist-bar-val" id="distVal">— cm</span>
+            </div>
+            <div class="dist-bar-track"><div class="dist-bar-fill" id="distBar" style="width:0%"></div></div>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">Door Status</span><span class="stat-val ok" id="statDoor">CLOSED</span></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">Sensor State</span><span class="stat-val ok" id="statSensor">IDLE</span></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">Access Events</span><span class="stat-val active" id="statEvents">0</span></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">System Health</span><span class="stat-val ok" id="statHealth">ONLINE</span></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">Uptime</span><span class="stat-val" id="statUptime">00:00:00</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></div>
+          <span class="panel-title">Sensor Readout</span>
+        </div>
+        <div class="panel-body">
+          <div class="stat-row"><span class="stat-key">Ultrasonic</span><span class="stat-val ok" id="srUS">STANDBY</span></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">Threshold</span><span class="stat-val active">150 cm</span></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">Door Motor</span><span class="stat-val ok" id="srMotor">IDLE</span></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row"><span class="stat-key">Auto-Close</span><span class="stat-val active">ENABLED</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot" style="background:var(--green);box-shadow:0 0 6px var(--green);"></div>
+          <span class="panel-title">Last Event</span>
+        </div>
+        <div class="panel-body">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);line-height:1.8;" id="lastEvent">No events recorded.<br>System ready and monitoring.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="info-section">
+    <div class="info-section-title">Concepts Applied</div>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="1.8" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <div class="info-card-title">Ultrasonic Sensor</div>
+        <div class="info-card-desc">HC-SR04 emits 40kHz sound pulses and measures echo return time to calculate distance with centimeter precision.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M5.25 5.25a7.5 7.5 0 0 0 0 13.5M18.75 5.25a7.5 7.5 0 0 1 0 13.5"/></svg></div>
+        <div class="info-card-title">Distance Measurement</div>
+        <div class="info-card-desc">Distance (cm) = (echo pulse duration × speed of sound) ÷ 2. The controller evaluates this against a programmable threshold.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <div class="info-card-title">Automation</div>
+        <div class="info-card-desc">A microcontroller continuously polls the sensor and triggers the door motor drive circuit when the threshold is crossed.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="2" width="18" height="20" rx="1"/><path d="M9 2v20M15 12h-4"/></svg></div>
+        <div class="info-card-title">Smart Access</div>
+        <div class="info-card-desc">The door automatically closes after the person leaves the detection zone, completing a full open-close access cycle.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="info-section">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+      <div>
+        <div class="info-section-title" style="margin-bottom:16px;">How It Works</div>
+        <div class="flow-chain">
+          <div class="flow-step"><span class="flow-num">01</span><span class="flow-text">Person approaches the entrance</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">02</span><span class="flow-text">Sensor detects distance &lt; threshold</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">03</span><span class="flow-text">Controller evaluates threshold</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">04</span><span class="flow-text">Door motor activates — door opens</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">05</span><span class="flow-text">Person leaves — door auto-closes</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="info-section-title" style="margin-bottom:16px;">IoT Architecture</div>
+        <div class="arch-chain">
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <div><div class="arch-node-label">Ultrasonic Sensor</div><div class="arch-node-sub">HC-SR04 — Distance Input</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="3"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg></div>
+            <div><div class="arch-node-label">Controller</div><div class="arch-node-sub">Arduino / ESP32 Logic</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><rect x="3" y="2" width="18" height="20" rx="1"/><path d="M9 2v20"/></svg></div>
+            <div><div class="arch-node-label">Door Motor</div><div class="arch-node-sub">Servo / Stepper Actuator</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <div><div class="arch-node-label">Access Control</div><div class="arch-node-sub">Log + Notification</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="info-section">
+    <div class="info-section-title">Real-World Applications</div>
+    <div class="apps-grid">
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Shopping Malls</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Hospitals</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Airports</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Corporate Offices</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Hotels</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Metro Stations</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Clean Rooms</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Smart Homes</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// CURSOR
+const dot=document.getElementById('curDot'),ring=document.getElementById('curRing'),lbl=document.getElementById('curLabel');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function ac(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+  dot.style.left=mx+'px';dot.style.top=my+'px';
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  lbl.style.left=rx+'px';lbl.style.top=ry+'px';
+  requestAnimationFrame(ac);})();
+document.querySelectorAll('a,.info-card,.app-chip').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ring.classList.add('expand');lbl.classList.add('show');lbl.textContent='VIEW';});
+  el.addEventListener('mouseleave',()=>{ring.classList.remove('expand');lbl.classList.remove('show');});
+});
+
+// UPTIME
+let uptime=0;
+setInterval(()=>{uptime++;const h=String(Math.floor(uptime/3600)).padStart(2,'0'),m=String(Math.floor((uptime%3600)/60)).padStart(2,'0'),s=String(uptime%60).padStart(2,'0');document.getElementById('statUptime').textContent=`${h}:${m}:${s}`;},1000);
+
+// CANVAS
+const canvas=document.getElementById('doorCanvas');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){
+  const rect=canvas.parentElement.getBoundingClientRect();
+  W=canvas.width=rect.width;
+  H=canvas.height=rect.height;
+}
+resize();
+window.addEventListener('resize',resize);
+
+// State
+let doorOpen=0; // 0 = closed, 1 = fully open (animated)
+let doorTarget=0;
+let personInRange=false;
+let accessEvents=0;
+let sonarPhase=0;
+let sonarRings=[];
+let echoActive=false;
+let echoTimer=0;
+
+// Person
+const person={x:0,y:0,r:14,dragging:false,ox:0,oy:0};
+
+// Console log
+const logEl=document.getElementById('consoleLog');
+function log(msg,type='info'){
+  const now=new Date();
+  const ts=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const div=document.createElement('div');
+  div.className='log-line';
+  div.innerHTML=`<span class="log-ts">${ts}</span><span class="log-${type}">${msg}</span>`;
+  logEl.appendChild(div);
+  logEl.scrollTop=logEl.scrollHeight;
+  if(logEl.children.length>80)logEl.removeChild(logEl.children[0]);
+}
+document.getElementById('clearBtn').addEventListener('click',()=>{logEl.innerHTML='';log('Log cleared','info');});
+
+function initPerson(){person.x=W*0.12;person.y=H*0.62;}
+
+// Door geometry
+function getDoor(){
+  // Door frame center
+  const frameX=W*0.5, frameY=H*0.08+H*0.06;
+  const frameW=W*0.32, frameH=H*0.82;
+  // Each panel half-width
+  const panelW=frameW/2;
+  return{frameX,frameY,frameW,frameH,panelW};
+}
+
+// Sensor position
+function getSensor(){
+  const d=getDoor();
+  return{x:d.frameX,y:d.frameY+d.frameH*0.78};
+}
+
+// Detection range in pixels (maps to ~150cm)
+const DETECT_RANGE_PX=()=>Math.min(W,H)*0.42;
+const MAX_DIST_CM=300;
+const THRESHOLD_CM=150;
+
+function pixDistToCm(px){
+  return Math.round((px/DETECT_RANGE_PX())*MAX_DIST_CM);
+}
+
+function setDoorState(open){
+  if(open===personInRange)return;
+  personInRange=open;
+  if(open){
+    doorTarget=1;
+    accessEvents++;
+    document.getElementById('statDoor').textContent='OPEN';
+    document.getElementById('statDoor').className='stat-val active';
+    document.getElementById('statSensor').textContent='TRIGGERED';
+    document.getElementById('statSensor').className='stat-val active';
+    document.getElementById('srUS').textContent='ACTIVE';
+    document.getElementById('srUS').className='stat-val active';
+    document.getElementById('srMotor').textContent='RUNNING';
+    document.getElementById('srMotor').className='stat-val active';
+    document.getElementById('statEvents').textContent=accessEvents;
+    document.getElementById('shStatus').textContent='DOOR OPEN';
+    document.getElementById('shStatus').className='sh-status open';
+    document.getElementById('statusDot').classList.add('open');
+    document.getElementById('statusTxt').textContent='OPEN';
+    document.getElementById('statusTxt').classList.add('open');
+    document.getElementById('accessBadge').className='access-badge granted';
+    document.getElementById('lastEvent').innerHTML=`Event: ACCESS GRANTED<br>Distance: threshold crossed<br>Time: ${new Date().toLocaleTimeString()}<br>Events: ${accessEvents}`;
+    log('Person detected — threshold crossed','ok');
+    log('Door motor activated — OPENING','ok');
+    log(`Access event #${accessEvents} logged`,'info');
+  } else {
+    doorTarget=0;
+    document.getElementById('statDoor').textContent='CLOSING';
+    document.getElementById('statDoor').className='stat-val warn';
+    document.getElementById('statSensor').textContent='IDLE';
+    document.getElementById('statSensor').className='stat-val ok';
+    document.getElementById('srUS').textContent='STANDBY';
+    document.getElementById('srUS').className='stat-val ok';
+    document.getElementById('srMotor').textContent='CLOSING';
+    document.getElementById('srMotor').className='stat-val warn';
+    document.getElementById('shStatus').textContent='DOOR CLOSING';
+    document.getElementById('shStatus').className='sh-status closed';
+    document.getElementById('statusDot').classList.remove('open');
+    document.getElementById('statusTxt').textContent='STANDBY';
+    document.getElementById('statusTxt').classList.remove('open');
+    document.getElementById('accessBadge').className='access-badge denied';
+    log('Person left detection zone','warn');
+    log('Door auto-closing initiated','info');
+    setTimeout(()=>{
+      document.getElementById('statDoor').textContent='CLOSED';
+      document.getElementById('statDoor').className='stat-val ok';
+      document.getElementById('srMotor').textContent='IDLE';
+      document.getElementById('srMotor').className='stat-val ok';
+      document.getElementById('shStatus').textContent='DOOR CLOSED';
+      log('Door fully closed — STANDBY','ok');
+    },1800);
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  sonarPhase+=0.04;
+  echoTimer++;
+
+  // Animate door
+  const speed=0.035;
+  if(doorOpen<doorTarget)doorOpen=Math.min(doorTarget,doorOpen+speed);
+  else if(doorOpen>doorTarget)doorOpen=Math.max(doorTarget,doorOpen-speed);
+
+  const d=getDoor();
+  const sen=getSensor();
+  const openOffset=d.panelW*0.9*doorOpen;
+
+  // Background building interior
+  ctx.save();
+  ctx.fillStyle='rgba(6,10,19,.9)';
+  ctx.fillRect(0,36,W,H-36);
+  ctx.restore();
+
+  // Floor markings
+  ctx.save();
+  ctx.strokeStyle='rgba(94,234,212,.06)';ctx.lineWidth=1;ctx.setLineDash([8,12]);
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(0,H*0.2+i*H*0.15);ctx.lineTo(W,H*0.2+i*H*0.15);ctx.stroke();}
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Detection zone arc
+  const detR=DETECT_RANGE_PX();
+  const inRange_px=Math.sqrt((person.x-sen.x)**2+(person.y-sen.y)**2);
+  const inRange=inRange_px<detR && person.y>sen.y-20;
+
+  // Sonar rings (pulsing outward from sensor)
+  if(echoTimer%28===0){sonarRings.push({r:0,alpha:.5,inRange});}
+  sonarRings=sonarRings.filter(r=>r.alpha>0.01);
+  sonarRings.forEach(r=>{
+    ctx.save();
+    ctx.beginPath();ctx.arc(sen.x,sen.y,r.r,Math.PI*.05,Math.PI*0.95);
+    ctx.strokeStyle=inRange?`rgba(52,211,153,${r.alpha})`:`rgba(56,189,248,${r.alpha})`;
+    ctx.lineWidth=1.5;ctx.stroke();
+    r.r+=3.5;r.alpha-=0.014;
+    ctx.restore();
+  });
+
+  // Detection zone fill
+  ctx.save();
+  const dg=ctx.createRadialGradient(sen.x,sen.y,0,sen.x,sen.y,detR);
+  dg.addColorStop(0,inRange?'rgba(52,211,153,.06)':'rgba(56,189,248,.04)');
+  dg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.arc(sen.x,sen.y,detR,Math.PI*0.05,Math.PI*0.95);
+  ctx.closePath();ctx.fillStyle=dg;ctx.fill();
+  // threshold ring
+  const threshPx=DETECT_RANGE_PX()*(THRESHOLD_CM/MAX_DIST_CM);
+  ctx.beginPath();ctx.arc(sen.x,sen.y,threshPx,Math.PI*0.05,Math.PI*0.95);
+  ctx.strokeStyle='rgba(56,189,248,.18)';ctx.lineWidth=1;ctx.setLineDash([4,6]);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font='500 7px JetBrains Mono,monospace';ctx.fillStyle='rgba(56,189,248,.4)';ctx.textAlign='center';
+  ctx.fillText('DETECTION ZONE (150cm)',sen.x,sen.y+threshPx+12);
+  ctx.restore();
+
+  // Sensor label
+  ctx.save();
+  ctx.font='600 8px JetBrains Mono,monospace';
+  ctx.fillStyle=inRange?'rgba(52,211,153,.8)':'rgba(56,189,248,.6)';
+  ctx.textAlign='center';
+  ctx.fillText('HC-SR04',sen.x,sen.y+16);
+  // sensor body
+  ctx.fillStyle=inRange?'rgba(52,211,153,.15)':'rgba(56,189,248,.1)';
+  ctx.strokeStyle=inRange?'rgba(52,211,153,.5)':'rgba(56,189,248,.4)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(sen.x-14,sen.y-7,28,12,3);ctx.fill();ctx.stroke();
+  // sensor eyes
+  [-6,6].forEach(ox=>{
+    ctx.beginPath();ctx.arc(sen.x+ox,sen.y-1,3,0,Math.PI*2);
+    ctx.fillStyle=inRange?'rgba(52,211,153,.5)':'rgba(56,189,248,.35)';ctx.fill();
+    ctx.strokeStyle=inRange?'rgba(52,211,153,.8)':'rgba(56,189,248,.6)';ctx.lineWidth=1;ctx.stroke();
+  });
+  ctx.restore();
+
+  // DOOR FRAME
+  ctx.save();
+  ctx.strokeStyle='rgba(94,234,212,.25)';ctx.lineWidth=3;
+  // Left jamb
+  ctx.beginPath();ctx.moveTo(d.frameX-d.frameW/2,d.frameY);ctx.lineTo(d.frameX-d.frameW/2,d.frameY+d.frameH);ctx.stroke();
+  // Right jamb
+  ctx.beginPath();ctx.moveTo(d.frameX+d.frameW/2,d.frameY);ctx.lineTo(d.frameX+d.frameW/2,d.frameY+d.frameH);ctx.stroke();
+  // Lintel
+  ctx.beginPath();ctx.moveTo(d.frameX-d.frameW/2-4,d.frameY);ctx.lineTo(d.frameX+d.frameW/2+4,d.frameY);ctx.stroke();
+  // Floor line
+  ctx.strokeStyle='rgba(94,234,212,.15)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(d.frameX-d.frameW/2,d.frameY+d.frameH);ctx.lineTo(d.frameX+d.frameW/2,d.frameY+d.frameH);ctx.stroke();
+  ctx.restore();
+
+  // DOOR PANELS (glass sliding)
+  // Left panel
+  const leftPanelX=d.frameX-d.frameW/2;
+  const leftPanelW=d.panelW-2;
+  ctx.save();
+  // Glass fill
+  const glassAlpha=0.1+doorOpen*0.04;
+  ctx.fillStyle=`rgba(56,189,248,${glassAlpha})`;
+  ctx.strokeStyle=doorOpen>0?'rgba(56,189,248,.45)':'rgba(94,234,212,.3)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.rect(leftPanelX-openOffset,d.frameY+2,leftPanelW,d.frameH-4);
+  ctx.fill();ctx.stroke();
+  // Glass panes
+  const pw=leftPanelW,ph=d.frameH-4,panes=3;
+  for(let i=0;i<panes;i++){
+    const py=d.frameY+2+i*(ph/panes);
+    ctx.beginPath();ctx.moveTo(leftPanelX-openOffset,py+ph/panes*0.5);
+    ctx.lineTo(leftPanelX-openOffset+pw,py+ph/panes*0.5);
+    ctx.strokeStyle='rgba(56,189,248,.1)';ctx.lineWidth=1;ctx.stroke();
+  }
+  // Sheen
+  ctx.fillStyle=`rgba(255,255,255,${0.03+doorOpen*0.02})`;
+  ctx.beginPath();ctx.rect(leftPanelX-openOffset+4,d.frameY+8,8,d.frameH-16);ctx.fill();
+  ctx.restore();
+
+  // Right panel
+  const rightPanelX=d.frameX+2;
+  ctx.save();
+  ctx.fillStyle=`rgba(56,189,248,${glassAlpha})`;
+  ctx.strokeStyle=doorOpen>0?'rgba(56,189,248,.45)':'rgba(94,234,212,.3)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.rect(rightPanelX+openOffset,d.frameY+2,leftPanelW,d.frameH-4);
+  ctx.fill();ctx.stroke();
+  for(let i=0;i<panes;i++){
+    const py=d.frameY+2+i*(d.frameH/panes);
+    ctx.beginPath();ctx.moveTo(rightPanelX+openOffset,py+(d.frameH/panes)*0.5);
+    ctx.lineTo(rightPanelX+openOffset+leftPanelW,py+(d.frameH/panes)*0.5);
+    ctx.strokeStyle='rgba(56,189,248,.1)';ctx.lineWidth=1;ctx.stroke();
+  }
+  ctx.fillStyle=`rgba(255,255,255,${0.03+doorOpen*0.02})`;
+  ctx.beginPath();ctx.rect(rightPanelX+openOffset+leftPanelW-12,d.frameY+8,8,d.frameH-16);ctx.fill();
+
+  // Door open light shaft
+  if(doorOpen>0.1){
+    const gapW=(leftPanelW*2+4)*doorOpen*0.9;
+    const shaft=ctx.createLinearGradient(d.frameX,d.frameY,d.frameX,d.frameY+d.frameH);
+    shaft.addColorStop(0,`rgba(56,189,248,${doorOpen*0.08})`);
+    shaft.addColorStop(0.5,`rgba(56,189,248,${doorOpen*0.14})`);
+    shaft.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=shaft;
+    ctx.beginPath();ctx.rect(d.frameX-gapW/2,d.frameY,gapW,d.frameH);ctx.fill();
+  }
+  ctx.restore();
+
+  // ACCESS GRANTED / CLOSED label on door header
+  ctx.save();
+  ctx.font='700 9px JetBrains Mono,monospace';
+  ctx.fillStyle=doorOpen>0.5?'rgba(52,211,153,.7)':'rgba(56,189,248,.4)';
+  ctx.textAlign='center';
+  ctx.fillText(doorOpen>0.5?'ACCESS GRANTED':'STANDBY',d.frameX,d.frameY-8);
+  ctx.restore();
+
+  // PERSON
+  const personColor=inRange?'rgba(52,211,153,1)':'rgba(94,234,212,.9)';
+  const personGlow=inRange?'rgba(52,211,153,.25)':'rgba(94,234,212,.15)';
+  ctx.save();
+  ctx.beginPath();ctx.arc(person.x,person.y,person.r+7,0,Math.PI*2);
+  const pg=ctx.createRadialGradient(person.x,person.y,0,person.x,person.y,person.r+7);
+  pg.addColorStop(0,personGlow);pg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=pg;ctx.fill();
+  ctx.beginPath();ctx.arc(person.x,person.y,person.r,0,Math.PI*2);
+  ctx.fillStyle='rgba(10,17,32,.9)';ctx.fill();
+  ctx.strokeStyle=personColor;ctx.lineWidth=1.8;ctx.stroke();
+  ctx.strokeStyle=personColor;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(person.x,person.y-4,3.5,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x,person.y-0.5);ctx.lineTo(person.x,person.y+5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x-4,person.y+2);ctx.lineTo(person.x+4,person.y+2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x,person.y+5);ctx.lineTo(person.x-3,person.y+10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x,person.y+5);ctx.lineTo(person.x+3,person.y+10);ctx.stroke();
+  ctx.font='500 7px JetBrains Mono,monospace';ctx.fillStyle=personColor;ctx.textAlign='center';
+  ctx.fillText('DRAG',person.x,person.y+person.r+10);
+  ctx.restore();
+
+  // Distance measurement line
+  if(inRange_px<detR*1.2){
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(person.x,person.y);ctx.lineTo(sen.x,sen.y);
+    ctx.strokeStyle=inRange?'rgba(52,211,153,.3)':'rgba(56,189,248,.2)';
+    ctx.lineWidth=1;ctx.setLineDash([3,5]);ctx.stroke();ctx.setLineDash([]);
+    const midX=(person.x+sen.x)/2,midY=(person.y+sen.y)/2;
+    const cm=pixDistToCm(inRange_px);
+    ctx.fillStyle=inRange?'rgba(52,211,153,.7)':'rgba(56,189,248,.5)';
+    ctx.font='600 8px JetBrains Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(`${cm} cm`,midX,midY-5);
+    ctx.restore();
+    // update UI
+    const pct=Math.min(100,Math.round((cm/MAX_DIST_CM)*100));
+    const barPct=100-pct;
+    document.getElementById('distVal').textContent=`${cm} cm`;
+    document.getElementById('distBar').style.width=barPct+'%';
+    document.getElementById('distBar').style.background=inRange?'var(--green)':'var(--cyan2)';
+    document.getElementById('distDisplay').textContent=`Distance: ${cm} cm`;
+  } else {
+    document.getElementById('distVal').textContent='> 300 cm';
+    document.getElementById('distBar').style.width='0%';
+    document.getElementById('distDisplay').textContent='Distance: Out of Range';
+  }
+
+  setDoorState(inRange);
+  requestAnimationFrame(draw);
+}
+
+window.addEventListener('resize',()=>{resize();initPerson();});
+initPerson();
+draw();
+
+log('ARCIO Door System initialized','ok');
+log('HC-SR04 sensor online — threshold: 150cm','ok');
+log('Drag person into detection range to open door','info');
+
+// DRAG
+canvas.addEventListener('mousedown',e=>{
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;
+  const dx=mx-person.x,dy=my-person.y;
+  if(Math.sqrt(dx*dx+dy*dy)<person.r+12){person.dragging=true;person.ox=dx;person.oy=dy;lbl.textContent='DRAG';ring.classList.add('expand');lbl.classList.add('show');}
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!person.dragging)return;
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  person.x=(e.clientX-r.left)*sx-person.ox;
+  person.y=(e.clientY-r.top)*sy-person.oy;
+  person.x=Math.max(person.r,Math.min(W-person.r,person.x));
+  person.y=Math.max(person.r+40,Math.min(H-person.r,person.y));
+});
+canvas.addEventListener('mouseup',()=>{person.dragging=false;ring.classList.remove('expand');lbl.classList.remove('show');});
+canvas.addEventListener('mouseleave',()=>{person.dragging=false;});
+
+// TOUCH
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const t=e.touches[0],r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  const mx=(t.clientX-r.left)*sx,my=(t.clientY-r.top)*sy;
+  const dx=mx-person.x,dy=my-person.y;
+  if(Math.sqrt(dx*dx+dy*dy)<person.r+16){person.dragging=true;person.ox=dx;person.oy=dy;}
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(!person.dragging)return;
+  const t=e.touches[0],r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  person.x=(t.clientX-r.left)*sx-person.ox;
+  person.y=(t.clientY-r.top)*sy-person.oy;
+  person.x=Math.max(person.r,Math.min(W-person.r,person.x));
+  person.y=Math.max(person.r+40,Math.min(H-person.r,person.y));
+},{passive:false});
+canvas.addEventListener('touchend',()=>{person.dragging=false;});
+
+// Info card entrance
+const io=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='';}});},{threshold:0.1});
+document.querySelectorAll('.info-card,.flow-step,.arch-node,.app-chip').forEach((el,i)=>{
+  el.style.opacity='0';el.style.transform='translateY(18px)';
+  el.style.transition=`opacity .55s ${i*0.07}s ease,transform .55s ${i*0.07}s cubic-bezier(.2,.8,.3,1)`;
+  io.observe(el);
+});
+</script>
+</body>
+</html>

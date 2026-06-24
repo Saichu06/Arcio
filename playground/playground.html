@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ARCIO Playground</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #060A13;
+      --bg2: #0A1120;
+      --bg3: #0D1526;
+      --bg4: #08101E;
+      --blue: #3B82F6;
+      --blue-deep: #1D4ED8;
+      --cyan: #5EEAD4;
+      --cyan2: #38BDF8;
+      --ink: #EAF1FF;
+      --muted: #6B7DA0;
+      --muted2: #4A5A7A;
+      --border: rgba(94,234,212,0.10);
+      --border-blue: rgba(59,130,246,0.18);
+      --green: #34D399;
+      --green2: #10B981;
+      --amber: #F59E0B;
+      --red: #F87171;
+      --panel-bg: rgba(10,17,32,0.92);
+      --panel-border: rgba(94,234,212,0.10);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      cursor: none;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* ── CURSOR ── */
+    .cur-dot {
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; width: 5px; height: 5px;
+      border-radius: 50%; background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      transform: translate(-50%,-50%); z-index: 9999;
+      transition: opacity .3s;
+    }
+    .cur-ring {
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; width: 34px; height: 34px;
+      border-radius: 50%; border: 1.5px solid rgba(94,234,212,.5);
+      transform: translate(-50%,-50%); z-index: 9998;
+      transition: width .2s cubic-bezier(.2,.8,.3,1), height .2s, border-color .2s, background .2s;
+    }
+    .cur-ring.expand {
+      width: 52px; height: 52px;
+      border-color: var(--cyan);
+      background: rgba(94,234,212,.05);
+    }
+    .cur-label {
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9997;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px; font-weight: 600; letter-spacing: .14em;
+      color: var(--cyan); transform: translate(-50%,-50%);
+      opacity: 0; transition: opacity .18s; margin-top: 24px;
+    }
+    .cur-label.show { opacity: 1; }
+
+    /* ── BACKGROUND ── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(94,234,212,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(94,234,212,.018) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .bg-atmos {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 45% at 50% -5%, rgba(59,130,246,.08) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 15% 50%, rgba(94,234,212,.04) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 85% 60%, rgba(56,189,248,.04) 0%, transparent 60%);
+    }
+    .bg-circuit {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .035;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 200; height: 54px;
+      background: rgba(6,10,19,.92);
+      border-bottom: 1px solid rgba(94,234,212,.08);
+      backdrop-filter: blur(20px);
+      display: flex; align-items: center;
+      padding: 0 28px; gap: 14px;
+    }
+    .topbar-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: 20px;
+      letter-spacing: -.04em; color: var(--ink);
+      text-decoration: none; flex-shrink: 0;
+    }
+    .topbar-logo span { color: var(--cyan2); }
+    .topbar-sep {
+      width: 1px; height: 22px;
+      background: rgba(94,234,212,.1);
+    }
+    .topbar-center {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+    }
+    .topbar-title-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+    }
+    .topbar-supertag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px; font-weight: 600;
+      letter-spacing: .22em; text-transform: uppercase;
+      color: var(--cyan2); opacity: .7;
+    }
+    .topbar-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 14px;
+      letter-spacing: -.02em; color: var(--ink);
+    }
+    .nav-back {
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); cursor: none;
+      transition: color .2s; text-decoration: none;
+      border: 1px solid rgba(94,234,212,.1);
+      padding: 5px 12px; border-radius: 6px;
+    }
+    .nav-back:hover {
+      color: var(--cyan); border-color: rgba(94,234,212,.28);
+    }
+    .nav-back svg { transition: transform .2s; }
+    .nav-back:hover svg { transform: translateX(-2px); }
+
+    /* ── MAIN SCROLL CONTAINER ── */
+    .page {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      padding-top: 54px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      padding: 80px 48px 60px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .hero-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: .22em; text-transform: uppercase;
+      color: var(--cyan2);
+      background: rgba(56,189,248,.07);
+      border: 1px solid rgba(56,189,248,.2);
+      border-radius: 20px; padding: 5px 14px;
+      margin-bottom: 28px;
+    }
+    .hero-label-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--cyan2);
+      box-shadow: 0 0 8px var(--cyan2);
+      animation: labelPulse 2s ease-in-out infinite;
+    }
+    @keyframes labelPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,.8); }
+      50% { box-shadow: 0 0 0 5px rgba(56,189,248,0); }
+    }
+    .hero-headline {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: clamp(52px, 7vw, 88px);
+      letter-spacing: -.04em;
+      line-height: 1; color: var(--ink);
+      margin-bottom: 22px;
+    }
+    .hero-headline .accent {
+      background: linear-gradient(135deg, var(--cyan2), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 16px; color: var(--muted);
+      max-width: 520px; margin: 0 auto 48px;
+      line-height: 1.6; font-weight: 400;
+    }
+    .hero-stats {
+      display: flex; justify-content: center; align-items: center;
+      gap: 0;
+    }
+    .hero-stat {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 0 36px;
+      position: relative;
+    }
+    .hero-stat + .hero-stat::before {
+      content: '';
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      width: 1px; height: 32px;
+      background: rgba(94,234,212,.12);
+    }
+    .hero-stat-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: 28px;
+      letter-spacing: -.03em; color: var(--ink);
+    }
+    .hero-stat-num span { color: var(--cyan2); }
+    .hero-stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .18em; text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── SHOWCASE AREA ── */
+    .showcase {
+      position: relative;
+      padding: 20px 32px 80px;
+      min-height: 700px;
+    }
+    .showcase-stage {
+      position: relative;
+      width: 100%; max-width: 1200px;
+      margin: 0 auto;
+      height: 680px;
+    }
+
+    /* ── SIM CARD ── */
+    .sim-card {
+      position: absolute;
+      width: 270px;
+      background: rgba(10,17,32,.88);
+      border: 1px solid rgba(94,234,212,.12);
+      border-radius: 18px;
+      overflow: hidden;
+      cursor: none;
+      backdrop-filter: blur(20px);
+      transition: transform .45s cubic-bezier(.2,.8,.3,1),
+                  box-shadow .45s cubic-bezier(.2,.8,.3,1),
+                  border-color .3s;
+      transform-style: preserve-3d;
+      will-change: transform;
+      text-decoration: none; color: inherit;
+      display: block;
+    }
+    .sim-card:hover {
+      border-color: rgba(94,234,212,.32);
+      box-shadow:
+        0 24px 64px rgba(0,0,0,.6),
+        0 0 0 1px rgba(94,234,212,.1),
+        0 0 40px rgba(94,234,212,.08);
+      z-index: 10;
+    }
+    /* Individual card positions */
+    .sim-card[data-id="1"] { top: 20px;  left: 50%; transform: translateX(-50%); }
+    .sim-card[data-id="2"] { top: 160px; left: 4%; }
+    .sim-card[data-id="3"] { top: 160px; right: 4%; }
+    .sim-card[data-id="4"] { top: 360px; left: 22%; }
+    .sim-card[data-id="5"] { top: 370px; right: 22%; }
+    .sim-card[data-id="6"] { top: 520px; left: 50%; transform: translateX(-50%); }
+
+    /* Hover transforms (JS will add .hovered) but also CSS fallback */
+    .sim-card[data-id="1"]:hover { transform: translateX(-50%) translateY(-12px) scale(1.02); }
+    .sim-card[data-id="6"]:hover { transform: translateX(-50%) translateY(-12px) scale(1.02); }
+    .sim-card[data-id="2"]:hover { transform: translateY(-12px) scale(1.02); }
+    .sim-card[data-id="3"]:hover { transform: translateY(-12px) scale(1.02); }
+    .sim-card[data-id="4"]:hover { transform: translateY(-12px) scale(1.02); }
+    .sim-card[data-id="5"]:hover { transform: translateY(-12px) scale(1.02); }
+
+    /* Floating animation per card */
+    .sim-card[data-id="1"] { animation: float1 6.2s ease-in-out infinite; }
+    .sim-card[data-id="2"] { animation: float2 7s ease-in-out infinite; }
+    .sim-card[data-id="3"] { animation: float3 5.8s ease-in-out infinite; }
+    .sim-card[data-id="4"] { animation: float4 6.6s ease-in-out infinite; }
+    .sim-card[data-id="5"] { animation: float5 7.4s ease-in-out infinite; }
+    .sim-card[data-id="6"] { animation: float6 6s ease-in-out infinite; }
+
+    @keyframes float1 {
+      0%,100% { top: 20px; }
+      50% { top: 10px; }
+    }
+    @keyframes float2 {
+      0%,100% { top: 160px; }
+      50% { top: 148px; }
+    }
+    @keyframes float3 {
+      0%,100% { top: 160px; }
+      50% { top: 172px; }
+    }
+    @keyframes float4 {
+      0%,100% { top: 360px; }
+      50% { top: 348px; }
+    }
+    @keyframes float5 {
+      0%,100% { top: 370px; }
+      50% { top: 382px; }
+    }
+    @keyframes float6 {
+      0%,100% { top: 520px; }
+      50% { top: 510px; }
+    }
+    .sim-card:hover { animation-play-state: paused; }
+
+    /* Image container */
+    .sim-img {
+      width: 100%; height: 148px;
+      background: rgba(6,10,19,.7);
+      position: relative; overflow: hidden;
+      border-bottom: 1px solid rgba(94,234,212,.07);
+    }
+    .sim-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform .5s cubic-bezier(.2,.8,.3,1);
+      opacity: .85;
+    }
+    .sim-card:hover .sim-img img { transform: scale(1.07); }
+    .sim-img-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom,
+        rgba(6,10,19,0) 40%,
+        rgba(6,10,19,.5) 100%);
+      pointer-events: none;
+    }
+    /* Placeholder when no img */
+    .sim-img-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, rgba(6,10,19,.9), rgba(10,17,32,.95));
+      position: relative; overflow: hidden;
+    }
+    .sim-img-placeholder svg {
+      opacity: .15;
+    }
+    .sim-img-placeholder::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 50%, rgba(56,189,248,.06) 0%, transparent 70%);
+    }
+    /* Reflection shimmer */
+    .sim-reflection {
+      position: absolute; top: 0; left: -80%;
+      width: 60%; height: 100%;
+      background: linear-gradient(105deg,
+        transparent 40%, rgba(255,255,255,.04) 50%, transparent 60%);
+      pointer-events: none;
+      transition: left .6s cubic-bezier(.2,.8,.3,1);
+    }
+    .sim-card:hover .sim-reflection { left: 130%; }
+
+    /* Card body */
+    .sim-body { padding: 14px 16px 16px; }
+    .sim-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .2em; text-transform: uppercase;
+      color: var(--cyan2);
+      background: rgba(56,189,248,.07);
+      border: 1px solid rgba(56,189,248,.18);
+      border-radius: 4px; padding: 2px 8px;
+      display: inline-block; margin-bottom: 10px;
+    }
+    .sim-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 16px;
+      letter-spacing: -.02em; color: var(--ink);
+      margin-bottom: 6px; line-height: 1.2;
+    }
+    .sim-desc {
+      font-size: 11.5px; color: var(--muted);
+      line-height: 1.55; margin-bottom: 14px;
+    }
+    .sim-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid rgba(94,234,212,.07);
+    }
+    .sim-sensor {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .sim-sensor-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--cyan); box-shadow: 0 0 6px var(--cyan);
+    }
+    .sim-sensor-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; color: var(--muted);
+      letter-spacing: .1em;
+    }
+    .sim-launch {
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--cyan2);
+      opacity: 0; transform: translateX(-6px);
+      transition: opacity .3s, transform .3s;
+    }
+    .sim-card:hover .sim-launch {
+      opacity: 1; transform: translateX(0);
+    }
+    .sim-launch svg { flex-shrink: 0; }
+
+    /* Card glow accent line */
+    .sim-accent {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg,
+        transparent, rgba(56,189,248,.5), var(--cyan), rgba(56,189,248,.5), transparent);
+      opacity: 0; transition: opacity .3s;
+    }
+    .sim-card:hover .sim-accent { opacity: 1; }
+
+    /* ── WHY SECTION ── */
+    .why-section {
+      padding: 80px 48px 100px;
+      text-align: center;
+    }
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: .22em; text-transform: uppercase;
+      color: var(--muted2); margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: clamp(26px, 3.5vw, 38px);
+      letter-spacing: -.03em; color: var(--ink);
+      margin-bottom: 48px;
+    }
+    .why-grid {
+      display: flex; justify-content: center;
+      gap: 20px; flex-wrap: wrap;
+    }
+    .why-card {
+      width: 300px;
+      background: rgba(10,17,32,.85);
+      border: 1px solid rgba(94,234,212,.1);
+      border-radius: 16px; padding: 28px 26px;
+      backdrop-filter: blur(16px);
+      text-align: left;
+      transition: border-color .3s, transform .35s cubic-bezier(.2,.8,.3,1),
+                  box-shadow .35s;
+      position: relative; overflow: hidden;
+    }
+    .why-card:hover {
+      border-color: rgba(94,234,212,.24);
+      transform: translateY(-6px);
+      box-shadow: 0 20px 50px rgba(0,0,0,.4), 0 0 30px rgba(94,234,212,.06);
+    }
+    .why-card-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+      background: rgba(56,189,248,.08);
+      border: 1px solid rgba(56,189,248,.2);
+    }
+    .why-card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 16px;
+      letter-spacing: -.02em; color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .why-card-desc {
+      font-size: 12.5px; color: var(--muted);
+      line-height: 1.6;
+    }
+    .why-card-accent {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent, rgba(94,234,212,.25), transparent);
+      opacity: 0; transition: opacity .3s;
+    }
+    .why-card:hover .why-card-accent { opacity: 1; }
+
+    /* ── PARTICLES ── */
+    #particleCanvas {
+      position: fixed; inset: 0;
+      z-index: 0; pointer-events: none;
+    }
+
+    /* ── SCROLL CUE ── */
+    .scroll-cue {
+      position: absolute; bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      opacity: .35; animation: fadeScroll 2.5s ease-in-out infinite;
+    }
+    @keyframes fadeScroll {
+      0%,100% { opacity: .35; transform: translateX(-50%) translateY(0); }
+      50% { opacity: .6; transform: translateX(-50%) translateY(4px); }
+    }
+    .scroll-cue span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--muted2);
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .showcase-stage {
+        height: auto; min-height: unset;
+        display: flex; flex-direction: column;
+        align-items: center; gap: 18px;
+        padding: 0 0 40px;
+      }
+      .sim-card {
+        position: static !important;
+        transform: none !important;
+        animation: none !important;
+        width: 90%; max-width: 340px;
+      }
+      .sim-card[data-id="1"]:hover,
+      .sim-card[data-id="6"]:hover,
+      .sim-card[data-id="2"]:hover,
+      .sim-card[data-id="3"]:hover,
+      .sim-card[data-id="4"]:hover,
+      .sim-card[data-id="5"]:hover {
+        transform: translateY(-8px) scale(1.01) !important;
+      }
+      .hero { padding: 50px 24px 40px; }
+      .why-section { padding: 60px 24px 80px; }
+    }
+    @media (max-width: 600px) {
+      .topbar { padding: 0 16px; gap: 8px; }
+      .topbar-center { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- CURSOR -->
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="cur-label" id="curLabel">OPEN</div>
+
+<!-- CANVAS PARTICLES -->
+<canvas id="particleCanvas"></canvas>
+
+<!-- BACKGROUND -->
+<div class="bg-grid"></div>
+<div class="bg-atmos"></div>
+
+<!-- CIRCUIT SVG BG -->
+<svg class="bg-circuit" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="rgba(94,234,212,1)" stroke-width="1" fill="none">
+    <polyline points="100,200 200,200 200,350 400,350"/>
+    <circle cx="200" cy="200" r="4" fill="rgba(94,234,212,1)"/>
+    <circle cx="400" cy="350" r="4" fill="rgba(94,234,212,1)"/>
+    <polyline points="1340,150 1240,150 1240,300 1100,300"/>
+    <circle cx="1240" cy="150" r="4" fill="rgba(94,234,212,1)"/>
+    <circle cx="1100" cy="300" r="4" fill="rgba(94,234,212,1)"/>
+    <polyline points="700,50 700,120 820,120"/>
+    <circle cx="700" cy="120" r="3" fill="rgba(56,189,248,1)"/>
+    <polyline points="300,700 400,700 400,620 550,620"/>
+    <circle cx="400" cy="700" r="4" fill="rgba(94,234,212,1)"/>
+    <polyline points="1100,750 1000,750 1000,650 850,650"/>
+    <circle cx="1000" cy="750" r="4" fill="rgba(56,189,248,1)"/>
+    <rect x="196" y="196" width="8" height="8" fill="none" stroke="rgba(94,234,212,1)"/>
+    <rect x="1236" y="146" width="8" height="8" fill="none" stroke="rgba(56,189,248,1)"/>
+    <rect x="396" y="346" width="8" height="8" fill="none" stroke="rgba(94,234,212,1)"/>
+  </g>
+</svg>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a href="../dashboard.html" class="topbar-logo">ARC<span>IO</span></a>
+  <div class="topbar-sep"></div>
+  <div class="topbar-center">
+    <div class="topbar-title-wrap">
+      <span class="topbar-supertag">ARCIO</span>
+      <span class="topbar-title">Playground</span>
+    </div>
+  </div>
+  <a href="../dashboard.html" class="nav-back">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <polyline points="15,18 9,12 15,6"/>
+    </svg>
+    Back to Dashboard
+  </a>
+</nav>
+
+<!-- PAGE -->
+<main class="page">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-label">
+      <div class="hero-label-dot"></div>
+      Virtual IoT Laboratory
+    </div>
+    <h1 class="hero-headline">
+      IoT <span class="accent">In Action</span>
+    </h1>
+    <p class="hero-sub">Explore how sensors, automation, and intelligent systems transform everyday environments.</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-num">6<span>+</span></div>
+        <div class="hero-stat-label">Simulations</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">20<span>+</span></div>
+        <div class="hero-stat-label">IoT Concepts</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">∞</div>
+        <div class="hero-stat-label">Real-World Applications</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWCASE -->
+  <section class="showcase">
+    <div class="showcase-stage" id="stage">
+
+      <!-- SIM 01 — Smart Security System -->
+      <a href="security.html" class="sim-card" data-id="1">
+        <div class="sim-accent"></div>
+        <div class="sim-img">
+          <div class="sim-img-placeholder">
+            <img src="./assets/security.png" alt="Smart Security System" onerror="this.parentNode.style.display='flex'">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(94,234,212,.8)" stroke-width="1" stroke-linecap="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <circle cx="12" cy="11" r="3"/>
+            </svg>
+          </div>
+          <div class="sim-reflection"></div>
+          <div class="sim-img-overlay"></div>
+        </div>
+        <div class="sim-body">
+          <div class="sim-num">SIM 01</div>
+          <div class="sim-name">Smart Security System</div>
+          <div class="sim-desc">Monitor intrusions using camera-based automation with real-time alert generation.</div>
+          <div class="sim-footer">
+            <div class="sim-sensor">
+              <div class="sim-sensor-dot"></div>
+              <div class="sim-sensor-label">Camera</div>
+            </div>
+            <div class="sim-launch">
+              Launch
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- SIM 02 — Automatic Door System -->
+      <a href="door.html" class="sim-card" data-id="2">
+        <div class="sim-accent"></div>
+        <div class="sim-img">
+          <div class="sim-img-placeholder">
+            <img src="./assets/door.png" alt="Automatic Door System" onerror="this.parentNode.style.display='flex'">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(56,189,248,.8)" stroke-width="1" stroke-linecap="round">
+              <rect x="3" y="2" width="18" height="20" rx="1"/>
+              <circle cx="14.5" cy="12" r="1"/>
+              <polyline points="9,2 9,22"/>
+            </svg>
+          </div>
+          <div class="sim-reflection"></div>
+          <div class="sim-img-overlay"></div>
+        </div>
+        <div class="sim-body">
+          <div class="sim-num">SIM 02</div>
+          <div class="sim-name">Automatic Door System</div>
+          <div class="sim-desc">Automated access control using proximity sensors for seamless entry.</div>
+          <div class="sim-footer">
+            <div class="sim-sensor">
+              <div class="sim-sensor-dot"></div>
+              <div class="sim-sensor-label">Ultrasonic</div>
+            </div>
+            <div class="sim-launch">
+              Launch
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- SIM 03 — Smart Street Light -->
+      <a href="streetlight.html" class="sim-card" data-id="3">
+        <div class="sim-accent"></div>
+        <div class="sim-img">
+          <div class="sim-img-placeholder">
+            <img src="./assets/streetlight.png" alt="Smart Street Light" onerror="this.parentNode.style.display='flex'">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(94,234,212,.8)" stroke-width="1" stroke-linecap="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </div>
+          <div class="sim-reflection"></div>
+          <div class="sim-img-overlay"></div>
+        </div>
+        <div class="sim-body">
+          <div class="sim-num">SIM 03</div>
+          <div class="sim-name">Smart Street Light</div>
+          <div class="sim-desc">Energy-efficient lighting through ambient LDR detection and adaptive control.</div>
+          <div class="sim-footer">
+            <div class="sim-sensor">
+              <div class="sim-sensor-dot"></div>
+              <div class="sim-sensor-label">LDR</div>
+            </div>
+            <div class="sim-launch">
+              Launch
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- SIM 04 — Smart Irrigation System -->
+      <a href="irrigation.html" class="sim-card" data-id="4">
+        <div class="sim-accent"></div>
+        <div class="sim-img">
+          <div class="sim-img-placeholder">
+            <img src="./assets/smartirrigation.png" alt="Smart Irrigation System" onerror="this.parentNode.style.display='flex'">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(56,189,248,.8)" stroke-width="1" stroke-linecap="round">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10"/>
+              <path d="M12 8v4l3 3"/>
+              <path d="M16 2l2 2-2 2"/>
+              <path d="M21 7l-2 2 2 2"/>
+            </svg>
+          </div>
+          <div class="sim-reflection"></div>
+          <div class="sim-img-overlay"></div>
+        </div>
+        <div class="sim-body">
+          <div class="sim-num">SIM 04</div>
+          <div class="sim-name">Smart Irrigation System</div>
+          <div class="sim-desc">Intelligent watering based on real-time soil moisture sensor data.</div>
+          <div class="sim-footer">
+            <div class="sim-sensor">
+              <div class="sim-sensor-dot"></div>
+              <div class="sim-sensor-label">Moisture Sensor</div>
+            </div>
+            <div class="sim-launch">
+              Launch
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- SIM 05 — Smart Parking System -->
+      <a href="parking.html" class="sim-card" data-id="5">
+        <div class="sim-accent"></div>
+        <div class="sim-img">
+          <div class="sim-img-placeholder">
+            <img src="./assets/smartparking.png" alt="Smart Parking System" onerror="this.parentNode.style.display='flex'">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(94,234,212,.8)" stroke-width="1" stroke-linecap="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"/>
+              <path d="M9 9h4a2 2 0 0 1 0 4H9v-4z"/>
+              <line x1="9" y1="15" x2="9" y2="9"/>
+            </svg>
+          </div>
+          <div class="sim-reflection"></div>
+          <div class="sim-img-overlay"></div>
+        </div>
+        <div class="sim-body">
+          <div class="sim-num">SIM 05</div>
+          <div class="sim-name">Smart Parking System</div>
+          <div class="sim-desc">Real-time vehicle occupancy monitoring across parking zones using IR detection.</div>
+          <div class="sim-footer">
+            <div class="sim-sensor">
+              <div class="sim-sensor-dot"></div>
+              <div class="sim-sensor-label">IR Sensor</div>
+            </div>
+            <div class="sim-launch">
+              Launch
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+            </div>
+          </div>
+        </div>
+      </a>
+
+      <!-- SIM 06 — Fire & Gas Safety -->
+      <a href="firesafety.html" class="sim-card" data-id="6">
+        <div class="sim-accent"></div>
+        <div class="sim-img">
+          <div class="sim-img-placeholder">
+            <img src="./assets/firegas.png" alt="Fire & Gas Safety" onerror="this.parentNode.style.display='flex'">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,.7)" stroke-width="1" stroke-linecap="round">
+              <path d="M12 2C12 2 6 8 6 13a6 6 0 0 0 12 0c0-5-6-11-6-11z"/>
+              <path d="M12 2c0 0-2 4 0 7s0 7-3 7"/>
+            </svg>
+          </div>
+          <div class="sim-reflection"></div>
+          <div class="sim-img-overlay"></div>
+        </div>
+        <div class="sim-body">
+          <div class="sim-num">SIM 06</div>
+          <div class="sim-name">Fire & Gas Safety</div>
+          <div class="sim-desc">Emergency response automation through hazard detection and alert systems.</div>
+          <div class="sim-footer">
+            <div class="sim-sensor">
+              <div class="sim-sensor-dot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div>
+              <div class="sim-sensor-label">Gas Sensor</div>
+            </div>
+            <div class="sim-launch">
+              Launch
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+            </div>
+          </div>
+        </div>
+      </a>
+
+    </div><!-- /stage -->
+
+    <!-- Scroll cue -->
+    <div class="scroll-cue">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6,9 12,15 18,9"/></svg>
+      <span>Scroll</span>
+    </div>
+  </section>
+
+  <!-- WHY SECTION -->
+  <section class="why-section">
+    <div class="section-label">Platform Purpose</div>
+    <h2 class="section-title">Why These Simulations Matter</h2>
+    <div class="why-grid">
+
+      <div class="why-card">
+        <div class="why-card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="1.8" stroke-linecap="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </div>
+        <div class="why-card-title">Learn Concepts</div>
+        <div class="why-card-desc">Understand the architecture of sensors, microcontrollers, and automation pipelines through hands-on virtual experiments.</div>
+        <div class="why-card-accent"></div>
+      </div>
+
+      <div class="why-card">
+        <div class="why-card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12,6 12,12 16,14"/>
+          </svg>
+        </div>
+        <div class="why-card-title">See Real Applications</div>
+        <div class="why-card-desc">Explore how IoT systems operate in smart cities, agriculture, industrial safety, and infrastructure management.</div>
+        <div class="why-card-accent"></div>
+      </div>
+
+      <div class="why-card">
+        <div class="why-card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round">
+            <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+          </svg>
+        </div>
+        <div class="why-card-title">Interactive Learning</div>
+        <div class="why-card-desc">Experience concepts through direct simulation interaction — not just textbook theory, but live system behavior.</div>
+        <div class="why-card-accent"></div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // ── CURSOR
+  const dot = document.getElementById('curDot');
+  const ring = document.getElementById('curRing');
+  const label = document.getElementById('curLabel');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  (function animCursor() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+    label.style.left = rx + 'px'; label.style.top = ry + 'px';
+    requestAnimationFrame(animCursor);
+  })();
+
+  document.querySelectorAll('a, .sim-card, .why-card').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      ring.classList.add('expand');
+      label.classList.add('show');
+    });
+    el.addEventListener('mouseleave', () => {
+      ring.classList.remove('expand');
+      label.classList.remove('show');
+    });
+  });
+
+  // ── PARTICLES
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 55; i++) {
+    particles.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.4 + 0.4,
+      vx: (Math.random() - 0.5) * 0.18,
+      vy: (Math.random() - 0.5) * 0.18,
+      a: Math.random() * 0.35 + 0.08,
+    });
+  }
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(94,234,212,${p.a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+
+  // ── MOUSE PARALLAX ON CARDS
+  const stage = document.getElementById('stage');
+  const cards = document.querySelectorAll('.sim-card');
+
+  document.addEventListener('mousemove', e => {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const dx = (e.clientX - cx) / cx;
+    const dy = (e.clientY - cy) / cy;
+
+    cards.forEach((card, i) => {
+      const depth = [0.012, 0.018, 0.015, 0.014, 0.016, 0.013][i] || 0.015;
+      const ox = dx * depth * 100;
+      const oy = dy * depth * 100;
+
+      // Only apply parallax if not hovering (hover has its own transform)
+      if (!card.matches(':hover')) {
+        const id = parseInt(card.dataset.id);
+        if (id === 1 || id === 6) {
+          card.style.marginLeft = ox + 'px';
+          card.style.marginTop = oy + 'px';
+        } else {
+          card.style.marginLeft = ox + 'px';
+          card.style.marginTop = oy + 'px';
+        }
+      }
+    });
+  });
+
+  // ── CARD 3D TILT ON HOVER
+  cards.forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      const id = parseInt(card.dataset.id);
+      const base = (id === 1 || id === 6) ? 'translateX(-50%) translateY(-12px) scale(1.02)' : 'translateY(-12px) scale(1.02)';
+      card.style.transform = `${base} rotateY(${x * 7}deg) rotateX(${-y * 5}deg)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+      card.style.marginLeft = '';
+      card.style.marginTop = '';
+    });
+  });
+
+  // ── ENTRANCE ANIMATIONS
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = entry.target.dataset.tf || '';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.why-card').forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(24px)';
+    el.style.transition = `opacity .6s ${i * 0.12}s ease, transform .6s ${i * 0.12}s cubic-bezier(.2,.8,.3,1), border-color .3s, box-shadow .35s`;
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>

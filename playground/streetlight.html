@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ARCIO · Street Light Automation</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #060A13;
+      --bg2: #0A1120;
+      --bg3: #0D1526;
+      --blue: #3B82F6;
+      --cyan: #5EEAD4;
+      --cyan2: #38BDF8;
+      --ink: #EAF1FF;
+      --muted: #6B7DA0;
+      --muted2: #4A5A7A;
+      --border: rgba(94,234,212,0.10);
+      --green: #34D399;
+      --amber: #F59E0B;
+      --yellow: #FCD34D;
+      --red: #F87171;
+      --panel-bg: rgba(10,17,32,0.92);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      cursor: none;
+      overflow-x: hidden;
+    }
+
+    /* ── CURSOR ── */
+    .cur-dot { position:fixed;top:0;left:0;pointer-events:none;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:translate(-50%,-50%);z-index:9999; }
+    .cur-ring { position:fixed;top:0;left:0;pointer-events:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(94,234,212,.5);transform:translate(-50%,-50%);z-index:9998;transition:width .2s cubic-bezier(.2,.8,.3,1),height .2s,border-color .2s,background .2s; }
+    .cur-ring.expand { width:52px;height:52px;border-color:var(--cyan);background:rgba(94,234,212,.05); }
+
+    /* ── BACKGROUND ── */
+    .bg-grid { position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(94,234,212,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,212,.018) 1px,transparent 1px);background-size:44px 44px; }
+    .bg-atmos { position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 45% at 50% -5%,rgba(59,130,246,.08) 0%,transparent 65%); }
+
+    /* ── TOPBAR ── */
+    .topbar { position:fixed;top:0;left:0;right:0;z-index:200;height:54px;background:rgba(6,10,19,.92);border-bottom:1px solid rgba(94,234,212,.08);backdrop-filter:blur(20px);display:flex;align-items:center;padding:0 28px;gap:14px; }
+    .topbar-logo { font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.04em;color:var(--ink);text-decoration:none;flex-shrink:0; }
+    .topbar-logo span { color:var(--cyan2); }
+    .topbar-sep { width:1px;height:22px;background:rgba(94,234,212,.1); }
+    .topbar-center { flex:1;display:flex;align-items:center;justify-content:center; }
+    .topbar-title-wrap { display:flex;flex-direction:column;align-items:center;gap:1px; }
+    .topbar-supertag { font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan2);opacity:.7; }
+    .topbar-title { font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.02em;color:var(--ink); }
+    .nav-back { display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:none;transition:color .2s;text-decoration:none;border:1px solid rgba(94,234,212,.1);padding:5px 12px;border-radius:6px; }
+    .nav-back:hover { color:var(--cyan);border-color:rgba(94,234,212,.28); }
+    .nav-back:hover svg { transform:translateX(-2px); }
+    .nav-back svg { transition:transform .2s; }
+
+    .page { position:relative;z-index:1;min-height:100vh;padding-top:54px; }
+
+    /* ── MAIN LAYOUT ── */
+    .main-wrap {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 36px 28px 80px;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+    }
+
+    /* ── LEFT COLUMN ── */
+    .left-col { display:flex;flex-direction:column;gap:20px; }
+
+    /* ── SCENE CARD ── */
+    .scene-card {
+      position: relative;
+      border-radius: 16px;
+      border: 1px solid rgba(94,234,212,.12);
+      background: linear-gradient(145deg,rgba(10,20,36,.98) 0%,rgba(8,16,28,.98) 100%);
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(59,130,246,.06), 0 24px 60px rgba(0,0,0,.5);
+    }
+    .scene-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(94,234,212,.08);
+    }
+    .scene-label {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--cyan2);
+    }
+    .scene-dot { width:6px;height:6px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 8px var(--cyan2);animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.8)}50%{box-shadow:0 0 0 5px rgba(56,189,248,0)} }
+
+    /* ── DAY/NIGHT TOGGLE ── */
+    .toggle-wrap {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    }
+    .toggle-label-day { color: var(--amber); }
+    .toggle-label-night { color: var(--cyan2); }
+    .toggle-track {
+      position: relative; width: 58px; height: 28px;
+      background: rgba(245,158,11,.15);
+      border: 1px solid rgba(245,158,11,.4);
+      border-radius: 14px;
+      cursor: none;
+      transition: background .6s, border-color .6s;
+    }
+    .toggle-track.night {
+      background: rgba(56,189,248,.1);
+      border-color: rgba(56,189,248,.35);
+    }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 12px rgba(245,158,11,.8);
+      transition: transform .5s cubic-bezier(.4,0,.2,1), background .5s, box-shadow .5s;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+    }
+    .toggle-track.night .toggle-thumb {
+      transform: translateX(29px);
+      background: var(--cyan2);
+      box-shadow: 0 0 14px rgba(56,189,248,.9);
+    }
+
+    /* ── THE SCENE SVG CANVAS ── */
+    .scene-canvas-wrap {
+      position: relative;
+      height: 380px;
+      overflow: hidden;
+    }
+    #sceneCanvas { width:100%;height:100%; }
+
+    /* Sky gradient transition */
+    .sky-day { stop-color: #87CEEB; }
+    .sky-day-bot { stop-color: #FDB97D; }
+    .sky-night-top { stop-color: #0A0E1A; }
+    .sky-night-bot { stop-color: #111827; }
+
+    /* ── SECTION PANELS ── */
+    .info-panels { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
+
+    .panel {
+      border-radius: var(--radius);
+      border: 1px solid rgba(94,234,212,.09);
+      background: rgba(10,17,32,.7);
+      padding: 18px 20px;
+      backdrop-filter: blur(12px);
+    }
+    .panel-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--cyan2); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .panel-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, rgba(94,234,212,.2), transparent);
+    }
+
+    /* Concepts Applied */
+    .concept-tags { display:flex;flex-wrap:wrap;gap:7px; }
+    .concept-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 500; letter-spacing: .08em;
+      padding: 5px 10px; border-radius: 6px;
+      border: 1px solid rgba(94,234,212,.16);
+      background: rgba(94,234,212,.04);
+      color: var(--cyan);
+    }
+
+    /* How It Works flow */
+    .flow-steps { display:flex;flex-direction:column;gap:0; }
+    .flow-step {
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .flow-step-box {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 7px;
+      border: 1px solid rgba(94,234,212,.13);
+      background: rgba(8,16,30,.7);
+      font-size: 11px; font-weight: 600; color: var(--ink);
+      text-align: center;
+    }
+    .flow-arrow {
+      width: 1px; height: 14px;
+      background: linear-gradient(180deg,rgba(94,234,212,.3),rgba(94,234,212,.05));
+      margin: 2px 0;
+    }
+
+    /* IoT Architecture */
+    .arch-chain { display:flex;flex-direction:column;gap:0;align-items:stretch; }
+    .arch-node {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 7px;
+      border: 1px solid rgba(94,234,212,.12);
+      background: rgba(8,16,30,.7);
+    }
+    .arch-node-icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .arch-node-name { font-size: 11px; font-weight: 600; color: var(--ink); }
+    .arch-node-sub { font-size: 9px; color: var(--muted); font-family: 'JetBrains Mono',monospace; letter-spacing:.04em; }
+    .arch-arrow {
+      display: flex; align-items: center; justify-content: center;
+      padding: 3px 0;
+    }
+
+    /* Applications */
+    .app-list { display:flex;flex-direction:column;gap:8px; }
+    .app-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--muted);
+    }
+    .app-dot { width:5px;height:5px;border-radius:50%;flex-shrink:0; }
+
+    /* ── RIGHT COLUMN ── */
+    .right-col { display:flex;flex-direction:column;gap:16px; }
+
+    /* Analytics card */
+    .analytics-card {
+      border-radius: var(--radius);
+      border: 1px solid rgba(94,234,212,.10);
+      background: rgba(10,17,32,.85);
+      padding: 20px;
+      backdrop-filter: blur(16px);
+    }
+    .analytics-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--cyan2); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .analytics-title::after { content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(94,234,212,.2),transparent); }
+
+    .metric-row {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .metric-item {
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .metric-label {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .metric-name { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono',monospace; font-size: 9px; letter-spacing:.06em; }
+    .metric-value { font-family: 'JetBrains Mono',monospace; font-size: 12px; font-weight: 600; }
+    .metric-bar-bg { height: 4px; border-radius: 2px; background: rgba(255,255,255,.06); overflow: hidden; }
+    .metric-bar { height: 100%; border-radius: 2px; transition: width 1s cubic-bezier(.4,0,.2,1), background 1s; }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: 'JetBrains Mono',monospace;
+      font-size: 9px; font-weight: 600; letter-spacing: .1em;
+      padding: 4px 9px; border-radius: 6px;
+      transition: all .6s;
+    }
+    .status-dot { width:5px;height:5px;border-radius:50%; }
+
+    /* LDR card */
+    .ldr-card {
+      border-radius: var(--radius);
+      border: 1px solid rgba(245,158,11,.18);
+      background: rgba(10,17,32,.85);
+      padding: 20px;
+    }
+
+    .ldr-gauge-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; margin: 12px 0;
+    }
+    .ldr-gauge-label {
+      font-family: 'JetBrains Mono',monospace;
+      font-size: 8px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);
+    }
+    .ldr-gauge {
+      position: relative; width: 120px; height: 60px; overflow: hidden;
+    }
+    .ldr-gauge svg { width:100%;height:100%; }
+    .ldr-value-big {
+      font-family: 'Space Grotesk',sans-serif;
+      font-size: 28px; font-weight: 800;
+      text-align: center;
+      transition: color 1s;
+    }
+    .ldr-unit { font-size: 12px; color: var(--muted); }
+
+    /* Signal flow */
+    .signal-flow {
+      display: flex; flex-direction: column; gap: 4px; margin-top: 6px;
+    }
+    .signal-row {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono',monospace; font-size: 9px; color: var(--muted);
+    }
+    .signal-key { font-weight:600; color:var(--ink); min-width:80px; }
+    .signal-val { transition: color .6s; }
+
+    /* Power ring */
+    .power-ring-wrap { display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:8px; }
+    .power-ring-label { font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted); }
+
+    /* Lamp status glow card */
+    .lamp-status {
+      border-radius: var(--radius);
+      border: 1px solid rgba(94,234,212,.10);
+      background: rgba(10,17,32,.85);
+      padding: 18px 20px;
+      display: flex; align-items: center; gap: 14px;
+      transition: border-color .8s;
+    }
+    .lamp-status.on {
+      border-color: rgba(252,211,77,.35);
+      box-shadow: 0 0 28px rgba(252,211,77,.06);
+    }
+    .lamp-icon-wrap {
+      width: 48px; height: 48px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(94,234,212,.04);
+      border: 1px solid rgba(94,234,212,.10);
+      flex-shrink: 0;
+      transition: all .8s;
+    }
+    .lamp-icon-wrap.on {
+      background: rgba(252,211,77,.1);
+      border-color: rgba(252,211,77,.35);
+      box-shadow: 0 0 24px rgba(252,211,77,.2);
+    }
+    .lamp-status-text { flex: 1; }
+    .lamp-status-label { font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted); }
+    .lamp-status-val { font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.02em;margin-top:2px;transition:color .8s; }
+    .lamp-status-val.on { color:var(--yellow); }
+    .lamp-status-val.off { color:var(--muted2); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(94,234,212,.15); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="bg-grid"></div>
+<div class="bg-atmos"></div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a href="playground.html" class="topbar-logo">ARC<span>IO</span></a>
+  <div class="topbar-sep"></div>
+  <div class="topbar-center">
+    <div class="topbar-title-wrap">
+      <span class="topbar-supertag">IoT Simulation</span>
+      <span class="topbar-title">Street Light Automation</span>
+    </div>
+  </div>
+  <a href="playground.html" class="nav-back">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/></svg>
+    Playground
+  </a>
+</header>
+
+<div class="page">
+<div class="main-wrap">
+
+  <!-- LEFT COLUMN -->
+  <div class="left-col">
+
+    <!-- Scene Card -->
+    <div class="scene-card">
+      <div class="scene-header">
+        <div class="scene-label">
+          <div class="scene-dot"></div>
+          Smart City Scene
+        </div>
+        <div class="toggle-wrap">
+          <span class="toggle-label-day">☀ Day</span>
+          <div class="toggle-track" id="toggleTrack" onclick="toggleScene()">
+            <div class="toggle-thumb" id="toggleThumb">☀</div>
+          </div>
+          <span class="toggle-label-night">🌙 Night</span>
+        </div>
+      </div>
+
+      <div class="scene-canvas-wrap">
+        <svg id="sceneCanvas" viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Sky gradient day -->
+            <linearGradient id="skyGradDay" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2563EB" stop-opacity="0.7"/>
+              <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.5"/>
+            </linearGradient>
+            <!-- Sky gradient night -->
+            <linearGradient id="skyGradNight" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#020617"/>
+              <stop offset="100%" stop-color="#0F172A"/>
+            </linearGradient>
+            <!-- Road texture -->
+            <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1F2937"/>
+              <stop offset="100%" stop-color="#111827"/>
+            </linearGradient>
+            <!-- Lamp glow -->
+            <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Ground glow from lamp -->
+            <radialGradient id="groundGlow" cx="50%" cy="0%" r="50%">
+              <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Sunrise/sunset horizon -->
+            <linearGradient id="horizonGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#F97316" stop-opacity="0"/>
+              <stop offset="50%" stop-color="#FB923C" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/>
+            </linearGradient>
+            <!-- Tree foliage gradient -->
+            <radialGradient id="foliageGrad" cx="50%" cy="60%" r="50%">
+              <stop offset="0%" stop-color="#22C55E"/>
+              <stop offset="100%" stop-color="#15803D"/>
+            </radialGradient>
+            <!-- House roof gradient -->
+            <linearGradient id="roofGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#7F1D1D"/>
+              <stop offset="100%" stop-color="#991B1B"/>
+            </linearGradient>
+            <!-- Window glow for night -->
+            <radialGradient id="windowGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Moon glow -->
+            <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#EAF1FF" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#EAF1FF" stop-opacity="0"/>
+            </radialGradient>
+            <!-- Lamp cone gradient -->
+            <linearGradient id="lampConeGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+
+          <!-- SKY -->
+          <rect id="sky" x="0" y="0" width="800" height="270" fill="url(#skyGradDay)" rx="0"/>
+          <!-- Night overlay for sky -->
+          <rect id="skyNight" x="0" y="0" width="800" height="270" fill="url(#skyGradNight)" opacity="0" rx="0"/>
+          <!-- Horizon haze -->
+          <rect id="horizonHaze" x="0" y="200" width="800" height="70" fill="url(#horizonGrad)" opacity="0"/>
+
+          <!-- STARS (night) -->
+          <g id="starsGroup" opacity="0">
+            <circle cx="80" cy="30" r="1.2" fill="#EAF1FF" opacity="0.9"/>
+            <circle cx="150" cy="18" r="0.8" fill="#EAF1FF" opacity="0.7"/>
+            <circle cx="240" cy="42" r="1.5" fill="#EAF1FF" opacity="0.8"/>
+            <circle cx="310" cy="12" r="0.9" fill="#EAF1FF" opacity="0.6"/>
+            <circle cx="400" cy="28" r="1.0" fill="#EAF1FF" opacity="0.9"/>
+            <circle cx="480" cy="15" r="1.3" fill="#EAF1FF" opacity="0.7"/>
+            <circle cx="560" cy="38" r="0.8" fill="#EAF1FF" opacity="0.8"/>
+            <circle cx="640" cy="22" r="1.1" fill="#EAF1FF" opacity="0.6"/>
+            <circle cx="720" cy="48" r="1.4" fill="#EAF1FF" opacity="0.9"/>
+            <circle cx="760" cy="20" r="0.7" fill="#EAF1FF" opacity="0.7"/>
+            <circle cx="130" cy="60" r="0.9" fill="#EAF1FF" opacity="0.6"/>
+            <circle cx="350" cy="55" r="1.2" fill="#EAF1FF" opacity="0.8"/>
+            <circle cx="590" cy="70" r="0.8" fill="#EAF1FF" opacity="0.7"/>
+            <circle cx="700" cy="65" r="1.0" fill="#EAF1FF" opacity="0.9"/>
+            <circle cx="50" cy="80" r="0.8" fill="#EAF1FF" opacity="0.6"/>
+            <circle cx="200" cy="85" r="1.1" fill="#EAF1FF" opacity="0.7"/>
+            <circle cx="450" cy="90" r="0.9" fill="#EAF1FF" opacity="0.8"/>
+            <circle cx="670" cy="88" r="1.3" fill="#EAF1FF" opacity="0.6"/>
+          </g>
+
+          <!-- SUN -->
+          <g id="sunGroup">
+            <circle cx="680" cy="60" r="30" fill="#FCD34D" opacity="0.9"/>
+            <circle cx="680" cy="60" r="50" fill="#FCD34D" opacity="0.12"/>
+            <!-- Sun rays -->
+            <g stroke="#FCD34D" stroke-width="2" opacity="0.5">
+              <line x1="680" y1="15" x2="680" y2="5"/>
+              <line x1="710" y1="30" x2="718" y2="22"/>
+              <line x1="725" y1="60" x2="735" y2="60"/>
+              <line x1="710" y1="90" x2="718" y2="98"/>
+              <line x1="680" y1="105" x2="680" y2="115"/>
+              <line x1="650" y1="90" x2="642" y2="98"/>
+              <line x1="635" y1="60" x2="625" y2="60"/>
+              <line x1="650" y1="30" x2="642" y2="22"/>
+            </g>
+          </g>
+
+          <!-- MOON -->
+          <g id="moonGroup" opacity="0">
+            <circle cx="680" cy="55" r="42" fill="#EAF1FF" opacity="0.08"/>
+            <circle cx="680" cy="55" r="26" fill="#C7D2E8"/>
+            <!-- Crescent shadow -->
+            <circle cx="692" cy="50" r="22" fill="#0F172A"/>
+            <!-- Moon craters -->
+            <circle cx="665" cy="58" r="3" fill="#B0BDD4" opacity="0.4"/>
+            <circle cx="672" cy="70" r="2" fill="#B0BDD4" opacity="0.3"/>
+          </g>
+
+          <!-- CLOUDS (day) -->
+          <g id="cloudsGroup" opacity="0.8">
+            <g transform="translate(100,50)">
+              <ellipse cx="40" cy="20" rx="45" ry="18" fill="white" opacity="0.85"/>
+              <ellipse cx="20" cy="24" rx="25" ry="14" fill="white" opacity="0.9"/>
+              <ellipse cx="65" cy="25" rx="30" ry="13" fill="white" opacity="0.85"/>
+            </g>
+            <g transform="translate(380,35)">
+              <ellipse cx="40" cy="20" rx="55" ry="20" fill="white" opacity="0.75"/>
+              <ellipse cx="15" cy="26" rx="30" ry="14" fill="white" opacity="0.8"/>
+              <ellipse cx="72" cy="26" rx="32" ry="14" fill="white" opacity="0.75"/>
+            </g>
+          </g>
+
+          <!-- GROUND / GRASS -->
+          <rect x="0" y="268" width="800" height="18" fill="#15803D" opacity="0.7"/>
+          <rect x="0" y="276" width="800" height="10" fill="#166534" opacity="0.6"/>
+
+          <!-- ROAD -->
+          <rect x="0" y="284" width="800" height="96" fill="url(#roadGrad)"/>
+          <!-- Road markings -->
+          <g stroke="#374151" stroke-width="2">
+            <!-- dashed center line -->
+            <line x1="0" y1="332" x2="800" y2="332" stroke-dasharray="48,28"/>
+          </g>
+          <!-- White center dashes -->
+          <g stroke="#D1D5DB" stroke-width="1.5" opacity="0.5">
+            <line x1="0" y1="332" x2="800" y2="332" stroke-dasharray="40,35"/>
+          </g>
+          <!-- Road edge lines -->
+          <line x1="0" y1="288" x2="800" y2="288" stroke="#4B5563" stroke-width="1.5"/>
+          <!-- Curb -->
+          <rect x="0" y="284" width="800" height="4" fill="#374151"/>
+          <line x1="0" y1="376" x2="800" y2="376" stroke="#4B5563" stroke-width="1"/>
+
+          <!-- PAVEMENT (sidewalk) -->
+          <rect x="0" y="268" width="800" height="16" fill="#292F3E"/>
+          <rect x="0" y="268" width="800" height="2" fill="#374151"/>
+          <!-- Pavement cracks/tiles -->
+          <g stroke="#374151" stroke-width="0.5" opacity="0.6">
+            <line x1="100" y1="268" x2="100" y2="284"/>
+            <line x1="200" y1="268" x2="200" y2="284"/>
+            <line x1="300" y1="268" x2="300" y2="284"/>
+            <line x1="400" y1="268" x2="400" y2="284"/>
+            <line x1="500" y1="268" x2="500" y2="284"/>
+            <line x1="600" y1="268" x2="600" y2="284"/>
+            <line x1="700" y1="268" x2="700" y2="284"/>
+          </g>
+
+          <!-- TREE 1 (background left) -->
+          <g transform="translate(60,170)">
+            <rect x="14" y="60" width="8" height="40" fill="#78350F" rx="2"/>
+            <ellipse cx="18" cy="55" rx="24" ry="28" fill="url(#foliageGrad)"/>
+            <ellipse cx="6" cy="62" rx="14" ry="18" fill="#16A34A" opacity="0.8"/>
+            <ellipse cx="30" cy="64" rx="12" ry="15" fill="#166534" opacity="0.7"/>
+          </g>
+
+          <!-- HOUSE -->
+          <g transform="translate(480,130)">
+            <!-- Main body -->
+            <rect x="0" y="70" width="200" height="100" fill="#1E2840" rx="2"/>
+            <!-- Side shading -->
+            <rect x="180" y="70" width="20" height="100" fill="#141C32" rx="2"/>
+            <!-- Roof -->
+            <polygon points="-10,70 100,-10 210,70" fill="url(#roofGrad)"/>
+            <!-- Roof ridge -->
+            <line x1="100" y1="-10" x2="100" y2="0" stroke="#7F1D1D" stroke-width="2"/>
+            <!-- Chimney -->
+            <rect x="140" y="-25" width="18" height="38" fill="#7F1D1D"/>
+            <rect x="137" y="-28" width="24" height="6" fill="#991B1B" rx="1"/>
+            <!-- Door -->
+            <rect x="82" y="120" width="36" height="50" fill="#0F172A" rx="3"/>
+            <rect x="84" y="122" width="32" height="46" fill="#1A2440" rx="2"/>
+            <circle cx="112" cy="148" r="2.5" fill="#F59E0B"/>
+            <!-- Windows (day) -->
+            <rect id="houseWin1" x="22" y="90" width="42" height="36" fill="#BFDBFE" rx="3"/>
+            <rect x="24" y="92" width="38" height="32" fill="#93C5FD" rx="2" opacity="0.5"/>
+            <line x1="43" y1="92" x2="43" y2="124" stroke="#60A5FA" stroke-width="1" opacity="0.7"/>
+            <line x1="24" y1="108" x2="62" y2="108" stroke="#60A5FA" stroke-width="1" opacity="0.7"/>
+            <!-- Window 2 -->
+            <rect id="houseWin2" x="136" y="90" width="42" height="36" fill="#BFDBFE" rx="3"/>
+            <rect x="138" y="92" width="38" height="32" fill="#93C5FD" rx="2" opacity="0.5"/>
+            <line x1="157" y1="92" x2="157" y2="124" stroke="#60A5FA" stroke-width="1" opacity="0.7"/>
+            <line x1="138" y1="108" x2="176" y2="108" stroke="#60A5FA" stroke-width="1" opacity="0.7"/>
+            <!-- Night window glows (hidden by day) -->
+            <ellipse id="houseGlow1" cx="43" cy="108" rx="35" ry="28" fill="url(#windowGlow)" opacity="0"/>
+            <ellipse id="houseGlow2" cx="157" cy="108" rx="35" ry="28" fill="url(#windowGlow)" opacity="0"/>
+          </g>
+
+          <!-- STREET LAMP -->
+          <g id="streetLamp" transform="translate(292,80)">
+            <!-- Pole -->
+            <rect x="10" y="160" width="7" height="90" fill="#475569" rx="2"/>
+            <!-- Pole base -->
+            <rect x="4" y="247" width="19" height="6" fill="#374151" rx="2"/>
+            <!-- Arm -->
+            <path d="M 13 160 Q 13 120 55 115" stroke="#475569" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <!-- Lamp head -->
+            <rect x="40" y="100" width="40" height="18" fill="#374151" rx="4"/>
+            <rect x="42" y="108" width="36" height="10" fill="#4B5563" rx="3"/>
+            <!-- Lamp bulb (off state) -->
+            <ellipse id="lampBulb" cx="60" cy="113" rx="16" ry="7" fill="#94A3B8" opacity="0.4"/>
+            <!-- Lamp glass panel -->
+            <rect x="43" y="116" width="34" height="8" fill="#6B7280" rx="0 0 3 3" opacity="0.5"/>
+            <!-- Glow cone (night) -->
+            <polygon id="lampCone" points="44,124 76,124 110,200 10,200" fill="url(#lampConeGrad)" opacity="0"/>
+            <!-- Glow bulb (night) -->
+            <ellipse id="lampGlowBulb" cx="60" cy="113" rx="22" ry="10" fill="#FCD34D" opacity="0"/>
+            <!-- Glow halo (night) -->
+            <ellipse id="lampHalo" cx="60" cy="113" rx="50" ry="30" fill="url(#lampGlow)" opacity="0"/>
+          </g>
+
+          <!-- Ground illumination from lamp -->
+          <ellipse id="groundIllum" cx="355" cy="284" rx="60" ry="10" fill="url(#groundGlow)" opacity="0"/>
+
+          <!-- TREE 2 (foreground right) -->
+          <g transform="translate(150,185)">
+            <rect x="13" y="50" width="9" height="35" fill="#92400E" rx="2"/>
+            <ellipse cx="18" cy="44" rx="22" ry="26" fill="#16A34A"/>
+            <ellipse cx="5" cy="54" rx="12" ry="16" fill="#15803D" opacity="0.9"/>
+            <ellipse cx="30" cy="56" rx="11" ry="14" fill="#166534" opacity="0.8"/>
+          </g>
+
+          <!-- TREE 3 (background far right) -->
+          <g transform="translate(680,165)">
+            <rect x="12" y="55" width="7" height="48" fill="#78350F" rx="2"/>
+            <ellipse cx="15" cy="50" rx="20" ry="24" fill="url(#foliageGrad)"/>
+          </g>
+
+          <!-- Night overlay (whole scene dark tint) -->
+          <rect id="nightOverlay" x="0" y="0" width="800" height="380" fill="#020617" opacity="0"/>
+
+          <!-- Scene UI labels -->
+          <g id="sceneLabels" font-family="'JetBrains Mono', monospace" font-size="9" fill="#6B7DA0" opacity="0.7">
+            <text x="280" y="375" text-anchor="middle">LDR Sensor Zone</text>
+            <rect x="218" y="361" width="122" height="1" fill="#6B7DA0" opacity="0.3"/>
+          </g>
+
+          <!-- LDR sensor indicator on lamp -->
+          <g transform="translate(336,190)">
+            <circle id="ldrDot" cx="0" cy="0" r="5" fill="#F59E0B" opacity="0.9"/>
+            <circle id="ldrPulse" cx="0" cy="0" r="8" fill="#F59E0B" opacity="0"/>
+            <text x="12" y="4" font-family="'JetBrains Mono',monospace" font-size="8" fill="#F59E0B" id="ldrLabel">LDR</text>
+          </g>
+
+        </svg>
+      </div>
+    </div>
+
+    <!-- Info Panels -->
+    <div class="info-panels">
+      <!-- Concepts Applied -->
+      <div class="panel">
+        <div class="panel-title">Concepts Applied</div>
+        <div class="concept-tags">
+          <span class="concept-tag">LDR Sensor</span>
+          <span class="concept-tag">Ambient Light Detection</span>
+          <span class="concept-tag">Smart Energy Systems</span>
+          <span class="concept-tag">Automation</span>
+          <span class="concept-tag">PWM Control</span>
+        </div>
+      </div>
+
+      <!-- How It Works -->
+      <div class="panel">
+        <div class="panel-title">How It Works</div>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step-box" style="border-color:rgba(252,211,77,.25);color:var(--yellow);">Darkness Detected</div>
+          </div>
+          <div class="flow-arrow" style="margin:0 auto;"></div>
+          <div class="flow-step">
+            <div class="flow-step-box">LDR Value Changes</div>
+          </div>
+          <div class="flow-arrow" style="margin:0 auto;"></div>
+          <div class="flow-step">
+            <div class="flow-step-box" style="border-color:rgba(94,234,212,.25);color:var(--cyan);">Controller Activates Lamp</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IoT Architecture -->
+      <div class="panel">
+        <div class="panel-title">IoT Architecture</div>
+        <div class="arch-chain">
+          <div class="arch-node">
+            <div class="arch-node-icon" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+            </div>
+            <div>
+              <div class="arch-node-name">LDR Sensor</div>
+              <div class="arch-node-sub">Light-Dependent Resistor</div>
+            </div>
+          </div>
+          <div class="arch-arrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(94,234,212,.3)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,19 5,12"/></svg>
+          </div>
+          <div class="arch-node">
+            <div class="arch-node-icon" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/></svg>
+            </div>
+            <div>
+              <div class="arch-node-name">Controller</div>
+              <div class="arch-node-sub">Microcontroller Unit</div>
+            </div>
+          </div>
+          <div class="arch-arrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(94,234,212,.3)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,19 5,12"/></svg>
+          </div>
+          <div class="arch-node">
+            <div class="arch-node-icon" style="background:rgba(252,211,77,.1);border:1px solid rgba(252,211,77,.25);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FCD34D" stroke-width="2"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/></svg>
+            </div>
+            <div>
+              <div class="arch-node-name">Street Light</div>
+              <div class="arch-node-sub">Automated Luminaire</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Applications -->
+      <div class="panel">
+        <div class="panel-title">Applications</div>
+        <div class="app-list">
+          <div class="app-item">
+            <div class="app-dot" style="background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);"></div>
+            Smart Cities
+          </div>
+          <div class="app-item">
+            <div class="app-dot" style="background:var(--green);box-shadow:0 0 6px var(--green);"></div>
+            Road Infrastructure
+          </div>
+          <div class="app-item">
+            <div class="app-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></div>
+            Public Lighting Networks
+          </div>
+          <div class="app-item">
+            <div class="app-dot" style="background:var(--blue);box-shadow:0 0 6px var(--blue);"></div>
+            Highway Automation
+          </div>
+          <div class="app-item">
+            <div class="app-dot" style="background:var(--red);box-shadow:0 0 5px var(--red);"></div>
+            Energy Management
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /left-col -->
+
+  <!-- RIGHT COLUMN -->
+  <div class="right-col">
+
+    <!-- Lamp Status -->
+    <div class="lamp-status" id="lampStatusCard">
+      <div class="lamp-icon-wrap" id="lampIconWrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" id="lampIconSvg">
+          <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+        </svg>
+      </div>
+      <div class="lamp-status-text">
+        <div class="lamp-status-label">Street Lamp</div>
+        <div class="lamp-status-val off" id="lampStatusVal">OFF</div>
+      </div>
+      <div class="status-badge" id="statusBadge" style="background:rgba(107,125,160,.08);border:1px solid rgba(107,125,160,.2);color:var(--muted);">
+        <div class="status-dot" style="background:var(--muted);"></div>
+        Standby
+      </div>
+    </div>
+
+    <!-- LDR Card -->
+    <div class="ldr-card analytics-card" style="border-color:rgba(245,158,11,.18);">
+      <div class="analytics-title">LDR Sensor</div>
+
+      <div class="ldr-gauge-wrap">
+        <div class="ldr-gauge-label">Light Intensity</div>
+        <div class="ldr-gauge">
+          <svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#F87171"/>
+                <stop offset="50%" stop-color="#F59E0B"/>
+                <stop offset="100%" stop-color="#34D399"/>
+              </linearGradient>
+            </defs>
+            <!-- Gauge track -->
+            <path d="M 10 55 A 50 50 0 0 1 110 55" stroke="rgba(255,255,255,.06)" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <!-- Gauge fill -->
+            <path id="gaugeFill" d="M 10 55 A 50 50 0 0 1 110 55" stroke="url(#gaugeGrad)" stroke-width="10" fill="none" stroke-linecap="round"
+              stroke-dasharray="157" stroke-dashoffset="0"/>
+            <!-- Needle -->
+            <line id="gaugeNeedle" x1="60" y1="55" x2="60" y2="16" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"
+              transform="rotate(0, 60, 55)"/>
+            <circle cx="60" cy="55" r="4" fill="var(--ink)"/>
+          </svg>
+        </div>
+        <div class="ldr-value-big" id="ldrValueBig" style="color:var(--amber);">850 <span class="ldr-unit">lux</span></div>
+      </div>
+
+      <div class="signal-flow">
+        <div class="signal-row">
+          <span class="signal-key">LDR Resistance</span>
+          <span class="signal-val" id="ldrResistance" style="color:var(--green);">1.2 kΩ</span>
+        </div>
+        <div class="signal-row">
+          <span class="signal-key">Threshold</span>
+          <span class="signal-val" style="color:var(--muted);">200 lux</span>
+        </div>
+        <div class="signal-row">
+          <span class="signal-key">State</span>
+          <span class="signal-val" id="ldrState" style="color:var(--amber);">Bright</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="analytics-card">
+      <div class="analytics-title">Analytics</div>
+      <div class="metric-row">
+
+        <div class="metric-item">
+          <div class="metric-label">
+            <span class="metric-name">Light Intensity</span>
+            <span class="metric-value" id="metricIntensity" style="color:var(--amber);">850</span>
+          </div>
+          <div class="metric-bar-bg">
+            <div class="metric-bar" id="barIntensity" style="width:85%;background:linear-gradient(90deg,#F59E0B,#FCD34D);"></div>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-label">
+            <span class="metric-name">Lamp Status</span>
+            <span class="metric-value" id="metricLamp" style="color:var(--muted2);">OFF</span>
+          </div>
+          <div class="metric-bar-bg">
+            <div class="metric-bar" id="barLamp" style="width:0%;background:linear-gradient(90deg,#FCD34D,#FEF3C7);"></div>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-label">
+            <span class="metric-name">Power Consumption</span>
+            <span class="metric-value" id="metricPower" style="color:var(--muted2);">0 W</span>
+          </div>
+          <div class="metric-bar-bg">
+            <div class="metric-bar" id="barPower" style="width:0%;background:linear-gradient(90deg,#38BDF8,#5EEAD4);"></div>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-label">
+            <span class="metric-name">Energy Saved</span>
+            <span class="metric-value" id="metricEnergy" style="color:var(--green);">100%</span>
+          </div>
+          <div class="metric-bar-bg">
+            <div class="metric-bar" id="barEnergy" style="width:100%;background:linear-gradient(90deg,#34D399,#10B981);"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /right-col -->
+
+</div>
+</div>
+
+<script>
+  // ── CURSOR
+  const dot = document.getElementById('curDot');
+  const ring = document.getElementById('curRing');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  (function animCursor(){
+    rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+    dot.style.left=mx+'px';dot.style.top=my+'px';
+    ring.style.left=rx+'px';ring.style.top=ry+'px';
+    requestAnimationFrame(animCursor);
+  })();
+  document.querySelectorAll('a,.toggle-track').forEach(el=>{
+    el.addEventListener('mouseenter',()=>ring.classList.add('expand'));
+    el.addEventListener('mouseleave',()=>ring.classList.remove('expand'));
+  });
+
+  // ── SCENE STATE
+  let isNight = false;
+
+  function toggleScene() {
+    isNight = !isNight;
+    const track = document.getElementById('toggleTrack');
+    const thumb = document.getElementById('toggleThumb');
+
+    if (isNight) {
+      track.classList.add('night');
+      thumb.textContent = '🌙';
+      applyNight();
+    } else {
+      track.classList.remove('night');
+      thumb.textContent = '☀';
+      applyDay();
+    }
+  }
+
+  function applyNight() {
+    // Sky
+    animateProp('skyNight', 'opacity', 0, 1, 1200);
+    animateProp('horizonHaze', 'opacity', 0, 0.8, 800);
+    // Stars & moon
+    animatePropDelayed('starsGroup', 'opacity', 0, 1, 1200, 600);
+    animatePropDelayed('moonGroup', 'opacity', 0, 1, 1200, 400);
+    // Sun disappear
+    animateProp('sunGroup', 'opacity', 0.9, 0, 600);
+    // Clouds disappear
+    animateProp('cloudsGroup', 'opacity', 0.8, 0, 700);
+    // Night overlay
+    animatePropDelayed('nightOverlay', 'opacity', 0, 0.55, 1200, 300);
+    // Lamp ON
+    setTimeout(() => {
+      animateProp('lampBulb', 'opacity', 0.4, 1, 600);
+      animatePropEl(document.getElementById('lampGlowBulb'), 'opacity', 0, 1, 700);
+      animatePropEl(document.getElementById('lampHalo'), 'opacity', 0, 0.9, 900);
+      animatePropEl(document.getElementById('lampCone'), 'opacity', 0, 1, 900);
+      animatePropEl(document.getElementById('groundIllum'), 'opacity', 0, 1, 900);
+    }, 900);
+    // House windows glow
+    setTimeout(() => {
+      animatePropEl(document.getElementById('houseGlow1'), 'opacity', 0, 1, 600);
+      animatePropEl(document.getElementById('houseGlow2'), 'opacity', 0, 1, 600);
+      document.getElementById('houseWin1').setAttribute('fill','#FCD34D');
+      document.getElementById('houseWin2').setAttribute('fill','#FCD34D');
+    }, 1000);
+    // LDR dot pulse
+    document.getElementById('ldrPulse').style.animation = 'ldrPulseAnim 1s ease-out';
+    // Update analytics
+    setTimeout(() => updateAnalytics(true), 900);
+  }
+
+  function applyDay() {
+    // Sky
+    animateProp('skyNight', 'opacity', 1, 0, 1000);
+    animateProp('horizonHaze', 'opacity', 0.8, 0, 700);
+    // Stars & moon
+    animateProp('starsGroup', 'opacity', 1, 0, 600);
+    animateProp('moonGroup', 'opacity', 1, 0, 600);
+    // Sun appear
+    animatePropDelayed('sunGroup', 'opacity', 0, 0.9, 1000, 400);
+    // Clouds appear
+    animatePropDelayed('cloudsGroup', 'opacity', 0, 0.8, 1000, 600);
+    // Night overlay
+    animateProp('nightOverlay', 'opacity', 0.55, 0, 1000);
+    // Lamp OFF
+    animatePropEl(document.getElementById('lampGlowBulb'), 'opacity', 1, 0, 500);
+    animatePropEl(document.getElementById('lampHalo'), 'opacity', 0.9, 0, 600);
+    animatePropEl(document.getElementById('lampCone'), 'opacity', 1, 0, 600);
+    animatePropEl(document.getElementById('groundIllum'), 'opacity', 1, 0, 600);
+    animateProp('lampBulb', 'opacity', 1, 0.4, 600);
+    // House windows
+    setTimeout(() => {
+      document.getElementById('houseGlow1').setAttribute('opacity','0');
+      document.getElementById('houseGlow2').setAttribute('opacity','0');
+      document.getElementById('houseWin1').setAttribute('fill','#BFDBFE');
+      document.getElementById('houseWin2').setAttribute('fill','#BFDBFE');
+    }, 400);
+    // Update analytics
+    setTimeout(() => updateAnalytics(false), 300);
+  }
+
+  // Helper: animate SVG element attribute
+  function animateProp(id, attr, from, to, dur) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    animatePropEl(el, attr, from, to, dur);
+  }
+  function animatePropDelayed(id, attr, from, to, dur, delay) {
+    setTimeout(() => animateProp(id, attr, from, to, dur), delay);
+  }
+  function animatePropEl(el, attr, from, to, dur) {
+    if (!el) return;
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min((now - start) / dur, 1);
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+      const val = from + (to - from) * ease;
+      el.setAttribute(attr, val);
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ── LDR needle animation
+  function setGauge(lux) {
+    // lux 0-1000 maps to gauge 0-157 (full arc)
+    const frac = Math.max(0, Math.min(1, lux / 1000));
+    const offset = 157 * (1 - frac);
+    const needle = document.getElementById('gaugeNeedle');
+    const fill = document.getElementById('gaugeFill');
+    if (fill) fill.setAttribute('stroke-dashoffset', offset);
+    // Needle: -90deg (dark) to +90deg (bright)
+    const angle = -90 + frac * 180;
+    if (needle) needle.setAttribute('transform', `rotate(${angle}, 60, 55)`);
+  }
+
+  function updateAnalytics(night) {
+    const lux = night ? 42 : 850;
+    const res = night ? '98.5 kΩ' : '1.2 kΩ';
+    const luxColor = night ? '#38BDF8' : '#F59E0B';
+    const stateText = night ? 'Dark' : 'Bright';
+    const stateColor = night ? '#38BDF8' : '#F59E0B';
+
+    document.getElementById('ldrValueBig').innerHTML = lux + ' <span class="ldr-unit">lux</span>';
+    document.getElementById('ldrValueBig').style.color = luxColor;
+    document.getElementById('ldrResistance').textContent = res;
+    document.getElementById('ldrResistance').style.color = night ? '#F87171' : '#34D399';
+    document.getElementById('ldrState').textContent = stateText;
+    document.getElementById('ldrState').style.color = stateColor;
+
+    // Gauge
+    setGauge(lux);
+
+    // Lamp status card
+    const lampCard = document.getElementById('lampStatusCard');
+    const lampIconWrap = document.getElementById('lampIconWrap');
+    const lampSvg = document.getElementById('lampIconSvg');
+    const lampVal = document.getElementById('lampStatusVal');
+    const badge = document.getElementById('statusBadge');
+
+    if (night) {
+      lampCard.classList.add('on');
+      lampIconWrap.classList.add('on');
+      lampSvg.setAttribute('stroke','#FCD34D');
+      lampVal.textContent = 'ON';
+      lampVal.className = 'lamp-status-val on';
+      badge.style.background = 'rgba(252,211,77,.1)';
+      badge.style.borderColor = 'rgba(252,211,77,.3)';
+      badge.style.color = '#FCD34D';
+      badge.innerHTML = '<div class="status-dot" style="background:#FCD34D;box-shadow:0 0 6px #FCD34D;"></div> Active';
+    } else {
+      lampCard.classList.remove('on');
+      lampIconWrap.classList.remove('on');
+      lampSvg.setAttribute('stroke','var(--muted)');
+      lampVal.textContent = 'OFF';
+      lampVal.className = 'lamp-status-val off';
+      badge.style.background = 'rgba(107,125,160,.08)';
+      badge.style.borderColor = 'rgba(107,125,160,.2)';
+      badge.style.color = 'var(--muted)';
+      badge.innerHTML = '<div class="status-dot" style="background:var(--muted);"></div> Standby';
+    }
+
+    // Analytics bars
+    const intensity = night ? 4 : 85;
+    const power = night ? 150 : 0;
+    const energy = night ? 0 : 100;
+
+    document.getElementById('metricIntensity').textContent = lux;
+    document.getElementById('metricIntensity').style.color = luxColor;
+    document.getElementById('barIntensity').style.width = intensity + '%';
+
+    document.getElementById('metricLamp').textContent = night ? 'ON' : 'OFF';
+    document.getElementById('metricLamp').style.color = night ? '#FCD34D' : 'var(--muted2)';
+    document.getElementById('barLamp').style.width = night ? '100%' : '0%';
+
+    document.getElementById('metricPower').textContent = power + ' W';
+    document.getElementById('metricPower').style.color = night ? 'var(--cyan2)' : 'var(--muted2)';
+    document.getElementById('barPower').style.width = night ? '75%' : '0%';
+
+    document.getElementById('metricEnergy').textContent = energy + '%';
+    document.getElementById('metricEnergy').style.color = night ? 'var(--muted2)' : 'var(--green)';
+    document.getElementById('barEnergy').style.width = energy + '%';
+  }
+
+  // Init gauge
+  setGauge(850);
+
+  // LDR pulse animation for night
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes ldrPulseAnim {
+      0% { r: 8; opacity: 0.6; }
+      100% { r: 20; opacity: 0; }
+    }
+    @keyframes lampGlowPulse {
+      0%,100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+</script>
+</body>
+</html>

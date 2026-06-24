@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ARCIO — Smart Security System</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    :root {
+      --bg:#060A13;--bg2:#0A1120;--bg3:#0D1526;--bg4:#08101E;
+      --blue:#3B82F6;--blue-deep:#1D4ED8;
+      --cyan:#5EEAD4;--cyan2:#38BDF8;
+      --ink:#EAF1FF;--muted:#6B7DA0;--muted2:#4A5A7A;
+      --border:rgba(94,234,212,.10);--border-blue:rgba(59,130,246,.18);
+      --green:#34D399;--green2:#10B981;--amber:#F59E0B;--red:#F87171;
+      --panel-bg:rgba(10,17,32,.92);--panel-border:rgba(94,234,212,.10);
+      --radius:12px;--radius-sm:8px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{height:100%;}
+    body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);cursor:none;overflow-x:hidden;user-select:none;}
+
+    /* CURSOR */
+    .cur-dot{position:fixed;top:0;left:0;pointer-events:none;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:translate(-50%,-50%);z-index:9999;}
+    .cur-ring{position:fixed;top:0;left:0;pointer-events:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(94,234,212,.5);transform:translate(-50%,-50%);z-index:9998;transition:width .2s cubic-bezier(.2,.8,.3,1),height .2s,border-color .2s,background .2s;}
+    .cur-ring.expand{width:52px;height:52px;border-color:var(--cyan);background:rgba(94,234,212,.05);}
+    .cur-label{position:fixed;top:0;left:0;pointer-events:none;z-index:9997;font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.14em;color:var(--cyan);transform:translate(-50%,-50%);opacity:0;transition:opacity .18s;margin-top:24px;}
+    .cur-label.show{opacity:1;}
+
+    /* BG */
+    .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(94,234,212,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,212,.018) 1px,transparent 1px);background-size:44px 44px;}
+    .bg-atmos{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 65% 40% at 50% 0%,rgba(59,130,246,.07) 0%,transparent 65%),radial-gradient(ellipse 30% 25% at 10% 60%,rgba(94,234,212,.04) 0%,transparent 60%);}
+
+    /* TOPBAR */
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:52px;background:rgba(6,10,19,.96);border-bottom:1px solid rgba(94,234,212,.08);backdrop-filter:blur(20px);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;}
+    .topbar-logo{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.04em;color:var(--ink);text-decoration:none;}
+    .topbar-logo span{color:var(--cyan2);}
+    .topbar-sep{width:1px;height:22px;background:rgba(94,234,212,.1);}
+    .topbar-expnum{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan2);background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.2);border-radius:4px;padding:2px 8px;}
+    .topbar-exptitle{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.02em;color:var(--ink);}
+    .topbar-spacer{flex:1;}
+    .topbar-status{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:sPulse 2s ease-in-out infinite;flex-shrink:0;}
+    .status-dot.alert{background:var(--red);box-shadow:0 0 10px var(--red);animation:aPulse .5s ease-in-out infinite;}
+    .status-txt{color:var(--green);}
+    .status-txt.alert{color:var(--red);}
+    @keyframes sPulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.8);}70%{box-shadow:0 0 0 6px rgba(52,211,153,0);}100%{box-shadow:0 0 0 0 rgba(52,211,153,0);}}
+    @keyframes aPulse{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.8);}50%{box-shadow:0 0 0 8px rgba(248,113,113,0);}}
+    .nav-back{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:none;transition:color .2s;text-decoration:none;border:1px solid rgba(94,234,212,.1);padding:5px 12px;border-radius:6px;}
+    .nav-back:hover{color:var(--cyan);border-color:rgba(94,234,212,.28);}
+    .nav-back svg{transition:transform .2s;}
+    .nav-back:hover svg{transform:translateX(-2px);}
+
+    /* PAGE LAYOUT */
+    .page{position:relative;z-index:1;padding-top:52px;min-height:100vh;}
+
+    /* HERO */
+    .hero{padding:48px 40px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--cyan2);background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.2);border-radius:20px;padding:4px 14px;margin-bottom:20px;}
+    .badge-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 8px var(--cyan2);animation:bdPulse 2s ease-in-out infinite;}
+    @keyframes bdPulse{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.8);}50%{box-shadow:0 0 0 5px rgba(56,189,248,0);}}
+    .hero-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:clamp(32px,5vw,56px);letter-spacing:-.04em;line-height:1;color:var(--ink);margin-bottom:12px;}
+    .hero-title .accent{background:linear-gradient(135deg,var(--cyan2),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero-sub{font-size:14px;color:var(--muted);max-width:480px;line-height:1.6;}
+
+    /* MAIN BODY */
+    .body-grid{display:grid;grid-template-columns:1fr 300px;gap:20px;padding:24px 40px 60px;max-width:1400px;margin:0 auto;}
+
+    /* SIM ARENA */
+    .sim-arena{display:flex;flex-direction:column;gap:16px;}
+    .sim-title-row{display:flex;align-items:center;gap:10px;}
+    .sim-label{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
+    .sim-label-accent{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--cyan2);}
+
+    /* FLOORPLAN */
+    .floorplan-wrap{position:relative;background:rgba(8,13,24,.95);border:1px solid rgba(94,234,212,.12);border-radius:16px;overflow:hidden;height:460px;}
+    .floorplan-header{position:absolute;top:0;left:0;right:0;z-index:10;height:36px;background:rgba(6,10,19,.9);border-bottom:1px solid rgba(94,234,212,.08);backdrop-filter:blur(12px);display:flex;align-items:center;padding:0 14px;gap:8px;}
+    .fp-tag{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2);}
+    .fp-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+    .fp-spacer{flex:1;}
+    .fp-coord{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted2);letter-spacing:.08em;}
+    #fpCanvas{display:block;width:100%;height:100%;cursor:none;}
+
+    /* ALARM BANNER */
+    .alarm-banner{position:absolute;bottom:0;left:0;right:0;z-index:20;height:36px;background:rgba(248,113,113,.12);border-top:1px solid rgba(248,113,113,.3);display:flex;align-items:center;padding:0 16px;gap:10px;opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;}
+    .alarm-banner.active{opacity:1;transform:translateY(0);}
+    .alarm-icon{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);}
+    .alarm-text{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--red);}
+
+    /* HINT */
+    .sim-hint{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted2);letter-spacing:.1em;text-align:center;margin-top:2px;}
+
+    /* CONSOLE */
+    .console-panel{background:rgba(6,10,19,.96);border:1px solid rgba(94,234,212,.1);border-radius:12px;overflow:hidden;}
+    .console-header{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(94,234,212,.07);}
+    .console-title{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:1;}
+    .console-clear{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted2);cursor:none;transition:color .2s;letter-spacing:.08em;}
+    .console-clear:hover{color:var(--cyan);}
+    #consoleLog{height:130px;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:3px;}
+    #consoleLog::-webkit-scrollbar{width:3px;}
+    #consoleLog::-webkit-scrollbar-thumb{background:rgba(94,234,212,.15);border-radius:2px;}
+    .log-line{font-family:'JetBrains Mono',monospace;font-size:8.5px;line-height:1.5;display:flex;gap:8px;}
+    .log-ts{color:var(--muted2);flex-shrink:0;}
+    .log-ok{color:var(--green);}
+    .log-warn{color:var(--amber);}
+    .log-alert{color:var(--red);}
+    .log-info{color:var(--cyan2);}
+
+    /* RIGHT PANEL */
+    .right-col{display:flex;flex-direction:column;gap:16px;}
+
+    /* ANALYTICS PANEL */
+    .panel{background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:var(--radius);overflow:hidden;}
+    .panel-header{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid rgba(94,234,212,.07);}
+    .panel-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);}
+    .panel-title{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:1;}
+    .panel-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+
+    .stat-row{display:flex;align-items:center;justify-content:space-between;}
+    .stat-key{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:.08em;}
+    .stat-val{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--ink);}
+    .stat-val.ok{color:var(--green);}
+    .stat-val.alert{color:var(--red);}
+    .stat-val.warn{color:var(--amber);}
+    .stat-val.info{color:var(--cyan2);}
+    .stat-sep{height:1px;background:rgba(94,234,212,.06);}
+
+    /* SECTION CARDS */
+    .info-section{display:flex;flex-direction:column;gap:14px;padding:32px 40px;max-width:1400px;margin:0 auto;}
+    .info-section-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--ink);margin-bottom:4px;}
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+
+    .info-card{background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:14px;padding:18px 18px 20px;transition:border-color .3s,transform .35s cubic-bezier(.2,.8,.3,1),box-shadow .35s;position:relative;overflow:hidden;}
+    .info-card:hover{border-color:rgba(94,234,212,.22);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+    .info-card-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.18);}
+    .info-card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.01em;color:var(--ink);margin-bottom:5px;}
+    .info-card-desc{font-size:11.5px;color:var(--muted);line-height:1.6;}
+    .info-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.2),transparent);opacity:0;transition:opacity .3s;}
+    .info-card:hover::after{opacity:1;}
+
+    /* FLOW */
+    .flow-chain{display:flex;flex-direction:column;align-items:flex-start;gap:0;}
+    .flow-step{display:flex;align-items:center;gap:12px;padding:10px 18px;background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:10px;transition:border-color .3s;}
+    .flow-step:hover{border-color:rgba(94,234,212,.24);}
+    .flow-num{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.15em;color:var(--cyan2);background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.18);border-radius:4px;padding:2px 7px;flex-shrink:0;}
+    .flow-text{font-size:12.5px;color:var(--ink);font-weight:500;}
+    .flow-arrow{display:flex;justify-content:flex-start;padding:0 18px;}
+    .flow-arrow svg{opacity:.3;}
+
+    /* ARCH */
+    .arch-chain{display:flex;flex-direction:column;align-items:stretch;gap:0;}
+    .arch-node{display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(10,17,32,.85);border:1px solid rgba(56,189,248,.12);border-radius:10px;}
+    .arch-node-icon{width:28px;height:28px;border-radius:7px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .arch-node-label{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:var(--ink);}
+    .arch-node-sub{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;}
+    .arch-arrow{display:flex;justify-content:center;padding:2px 0;}
+    .arch-arrow svg{opacity:.25;}
+
+    /* APPS GRID */
+    .apps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+    .app-chip{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:10px;transition:border-color .3s,background .3s;}
+    .app-chip:hover{border-color:rgba(94,234,212,.24);background:rgba(10,17,32,.95);}
+    .app-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);flex-shrink:0;}
+    .app-chip-name{font-size:12px;font-weight:500;color:var(--ink);}
+
+    .section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.1),transparent);margin:8px 40px;}
+  </style>
+</head>
+<body>
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="cur-label" id="curLabel">DRAG</div>
+<div class="bg-grid"></div>
+<div class="bg-atmos"></div>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a href="playground.html" class="topbar-logo">ARC<span>IO</span></a>
+  <div class="topbar-sep"></div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="topbar-expnum">SIM 01</span>
+    <span class="topbar-exptitle">Smart Security System</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-status" id="topStatus">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-txt" id="statusTxt">STANDBY</span>
+  </div>
+  <div class="topbar-sep"></div>
+  <a href="playground.html" class="nav-back">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+    Playground
+  </a>
+</nav>
+
+<main class="page">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge"><div class="badge-dot"></div>Security Operations Center</div>
+    <h1 class="hero-title">Smart <span class="accent">Security</span> System</h1>
+    <p class="hero-sub">Monitor intrusions using camera-based automation with real-time alert generation and response.</p>
+  </section>
+
+  <!-- MAIN BODY -->
+  <div class="body-grid">
+
+    <!-- SIM ARENA -->
+    <div class="sim-arena">
+      <div class="sim-title-row">
+        <span class="sim-label">Interactive Simulation</span>
+        <div style="flex:1;height:1px;background:rgba(94,234,212,.07);margin:0 8px;"></div>
+        <span class="sim-label-accent" id="coordDisplay">X:0 Y:0</span>
+      </div>
+
+      <div class="floorplan-wrap">
+        <div class="floorplan-header">
+          <div class="fp-dot"></div>
+          <span class="fp-tag">Facility Floor Plan — Zone B2</span>
+          <div class="fp-spacer"></div>
+          <span class="fp-coord" id="fpCoord">Person: Outside Zone</span>
+        </div>
+        <canvas id="fpCanvas"></canvas>
+        <div class="alarm-banner" id="alarmBanner">
+          <div class="alarm-icon"></div>
+          <span class="alarm-text">⚠ INTRUSION DETECTED — ALARM ACTIVE</span>
+          <div style="flex:1;"></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(248,113,113,.6);letter-spacing:.1em;" id="alarmTime"></span>
+        </div>
+      </div>
+
+      <div class="sim-hint">Drag the person around the floorplan — move into the camera detection zone to trigger the alarm</div>
+
+      <!-- CONSOLE -->
+      <div class="console-panel">
+        <div class="console-header">
+          <div class="panel-dot"></div>
+          <span class="console-title">Security Console</span>
+          <span class="console-clear" id="clearBtn">CLEAR</span>
+        </div>
+        <div id="consoleLog"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT COL -->
+    <div class="right-col">
+
+      <!-- ANALYTICS -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot"></div>
+          <span class="panel-title">Analytics</span>
+        </div>
+        <div class="panel-body">
+          <div class="stat-row">
+            <span class="stat-key">Detection Status</span>
+            <span class="stat-val ok" id="statDetect">CLEAR</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Alarm Status</span>
+            <span class="stat-val ok" id="statAlarm">INACTIVE</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Detection Count</span>
+            <span class="stat-val info" id="statCount">0</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Camera State</span>
+            <span class="stat-val ok" id="statCam">MONITORING</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">System Health</span>
+            <span class="stat-val ok" id="statHealth">ONLINE</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Uptime</span>
+            <span class="stat-val" id="statUptime">00:00:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SENSOR READOUT -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></div>
+          <span class="panel-title">Sensor Readout</span>
+        </div>
+        <div class="panel-body">
+          <div class="stat-row">
+            <span class="stat-key">Camera</span>
+            <span class="stat-val ok" id="srCam">ACTIVE</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Motion Sensor</span>
+            <span class="stat-val ok" id="srMotion">IDLE</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Beacon</span>
+            <span class="stat-val ok" id="srBeacon">OFF</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Alert Zone</span>
+            <span class="stat-val info" id="srZone">ARMED</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAST EVENT -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div>
+          <span class="panel-title">Last Event</span>
+        </div>
+        <div class="panel-body">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);line-height:1.8;" id="lastEvent">
+            No events recorded.<br>System armed and monitoring.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- CONCEPTS -->
+  <div class="info-section">
+    <div class="info-section-title">Concepts Applied</div>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="1.8" stroke-linecap="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+        <div class="info-card-title">Camera Recognition</div>
+        <div class="info-card-desc">Video feeds are processed in real time to identify unauthorized persons entering a secured zone.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="info-card-title">Motion Detection</div>
+        <div class="info-card-desc">PIR and optical flow algorithms detect movement within a defined coverage area, triggering immediate response.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <div class="info-card-title">Automation</div>
+        <div class="info-card-desc">Microcontroller logic evaluates sensor input and autonomously executes the alarm response pipeline.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"><polygon points="7.86,2 16.14,2 22,7.86 22,16.14 16.14,22 7.86,22 2,16.14 2,7.86"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="info-card-title">Alert Systems</div>
+        <div class="info-card-desc">Multi-channel alerts via visual beacon, audible alarm, and digital notification ensure immediate operator awareness.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- HOW IT WORKS + ARCH -->
+  <div class="info-section">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+      <div>
+        <div class="info-section-title" style="margin-bottom:16px;">How It Works</div>
+        <div class="flow-chain">
+          <div class="flow-step"><span class="flow-num">01</span><span class="flow-text">Person enters the monitored zone</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">02</span><span class="flow-text">Camera detects motion in frame</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">03</span><span class="flow-text">Controller processes detection event</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">04</span><span class="flow-text">Alarm + beacon + notification activated</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="info-section-title" style="margin-bottom:16px;">IoT Architecture</div>
+        <div class="arch-chain">
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="2" stroke-linecap="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+            <div><div class="arch-node-label">Camera Sensor</div><div class="arch-node-sub">Input Layer — Video Feed</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="3"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg></div>
+            <div><div class="arch-node-label">Controller</div><div class="arch-node-sub">Processing — Arduino / ESP32</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><polygon points="7.86,2 16.14,2 22,7.86 22,16.14 16.14,22 7.86,22 2,16.14 2,7.86"/><line x1="12" y1="8" x2="12" y2="12"/></svg></div>
+            <div><div class="arch-node-label">Alarm System</div><div class="arch-node-sub">Output — Buzzer + Beacon</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2H4.18A2 2 0 0 1 2 19.92V4.08A2 2 0 0 1 4.18 2h15.64A2 2 0 0 1 22 4.08v3"/><polyline points="7,12 12,17 17,12"/></svg></div>
+            <div><div class="arch-node-label">User Notification</div><div class="arch-node-sub">Alert — App / Dashboard</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- REAL WORLD -->
+  <div class="info-section">
+    <div class="info-section-title">Real-World Applications</div>
+    <div class="apps-grid">
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Smart Homes</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Corporate Offices</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Warehouses</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Airports</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Banks & ATMs</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Data Centers</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Parking Lots</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Schools</span></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── CURSOR
+const dot=document.getElementById('curDot'),ring=document.getElementById('curRing'),lbl=document.getElementById('curLabel');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function ac(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+  dot.style.left=mx+'px';dot.style.top=my+'px';
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  lbl.style.left=rx+'px';lbl.style.top=ry+'px';
+  requestAnimationFrame(ac);})();
+document.querySelectorAll('a,.info-card,.app-chip').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ring.classList.add('expand');lbl.classList.add('show');lbl.textContent='VIEW';});
+  el.addEventListener('mouseleave',()=>{ring.classList.remove('expand');lbl.classList.remove('show');});
+});
+
+// ── UPTIME
+let uptime=0;
+setInterval(()=>{uptime++;const h=String(Math.floor(uptime/3600)).padStart(2,'0'),m=String(Math.floor((uptime%3600)/60)).padStart(2,'0'),s=String(uptime%60).padStart(2,'0');document.getElementById('statUptime').textContent=`${h}:${m}:${s}`;},1000);
+
+// ── CANVAS SIMULATION
+const canvas=document.getElementById('fpCanvas');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){
+  const rect=canvas.parentElement.getBoundingClientRect();
+  W=canvas.width=rect.width;
+  H=canvas.height=rect.height;
+}
+resize();
+window.addEventListener('resize',resize);
+
+// State
+let detectionCount=0;
+let alarmActive=false;
+let alarmFlicker=0;
+let beamPhase=0;
+let personInZone=false;
+let justEntered=false;
+
+// Person
+const person={x:120,y:260,r:14,dragging:false,ox:0,oy:0};
+
+// Camera (fixed position on canvas - top-right room)
+const cam={x:0,y:0,angle:Math.PI*1.25,fovAngle:Math.PI/3,range:0};
+// Zone polygon points (detection area — will be computed after resize)
+function getCamZone(){
+  return{cx:W*0.72,cy:H*0.22,angle:Math.PI*1.1,fovAngle:Math.PI/2.5,range:Math.min(W,H)*0.42};
+}
+
+// Floor plan rooms
+function getRooms(){
+  const pad=36; // topbar
+  return[
+    // Main corridor
+    {x:W*0.08,y:H*0.08,w:W*0.84,h:H*0.12,label:'CORRIDOR',fill:'rgba(10,20,40,.6)',border:'rgba(94,234,212,.12)'},
+    // Room A - left
+    {x:W*0.08,y:H*0.22,w:W*0.28,h:H*0.5,label:'ROOM A',fill:'rgba(10,20,40,.55)',border:'rgba(94,234,212,.1)'},
+    // Room B - center (secured)
+    {x:W*0.38,y:H*0.22,w:W*0.28,h:H*0.5,label:'SECURED ZONE',fill:'rgba(56,189,248,.03)',border:'rgba(56,189,248,.18)',secured:true},
+    // Room C - right
+    {x:W*0.68,y:H*0.22,w:W*0.24,h:H*0.5,label:'CAMERA ROOM',fill:'rgba(10,20,40,.55)',border:'rgba(94,234,212,.1)'},
+    // Bottom hall
+    {x:W*0.08,y:H*0.74,w:W*0.84,h:H*0.12,label:'HALL',fill:'rgba(10,20,40,.5)',border:'rgba(94,234,212,.08)'},
+  ];
+}
+
+function pointInFov(px,py,zone){
+  const dx=px-zone.cx, dy=py-zone.cy;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist>zone.range)return false;
+  const angle=Math.atan2(dy,dx);
+  let diff=angle-zone.angle;
+  while(diff>Math.PI)diff-=Math.PI*2;
+  while(diff<-Math.PI)diff+=Math.PI*2;
+  return Math.abs(diff)<zone.fovAngle/2;
+}
+
+// Console log
+const logEl=document.getElementById('consoleLog');
+function log(msg,type='info'){
+  const now=new Date();
+  const ts=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const div=document.createElement('div');
+  div.className='log-line';
+  div.innerHTML=`<span class="log-ts">${ts}</span><span class="log-${type}">${msg}</span>`;
+  logEl.appendChild(div);
+  logEl.scrollTop=logEl.scrollHeight;
+  if(logEl.children.length>80)logEl.removeChild(logEl.children[0]);
+}
+document.getElementById('clearBtn').addEventListener('click',()=>{logEl.innerHTML='';log('Console cleared','info');});
+log('ARCIO Security System initialized','ok');
+log('Camera online — Zone B2 armed','ok');
+log('Monitoring active — drag person to test','info');
+
+function setAlert(active){
+  if(active===alarmActive)return;
+  alarmActive=active;
+  document.getElementById('alarmBanner').classList.toggle('active',active);
+  if(active){
+    detectionCount++;
+    document.getElementById('alarmTime').textContent=new Date().toLocaleTimeString();
+    document.getElementById('statDetect').textContent='DETECTED';
+    document.getElementById('statDetect').className='stat-val alert';
+    document.getElementById('statAlarm').textContent='ACTIVE';
+    document.getElementById('statAlarm').className='stat-val alert';
+    document.getElementById('statCam').textContent='TRIGGERED';
+    document.getElementById('statCam').className='stat-val alert';
+    document.getElementById('srMotion').textContent='TRIGGERED';
+    document.getElementById('srMotion').className='stat-val alert';
+    document.getElementById('srBeacon').textContent='FLASHING';
+    document.getElementById('srBeacon').className='stat-val warn';
+    document.getElementById('statCount').textContent=detectionCount;
+    document.getElementById('statusDot').classList.add('alert');
+    document.getElementById('statusTxt').textContent='ALERT';
+    document.getElementById('statusTxt').classList.add('alert');
+    document.getElementById('lastEvent').innerHTML=`Event: INTRUSION<br>Zone: B2 — Secured Area<br>Time: ${new Date().toLocaleTimeString()}<br>Count: ${detectionCount}`;
+    log('⚠ INTRUSION DETECTED — Zone B2','alert');
+    log('Camera triggered — motion confirmed','alert');
+    log('Alarm activated — beacon ON','warn');
+    log(`Detection event #${detectionCount} logged`,'warn');
+    document.getElementById('fpCoord').textContent='Person: INSIDE ZONE — ALERT';
+  } else {
+    document.getElementById('statDetect').textContent='CLEAR';
+    document.getElementById('statDetect').className='stat-val ok';
+    document.getElementById('statAlarm').textContent='INACTIVE';
+    document.getElementById('statAlarm').className='stat-val ok';
+    document.getElementById('statCam').textContent='MONITORING';
+    document.getElementById('statCam').className='stat-val ok';
+    document.getElementById('srMotion').textContent='IDLE';
+    document.getElementById('srMotion').className='stat-val ok';
+    document.getElementById('srBeacon').textContent='OFF';
+    document.getElementById('srBeacon').className='stat-val ok';
+    document.getElementById('statusDot').classList.remove('alert');
+    document.getElementById('statusTxt').textContent='STANDBY';
+    document.getElementById('statusTxt').classList.remove('alert');
+    log('Zone cleared — alarm deactivated','ok');
+    log('System returning to standby','info');
+    document.getElementById('fpCoord').textContent='Person: Outside Zone';
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const zone=getCamZone();
+  const rooms=getRooms();
+  beamPhase+=0.04;
+  if(alarmActive)alarmFlicker=(alarmFlicker+0.12)%(Math.PI);
+
+  // Draw rooms
+  rooms.forEach(r=>{
+    ctx.save();
+    ctx.fillStyle=r.fill;
+    ctx.strokeStyle=r.border;
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.roundRect(r.x,r.y+(H*0.08),r.w,r.h,4);
+    ctx.fill();
+    ctx.stroke();
+    // Label
+    ctx.font='600 8px JetBrains Mono, monospace';
+    ctx.fillStyle='rgba(107,125,160,.6)';
+    ctx.letterSpacing='0.15em';
+    ctx.textAlign='center';
+    ctx.fillText(r.label,r.x+r.w/2,r.y+(H*0.08)+16);
+    if(r.secured){
+      ctx.strokeStyle='rgba(56,189,248,.08)';
+      ctx.setLineDash([6,4]);
+      ctx.strokeRect(r.x+4,r.y+(H*0.08)+4,r.w-8,r.h-8);
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+  });
+
+  // Camera FOV beam
+  const inZone=pointInFov(person.x,person.y,zone);
+  // Beam glow
+  const beamAlpha=inZone?0.22+Math.sin(beamPhase)*0.08:0.07+Math.sin(beamPhase)*0.02;
+  const beamColor=inZone?`rgba(248,113,113,${beamAlpha})`:`rgba(56,189,248,${beamAlpha})`;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(zone.cx,zone.cy);
+  ctx.arc(zone.cx,zone.cy,zone.range,zone.angle-zone.fovAngle/2,zone.angle+zone.fovAngle/2);
+  ctx.closePath();
+  const grad=ctx.createRadialGradient(zone.cx,zone.cy,0,zone.cx,zone.cy,zone.range);
+  grad.addColorStop(0,inZone?'rgba(248,113,113,.35)':'rgba(56,189,248,.25)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=grad;
+  ctx.fill();
+  ctx.strokeStyle=inZone?'rgba(248,113,113,.4)':'rgba(56,189,248,.2)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  ctx.restore();
+
+  // Scan line inside beam (animated)
+  if(!inZone){
+    ctx.save();
+    const scanAngle=zone.angle-zone.fovAngle/2+((beamPhase*0.4)%(zone.fovAngle));
+    ctx.beginPath();
+    ctx.moveTo(zone.cx,zone.cy);
+    ctx.lineTo(zone.cx+Math.cos(scanAngle)*zone.range,zone.cy+Math.sin(scanAngle)*zone.range);
+    ctx.strokeStyle='rgba(56,189,248,.35)';
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Camera body
+  ctx.save();
+  const camBodyX=zone.cx-10,camBodyY=zone.cy-7;
+  ctx.fillStyle=inZone?'rgba(248,113,113,.2)':'rgba(56,189,248,.12)';
+  ctx.strokeStyle=inZone?'rgba(248,113,113,.7)':'rgba(56,189,248,.7)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(camBodyX,camBodyY,20,14,3);ctx.fill();ctx.stroke();
+  // lens
+  ctx.beginPath();ctx.arc(zone.cx+6,zone.cy,4,0,Math.PI*2);
+  ctx.fillStyle=inZone?'rgba(248,113,113,.4)':'rgba(56,189,248,.3)';
+  ctx.fill();ctx.stroke();
+  // Recording dot
+  if(inZone){
+    const fd=Math.sin(beamPhase*3)>.2?1:0.2;
+    ctx.beginPath();ctx.arc(camBodyX+4,camBodyY+4,2.5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(248,113,113,${fd})`;ctx.fill();
+  }
+  // CAMERA label
+  ctx.font='500 7px JetBrains Mono, monospace';
+  ctx.fillStyle=inZone?'rgba(248,113,113,.8)':'rgba(56,189,248,.6)';
+  ctx.textAlign='center';
+  ctx.fillText('CAM-01',zone.cx,zone.cy+26);
+  ctx.restore();
+
+  // Alarm beacon (top of secured room)
+  if(alarmActive){
+    const bx=W*0.52,by=H*0.29;
+    const bs=Math.abs(Math.sin(beamPhase*4));
+    ctx.save();
+    ctx.beginPath();ctx.arc(bx,by,8+bs*4,0,Math.PI*2);
+    ctx.fillStyle=`rgba(248,113,113,${0.15+bs*0.2})`;ctx.fill();
+    ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);
+    ctx.fillStyle=`rgba(248,113,113,${0.6+bs*0.4})`;ctx.fill();
+    ctx.font='500 7px JetBrains Mono,monospace';
+    ctx.fillStyle='rgba(248,113,113,.8)';
+    ctx.textAlign='center';
+    ctx.fillText('ALARM',bx,by+18);
+    ctx.restore();
+  }
+
+  // Person
+  const personColor=inZone?'rgba(248,113,113,1)':'rgba(94,234,212,1)';
+  const personGlow=inZone?'rgba(248,113,113,.3)':'rgba(94,234,212,.2)';
+  ctx.save();
+  // glow
+  ctx.beginPath();ctx.arc(person.x,person.y,person.r+8,0,Math.PI*2);
+  const pg=ctx.createRadialGradient(person.x,person.y,0,person.x,person.y,person.r+8);
+  pg.addColorStop(0,personGlow);pg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=pg;ctx.fill();
+  // body circle
+  ctx.beginPath();ctx.arc(person.x,person.y,person.r,0,Math.PI*2);
+  ctx.fillStyle='rgba(10,17,32,.9)';ctx.fill();
+  ctx.strokeStyle=personColor;ctx.lineWidth=1.8;ctx.stroke();
+  // person icon (head + body)
+  ctx.strokeStyle=personColor;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(person.x,person.y-4,3.5,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x,person.y-0.5);ctx.lineTo(person.x,person.y+5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x-4,person.y+2);ctx.lineTo(person.x+4,person.y+2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x,person.y+5);ctx.lineTo(person.x-3,person.y+10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(person.x,person.y+5);ctx.lineTo(person.x+3,person.y+10);ctx.stroke();
+  // drag label
+  ctx.font='500 7px JetBrains Mono,monospace';
+  ctx.fillStyle=personColor;ctx.textAlign='center';
+  ctx.fillText('DRAG',person.x,person.y+person.r+10);
+  ctx.restore();
+
+  // Update state
+  if(inZone!==personInZone){
+    personInZone=inZone;
+    setAlert(inZone);
+  }
+
+  // coord display
+  document.getElementById('coordDisplay').textContent=`X:${Math.round(person.x)} Y:${Math.round(person.y)}`;
+  requestAnimationFrame(draw);
+}
+draw();
+
+// Drag
+canvas.addEventListener('mousedown',e=>{
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width, sy=canvas.height/r.height;
+  const mx=(e.clientX-r.left)*sx, my=(e.clientY-r.top)*sy;
+  const dx=mx-person.x,dy=my-person.y;
+  if(Math.sqrt(dx*dx+dy*dy)<person.r+10){
+    person.dragging=true;person.ox=dx;person.oy=dy;
+    lbl.textContent='DRAG';ring.classList.add('expand');lbl.classList.add('show');
+  }
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!person.dragging)return;
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  person.x=(e.clientX-r.left)*sx-person.ox;
+  person.y=(e.clientY-r.top)*sy-person.oy;
+  person.x=Math.max(person.r,Math.min(W-person.r,person.x));
+  person.y=Math.max(person.r+36,Math.min(H-person.r,person.y));
+});
+canvas.addEventListener('mouseup',()=>{person.dragging=false;ring.classList.remove('expand');lbl.classList.remove('show');});
+canvas.addEventListener('mouseleave',()=>{person.dragging=false;});
+
+// Touch
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const t=e.touches[0],r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  const mx=(t.clientX-r.left)*sx,my=(t.clientY-r.top)*sy;
+  const dx=mx-person.x,dy=my-person.y;
+  if(Math.sqrt(dx*dx+dy*dy)<person.r+16){person.dragging=true;person.ox=dx;person.oy=dy;}
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(!person.dragging)return;
+  const t=e.touches[0],r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  person.x=(t.clientX-r.left)*sx-person.ox;
+  person.y=(t.clientY-r.top)*sy-person.oy;
+  person.x=Math.max(person.r,Math.min(W-person.r,person.x));
+  person.y=Math.max(person.r+36,Math.min(H-person.r,person.y));
+},{passive:false});
+canvas.addEventListener('touchend',()=>{person.dragging=false;});
+
+// Intersection observer for info cards
+const io=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='';}
+  });
+},{threshold:0.1});
+document.querySelectorAll('.info-card,.flow-step,.arch-node,.app-chip').forEach((el,i)=>{
+  el.style.opacity='0';
+  el.style.transform='translateY(18px)';
+  el.style.transition=`opacity .55s ${i*0.07}s ease, transform .55s ${i*0.07}s cubic-bezier(.2,.8,.3,1)`;
+  io.observe(el);
+});
+</script>
+</body>
+</html>
