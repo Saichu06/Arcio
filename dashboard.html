@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ARCIO · Dashboard</title>
+<link rel="icon" type="image/png" href="./assets/logo.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#060A13;--bg2:#0A1120;--bg3:#0D1526;
+  --blue:#3B82F6;--blue-deep:#1D4ED8;
+  --cyan:#5EEAD4;--cyan2:#38BDF8;
+  --ink:#EAF1FF;--muted:#6B7DA0;--muted2:#4A5A7A;
+  --border:rgba(94,234,212,0.14);--border-blue:rgba(59,130,246,0.22);
+  --green:#34D399;--green2:#10B981;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;overflow-x:hidden;}
+
+/* ── CURSOR ── */
+.cur-dot{position:fixed;top:0;left:0;pointer-events:none;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:translate(-50%,-50%);z-index:9999;transition:opacity .3s;}
+.cur-ring{position:fixed;top:0;left:0;pointer-events:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(94,234,212,0.5);transform:translate(-50%,-50%);z-index:9998;transition:width .2s cubic-bezier(.2,.8,.3,1),height .2s cubic-bezier(.2,.8,.3,1),border-color .2s,background .2s;}
+.cur-ring.expand{width:52px;height:52px;border-color:var(--cyan);background:rgba(94,234,212,0.05);}
+.cur-label{position:fixed;top:0;left:0;pointer-events:none;z-index:9997;font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.14em;color:var(--cyan);transform:translate(-50%,-50%);opacity:0;transition:opacity .18s;}
+.cur-label.show{opacity:1;}
+
+/* ── BACKGROUND GRID ── */
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.028;background-image:linear-gradient(rgba(94,234,212,1) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,212,1) 1px,transparent 1px);background-size:48px 48px;}
+.bg-atmos{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(59,130,246,.07) 0%,transparent 65%);}
+
+/* ── TOP NAV ── */
+.nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(6,10,19,.92);backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(94,234,212,.08);
+  padding:0 32px;height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-logo{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.04em;color:var(--ink);}
+.nav-logo span{color:var(--cyan2);}
+.nav-pill{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:2px 8px;border:1px solid var(--border);border-radius:100px;background:rgba(94,234,212,.04);color:var(--cyan2);}
+.nav-right{display:flex;align-items:center;gap:18px;}
+.nav-stat{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;color:var(--muted);letter-spacing:.06em;}
+.nav-stat-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:blink 2s infinite;}
+.nav-stat-val{color:var(--cyan2);font-weight:600;}
+.nav-back{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:color .2s;text-decoration:none;border:1px solid rgba(94,234,212,.12);padding:4px 11px;border-radius:6px;}
+.nav-back:hover{color:var(--cyan);border-color:rgba(94,234,212,.3);}
+.nav-back svg{transition:transform .2s;}
+.nav-back:hover svg{transform:translateX(-3px);}
+
+/* ── PAGE SHELL ── */
+.page{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:38px 32px 80px;}
+
+/* ── PAGE HEADER ── */
+.page-header{margin-bottom:36px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.page-header-left{}
+.page-eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan2);margin-bottom:10px;}
+.page-eyebrow-dot{width:4px;height:4px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);}
+.page-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:32px;letter-spacing:-.03em;color:var(--ink);line-height:1.1;}
+.page-sub{font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);margin-top:6px;max-width:480px;}
+.page-header-right{display:flex;gap:8px;align-items:center;}
+.hdr-badge{display:flex;align-items:center;gap:5px;background:rgba(10,17,32,.8);border:1px solid rgba(94,234,212,.14);border-radius:8px;padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.06em;}
+.hdr-badge span{color:var(--cyan2);font-weight:600;}
+
+/* ── SECTION DIVIDER ── */
+.sec-divider{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.sec-divider-label{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);white-space:nowrap;}
+.sec-divider-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(94,234,212,.12),transparent);}
+
+/* ══════════════════════════════════════
+   EXPERIMENT 01 — HERO CARD
+══════════════════════════════════════ */
+.exp-hero-wrap{margin-bottom:28px;}
+
+.exp-hero{
+  position:relative;overflow:hidden;cursor:pointer;
+  border-radius:16px;
+  border:1.5px solid rgba(52,211,153,.36);
+  background:linear-gradient(145deg,rgba(10,20,36,.98) 0%,rgba(8,16,28,.98) 100%);
+  box-shadow:
+    0 0 0 1px rgba(52,211,153,.08),
+    0 0 48px rgba(52,211,153,.10),
+    0 0 100px rgba(52,211,153,.04),
+    0 24px 60px rgba(0,0,0,.6);
+  padding:32px 36px 30px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:28px;
+  align-items:center;
+  transition:transform .35s cubic-bezier(.2,.8,.3,1),box-shadow .35s;
+}
+.exp-hero:hover{
+  transform:translateY(-5px);
+  box-shadow:
+    0 0 0 1.5px rgba(52,211,153,.28),
+    0 0 60px rgba(52,211,153,.18),
+    0 0 120px rgba(52,211,153,.06),
+    0 36px 80px rgba(0,0,0,.7);
+}
+
+/* Animated gradient sweep on the hero card */
+.exp-hero::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 30%,rgba(52,211,153,.025) 50%,transparent 70%);
+  background-size:200% 200%;
+  animation:heroSweep 5s ease-in-out infinite;
+}
+@keyframes heroSweep{0%,100%{background-position:200% 0%;}50%{background-position:-100% 100%;}}
+
+/* Corner accent lines */
+.exp-hero::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(52,211,153,.5) 30%,rgba(56,189,248,.4) 70%,transparent);
+}
+
+/* Green glow atmosphere inside the card */
+.hero-glow{
+  position:absolute;top:-40px;right:80px;width:320px;height:320px;
+  background:radial-gradient(circle,rgba(52,211,153,.07) 0%,rgba(16,185,129,.03) 40%,transparent 70%);
+  pointer-events:none;
+}
+
+.hero-left{}
+.hero-meta{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+
+/* THE NUMBER — big, distinctive */
+.hero-num{
+  font-family:'Space Grotesk',sans-serif;font-weight:800;
+  font-size:11px;letter-spacing:.3em;
+  color:var(--green);text-transform:uppercase;
+  border:1px solid rgba(52,211,153,.28);border-radius:5px;
+  padding:3px 8px;background:rgba(52,211,153,.06);
+}
+.hero-category{
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);
+  padding:3px 8px;border:1px solid rgba(107,125,160,.14);border-radius:5px;
+}
+
+.hero-title{
+  font-family:'Space Grotesk',sans-serif;font-weight:800;
+  font-size:28px;letter-spacing:-.03em;line-height:1.1;
+  color:var(--ink);margin-bottom:6px;
+}
+.hero-title em{font-style:normal;color:var(--cyan2);}
+.hero-desc{
+  font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);
+  line-height:1.6;max-width:520px;margin-bottom:20px;
+}
+
+/* STATUS BADGE — the star of the show */
+.hero-status{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(52,211,153,.07);
+  border:1.5px solid rgba(52,211,153,.32);
+  border-radius:8px;padding:7px 14px 7px 11px;
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--green);margin-bottom:22px;
+}
+.status-ring{
+  position:relative;width:10px;height:10px;flex-shrink:0;
+}
+.status-ring-inner{
+  position:absolute;inset:0;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 0 0 rgba(52,211,153,.6);
+  animation:statusPulse 2s cubic-bezier(.455,.03,.515,.955) infinite;
+}
+@keyframes statusPulse{
+  0%{box-shadow:0 0 0 0 rgba(52,211,153,.7);}
+  70%{box-shadow:0 0 0 7px rgba(52,211,153,.0);}
+  100%{box-shadow:0 0 0 0 rgba(52,211,153,.0);}
+}
+
+/* Tags + launch button row */
+.hero-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.hero-tag{
+  font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  background:rgba(10,17,32,.8);border:1px solid rgba(94,234,212,.1);
+  border-radius:5px;padding:3px 9px;
+}
+.hero-tag.blue{color:var(--cyan2);border-color:rgba(56,189,248,.18);background:rgba(56,189,248,.04);}
+.btn-launch-hero{
+  margin-left:auto;
+  display:flex;align-items:center;gap:7px;
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:700;
+  background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(16,185,129,.1));
+  border:1.5px solid rgba(52,211,153,.4);
+  color:var(--green);border-radius:9px;padding:9px 18px;cursor:pointer;
+  transition:transform .22s cubic-bezier(.2,.8,.3,1),box-shadow .22s,background .22s;
+}
+.btn-launch-hero:hover{
+  transform:translateY(-3px);
+  background:linear-gradient(135deg,rgba(52,211,153,.28),rgba(16,185,129,.18));
+  box-shadow:0 8px 28px rgba(52,211,153,.25),0 0 40px rgba(52,211,153,.08);
+}
+.btn-launch-hero .arr{display:inline-block;transition:transform .22s;}
+.btn-launch-hero:hover .arr{transform:translateX(3px);}
+
+/* Right side: live preview card */
+.hero-right{min-width:180px;}
+.live-preview{
+  background:rgba(6,10,19,.95);
+  border:1px solid rgba(52,211,153,.18);
+  border-radius:10px;
+  padding:14px 16px;
+  font-family:'JetBrains Mono',monospace;
+}
+.lp-header{display:flex;align-items:center;gap:6px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(52,211,153,.09);}
+.lp-dots{display:flex;gap:4px;}
+.lp-dot{width:7px;height:7px;border-radius:50%;}
+.lp-title{font-size:7.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(234,241,255,.35);}
+.lp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:8.5px;}
+.lp-key{color:var(--muted);}
+.lp-val{font-weight:600;color:var(--green);}
+.lp-val.off{color:var(--muted);}
+.lp-val.cyan{color:var(--cyan2);}
+.lp-sep{height:1px;background:rgba(94,234,212,.07);margin:8px 0;}
+.lp-led{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green),0 0 20px rgba(52,211,153,.4);animation:ledPulse 1.4s ease-in-out infinite;vertical-align:middle;margin-right:4px;}
+@keyframes ledPulse{0%,100%{box-shadow:0 0 8px var(--green),0 0 16px rgba(52,211,153,.3);}50%{box-shadow:0 0 14px var(--green),0 0 28px rgba(52,211,153,.55);}}
+
+/* ══════════════════════════════════════
+   REGULAR EXPERIMENT CARDS GRID
+══════════════════════════════════════ */
+.exp-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:14px;
+}
+
+.exp-card{
+  position:relative;overflow:hidden;cursor:pointer;
+  border-radius:11px;
+  border:1px solid rgba(94,234,212,.1);
+  background:rgba(10,17,32,.85);
+  padding:20px 20px 18px;
+  transition:transform .3s cubic-bezier(.2,.8,.3,1),box-shadow .3s,border-color .3s;
+}
+.exp-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(94,234,212,.14) 40%,transparent);
+  opacity:0;transition:opacity .3s;
+}
+.exp-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(94,234,212,.22);
+  box-shadow:0 12px 32px rgba(0,0,0,.5),0 0 24px rgba(94,234,212,.05);
+}
+.exp-card:hover::before{opacity:1;}
+
+.exp-card.locked{opacity:.55;}
+.exp-card.locked:hover{transform:none;box-shadow:none;border-color:rgba(94,234,212,.1);}
+
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.card-num{
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted2);
+}
+.card-status-badge{
+  display:flex;align-items:center;gap:5px;
+  font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:2px 8px;border-radius:100px;
+}
+.card-status-badge.coming{color:var(--muted2);background:rgba(74,90,122,.1);border:1px solid rgba(74,90,122,.2);}
+.card-status-badge.beta{color:#F59E0B;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);}
+.card-status-badge.locked{color:var(--muted2);background:rgba(74,90,122,.08);border:1px solid rgba(74,90,122,.15);}
+.card-status-badge-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.6;}
+
+.card-icon{
+  width:42px;height:42px;border-radius:8px;
+  background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.18);
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px;
+}
+.card-icon svg{opacity:.75;}
+.card-title{
+  font-family:'Space Grotesk',sans-serif;font-weight:700;
+  font-size:14px;letter-spacing:-.02em;color:var(--ink);
+  margin-bottom:5px;line-height:1.3;
+}
+.card-desc{font-size:11.5px;color:var(--muted);line-height:1.55;margin-bottom:14px;}
+
+.card-footer{display:flex;align-items:center;justify-content:space-between;}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap;}
+.card-tag{
+  font-family:'JetBrains Mono',monospace;font-size:6.5px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);
+  background:rgba(10,17,32,.8);border:1px solid rgba(74,90,122,.18);
+  border-radius:4px;padding:2px 6px;
+}
+.card-arrow{
+  width:26px;height:26px;border-radius:6px;
+  border:1px solid rgba(94,234,212,.14);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s,border-color .2s;
+}
+.exp-card:not(.locked):hover .card-arrow{background:rgba(94,234,212,.07);border-color:rgba(94,234,212,.28);}
+.card-lock{width:26px;height:26px;display:flex;align-items:center;justify-content:center;opacity:.28;}
+
+/* ── BOTTOM STATUS BAR ── */
+.bot-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(6,10,19,.94);backdrop-filter:blur(10px);
+  border-top:1px solid rgba(94,234,212,.07);
+  padding:6px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:500;
+  letter-spacing:.06em;
+}
+.bot-left,.bot-right{display:flex;align-items:center;gap:8px;color:rgba(234,241,255,.32);}
+.bot-dot{width:4px;height:4px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite;}
+.bot-val{color:var(--cyan2);}
+.bot-center{color:rgba(234,241,255,.16);font-size:6.5px;display:flex;gap:18px;}
+.bot-cursor{display:inline-block;width:4px;height:8px;background:var(--cyan2);animation:blink 1s steps(1) infinite;margin-left:2px;vertical-align:middle;}
+
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+/* Stagger load-in */
+.exp-hero-wrap{animation:fadeIn .6s ease forwards;animation-delay:.1s;opacity:0;}
+.exp-grid .exp-card:nth-child(1){animation:fadeIn .5s ease forwards .22s;opacity:0;}
+.exp-grid .exp-card:nth-child(2){animation:fadeIn .5s ease forwards .32s;opacity:0;}
+.exp-grid .exp-card:nth-child(3){animation:fadeIn .5s ease forwards .42s;opacity:0;}
+.exp-grid .exp-card:nth-child(4){animation:fadeIn .5s ease forwards .52s;opacity:0;}
+.exp-grid .exp-card:nth-child(5){animation:fadeIn .5s ease forwards .62s;opacity:0;}
+.exp-grid .exp-card:nth-child(6){animation:fadeIn .5s ease forwards .72s;opacity:0;}
+.exp-grid .exp-card:nth-child(7){animation:fadeIn .5s ease forwards .82s;opacity:0;}
+.exp-grid .exp-card:nth-child(8){animation:fadeIn .5s ease forwards .92s;opacity:0;}
+.exp-grid .exp-card:nth-child(9){animation:fadeIn .5s ease forwards 1.02s;opacity:0;}
+.exp-grid .exp-card:nth-child(10){animation:fadeIn .5s ease forwards 1.12s;opacity:0;}
+.exp-grid .exp-card:nth-child(11){animation:fadeIn .5s ease forwards 1.22s;opacity:0;}
+
+@media(max-width:768px){
+  .nav{padding:0 16px;}
+  .page{padding:24px 16px 70px;}
+  .exp-hero{grid-template-columns:1fr;padding:24px 20px 22px;}
+  .hero-right{display:none;}
+  .hero-title{font-size:22px;}
+  .btn-launch-hero{margin-left:0;}
+  .page-header{flex-direction:column;align-items:flex-start;}
+  .exp-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:480px){
+  .exp-grid{grid-template-columns:1fr;}
+}
+
+/* ── LIGHT MODE ── */
+body.light{
+  --bg:#F0F4FF;--bg2:#E6EDFA;--bg3:#DCE6F8;
+  --blue:#2563EB;--blue-deep:#1D4ED8;
+  --cyan:#0891B2;--cyan2:#0284C7;
+  --ink:#0F172A;--muted:#4A5A7A;--muted2:#6B7DA0;
+  --border:rgba(8,145,178,0.14);--border-blue:rgba(37,99,235,0.22);
+  --green:#059669;--green2:#047857;
+}
+body.light .nav{background:rgba(240,244,255,.94);}
+body.light .bg-grid{opacity:.04;}
+body.light .exp-hero{background:linear-gradient(145deg,rgba(220,230,248,.98) 0%,rgba(210,224,245,.98) 100%);}
+body.light .exp-card{background:rgba(230,237,250,.9);border-color:rgba(8,145,178,.12);}
+body.light .live-preview{background:rgba(220,230,248,.98);}
+body.light .bot-bar{background:rgba(240,244,255,.96);}
+body.light .hdr-badge{background:rgba(220,230,248,.9);}
+body.light .page-sub{color:var(--muted);}
+
+/* ── THEME TOGGLE ── */
+.theme-toggle{
+  position:fixed;top:14px;right:16px;z-index:200;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(10,17,32,.85);backdrop-filter:blur(10px);
+  border:1px solid rgba(94,234,212,.22);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .2s,background .3s,border-color .3s;
+}
+.theme-toggle:hover{transform:scale(1.1);}
+body.light .theme-toggle{background:rgba(240,244,255,.9);border-color:rgba(8,145,178,.3);}
+.icon-moon{display:block;}
+.icon-sun{display:none;}
+body.light .icon-moon{display:none;}
+body.light .icon-sun{display:block;}
+
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<button class="theme-toggle" id="themeToggle" title="Toggle theme">
+  <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+</button>
+<div class="bg-atmos"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">
+    <span class="nav-logo">ARC<span>IO</span></span>
+    <span class="nav-pill">Dashboard</span>
+  </div>
+  <div class="nav-right">
+    <div class="nav-stat"><div class="nav-stat-dot"></div>Engine&nbsp;<span class="nav-stat-val">Online</span></div>
+    <div class="nav-stat">Latency&nbsp;<span class="nav-stat-val" id="navLat">12ms</span></div>
+    <a href="index.html" class="nav-back">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Home
+    </a>
+  </div>
+</nav>
+
+<!-- PAGE -->
+<main class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-eyebrow"><div class="page-eyebrow-dot"></div>Virtual IoT Laboratory</div>
+      <h1 class="page-title">Experiments</h1>
+      <p class="page-sub">Select an experiment to open the simulator. No hardware required.</p>
+    </div>
+    <div class="page-header-right">
+      <div class="hdr-badge">Components&nbsp;<span>52</span></div>
+      <div class="hdr-badge">Boards&nbsp;<span>8</span></div>
+      <div class="hdr-badge">Experiments&nbsp;<span>12</span></div>
+    </div>
+  </div>
+
+  <!-- ══ EXPERIMENT 01 HERO ══ -->
+  <div class="exp-hero-wrap">
+    <div class="exp-hero" id="heroCard" data-label="LAUNCH">
+
+      <div class="hero-glow"></div>
+
+      <div class="hero-left">
+        <div class="hero-meta">
+          <span class="hero-num">Experiment 01</span>
+          <span class="hero-category">Input / Output</span>
+        </div>
+
+        <h2 class="hero-title">Input&nbsp;Output<br><em>Simulator</em></h2>
+        <p class="hero-desc">Control a digital output (LED) using a digital input (push-button switch) on an Arduino UNO. Observe real-time GPIO state changes, serial monitor output, and circuit behavior.</p>
+
+        <div class="hero-status">
+          <div class="status-ring"><div class="status-ring-inner"></div></div>
+          Status:&nbsp;Ready&nbsp;Demo
+        </div>
+
+        <div class="hero-footer">
+          <span class="hero-tag">Arduino UNO</span>
+          <span class="hero-tag blue">GPIO</span>
+          <span class="hero-tag blue">Digital I/O</span>
+          <span class="hero-tag">LED</span>
+          <button class="btn-launch-hero" data-label="LAUNCH" onclick="window.location.href='./exp/exp1.html'">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            Open Simulator
+            <span class="arr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live preview panel -->
+      <div class="hero-right">
+        <div class="live-preview">
+          <div class="lp-header">
+            <div class="lp-dots">
+              <div class="lp-dot" style="background:#FF5F56;"></div>
+              <div class="lp-dot" style="background:#FFBD2E;"></div>
+              <div class="lp-dot" style="background:#27C93F;"></div>
+            </div>
+            <span class="lp-title">Live Preview</span>
+          </div>
+          <div class="lp-row"><span class="lp-key">Device </span><span class="lp-val cyan">Arduino UNO</span></div>
+          <div class="lp-row"><span class="lp-key">Button </span><span class="lp-val" id="lpBtn">PRESSED</span></div>
+          <div class="lp-row"><span class="lp-key">GPIO13 </span><span class="lp-val" id="lpGpio">HIGH</span></div>
+          <div class="lp-sep"></div>
+          <div class="lp-row"><span class="lp-key">LED </span><span><span class="lp-led" id="lpLed"></span><span class="lp-val" id="lpLedState">ON</span></span></div>
+          <div class="lp-row"><span class="lp-key">Voltage</span><span class="lp-val cyan" id="lpVolt">5.0V</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ REST OF EXPERIMENTS ══ -->
+  <div class="sec-divider">
+    <span class="sec-divider-label">More Experiments</span>
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-label" style="opacity:.4;">11 remaining</span>
+  </div>
+
+  <div class="exp-grid">
+
+    <!-- Exp 02 -->
+    <div class="exp-card" data-label="OPEN">
+      <div class="card-top">
+        <span class="card-num">Experiment 02</span>
+        <span class="card-status-badge beta"><span class="card-status-badge-dot"></span>Beta</span>
+      </div>
+      <div class="card-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
+          <circle cx="12" cy="12" r="4"/>
+        </svg>
+      </div>
+      <div class="card-title">PWM Brightness Control</div>
+      <div class="card-desc">Vary LED intensity using Pulse Width Modulation. Map analog potentiometer input to PWM duty cycle.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">PWM</span><span class="card-tag">Analog</span></div>
+        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 03 -->
+    <div class="exp-card" data-label="OPEN">
+      <div class="card-top">
+        <span class="card-num">Experiment 03</span>
+        <span class="card-status-badge beta"><span class="card-status-badge-dot"></span>Beta</span>
+      </div>
+      <div class="card-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+          <circle cx="6" cy="6" r="1.5" fill="#38BDF8"/>
+          <circle cx="6" cy="12" r="1.5" fill="#38BDF8"/>
+        </svg>
+      </div>
+      <div class="card-title">Serial Communication</div>
+      <div class="card-desc">Send and receive data over UART. Monitor serial output from sensor readings in real time.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">UART</span><span class="card-tag">Serial</span></div>
+        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 04 -->
+    <div class="exp-card" data-label="OPEN">
+      <div class="card-top">
+        <span class="card-num">Experiment 04</span>
+        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
+      </div>
+      <div class="card-icon" style="background:rgba(94,234,212,.04);border-color:rgba(94,234,212,.12);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="1.5" stroke-linecap="round">
+          <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+      </div>
+      <div class="card-title">DHT11 Temp &amp; Humidity</div>
+      <div class="card-desc">Read temperature and relative humidity from a DHT11 sensor and visualize live data on an LCD.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">Sensor</span><span class="card-tag">LCD</span><span class="card-tag">I2C</span></div>
+        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 05 -->
+    <div class="exp-card" data-label="OPEN">
+      <div class="card-top">
+        <span class="card-num">Experiment 05</span>
+        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
+      </div>
+      <div class="card-icon" style="background:rgba(129,140,248,.05);border-color:rgba(129,140,248,.14);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="7" width="20" height="14" rx="2"/>
+          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+          <line x1="10" y1="14" x2="14" y2="14"/>
+        </svg>
+      </div>
+      <div class="card-title">Servo Motor Control</div>
+      <div class="card-desc">Sweep a servo motor across its range using potentiometer input. Understand PWM angle mapping.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">Servo</span><span class="card-tag">PWM</span></div>
+        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 06 -->
+    <div class="exp-card" data-label="OPEN">
+      <div class="card-top">
+        <span class="card-num">Experiment 06</span>
+        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
+      </div>
+      <div class="card-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round">
+          <path d="M4 6h16M4 12h16M4 18h7"/>
+          <circle cx="17" cy="18" r="3"/>
+          <path d="M17 15v3l2 1"/>
+        </svg>
+      </div>
+      <div class="card-title">IR Obstacle Detector</div>
+      <div class="card-desc">Detect object proximity with an IR sensor module. Trigger output on detection and log events.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">IR</span><span class="card-tag">Interrupt</span></div>
+        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 07 -->
+    <div class="exp-card" data-label="OPEN">
+      <div class="card-top">
+        <span class="card-num">Experiment 07</span>
+        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
+      </div>
+      <div class="card-icon" style="background:rgba(94,234,212,.04);border-color:rgba(94,234,212,.12);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="1.5" stroke-linecap="round">
+          <path d="M4 17h16M4 7h16"/>
+          <path d="M9 7v10M15 7v10"/>
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+        </svg>
+      </div>
+      <div class="card-title">LCD Display Output</div>
+      <div class="card-desc">Interface a 16×2 LCD over I2C. Display sensor readings and scroll custom messages.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">LCD</span><span class="card-tag">I2C</span><span class="card-tag">Display</span></div>
+        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 08 -->
+    <div class="exp-card locked" data-label="LOCKED">
+      <div class="card-top">
+        <span class="card-num">Experiment 08</span>
+        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
+      </div>
+      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
+          <path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V7H2z"/>
+          <path d="M6 7V5a6 6 0 0 1 12 0v2"/>
+        </svg>
+      </div>
+      <div class="card-title">ESP32 WiFi Sensor</div>
+      <div class="card-desc">Publish sensor data over MQTT via WiFi. Visualize readings on a Node-RED dashboard.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">ESP32</span><span class="card-tag">WiFi</span><span class="card-tag">MQTT</span></div>
+        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 09 -->
+    <div class="exp-card locked" data-label="LOCKED">
+      <div class="card-top">
+        <span class="card-num">Experiment 09</span>
+        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
+      </div>
+      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+      </div>
+      <div class="card-title">RTC Real-Time Clock</div>
+      <div class="card-desc">Interface a DS3231 RTC module over I2C. Log timestamped events and trigger alarms.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">RTC</span><span class="card-tag">I2C</span><span class="card-tag">Timing</span></div>
+        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 10 -->
+    <div class="exp-card locked" data-label="LOCKED">
+      <div class="card-top">
+        <span class="card-num">Experiment 10</span>
+        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
+      </div>
+      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
+          <path d="M3 3h18v18H3zM8 12h8M12 8v8"/>
+        </svg>
+      </div>
+      <div class="card-title">7-Segment Display</div>
+      <div class="card-desc">Drive a 4-digit 7-segment display to show a counter and stopwatch using multiplexing.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">7-Seg</span><span class="card-tag">Multiplex</span></div>
+        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 11 -->
+    <div class="exp-card locked" data-label="LOCKED">
+      <div class="card-top">
+        <span class="card-num">Experiment 11</span>
+        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
+      </div>
+      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div class="card-title">ADC Waveform Capture</div>
+      <div class="card-desc">Sample an analog waveform via ADC and reconstruct it visually in the serial plotter.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">ADC</span><span class="card-tag">Waveform</span><span class="card-tag">Analog</span></div>
+        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Exp 12 -->
+    <div class="exp-card locked" data-label="LOCKED">
+      <div class="card-top">
+        <span class="card-num">Experiment 12</span>
+        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
+      </div>
+      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
+          <path d="M4 17h16M4 7h16M9 7v10M15 7v10"/>
+          <circle cx="4" cy="12" r="2"/>
+          <circle cx="20" cy="12" r="2"/>
+        </svg>
+      </div>
+      <div class="card-title">SPI OLED Display</div>
+      <div class="card-desc">Render graphics and live sensor dashboards on a 128×64 OLED via SPI protocol.</div>
+      <div class="card-footer">
+        <div class="card-tags"><span class="card-tag">SPI</span><span class="card-tag">OLED</span><span class="card-tag">Graphics</span></div>
+        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      </div>
+    </div>
+
+  </div><!-- /exp-grid -->
+</main>
+
+<!-- BOTTOM BAR -->
+<div class="bot-bar">
+  <div class="bot-left"><div class="bot-dot"></div>Simulation Engine Active</div>
+  <div class="bot-center">
+    <span>Components: <span class="bot-val">52</span></span>
+    <span>Experiments: <span class="bot-val">12</span></span>
+    <span>Latency: <span class="bot-val" id="botLat">12ms</span></span>
+    <span>Temp: <span class="bot-val" id="botTemp">28.4°C</span></span>
+  </div>
+  <div class="bot-right">ARCIO v1.0 · SRM IST<span class="bot-cursor"></span></div>
+</div>
+
+<script>
+// ── CURSOR
+const dot=document.getElementById('curDot');
+const ring=document.getElementById('curRing');
+const lbl=document.getElementById('curLabel');
+let mx=window.innerWidth/2,my=window.innerHeight/2,rx=mx,ry=my;
+window.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px';});
+(function animRing(){rx+=(mx-rx)*.14;ry+=(my-ry)*.14;ring.style.left=rx+'px';ring.style.top=ry+'px';lbl.style.left=rx+'px';lbl.style.top=ry+'px';requestAnimationFrame(animRing);})();
+function setLabel(t){t?(lbl.textContent=t,lbl.classList.add('show')):lbl.classList.remove('show');}
+function expand(on,t){ring.classList.toggle('expand',on);setLabel(on&&t?t:'');}
+
+document.querySelectorAll('.exp-card:not(.locked),.exp-hero,.btn-launch-hero').forEach(el=>{
+  const lx=el.dataset.label||'OPEN';
+  el.addEventListener('mouseenter',()=>expand(true,lx));
+  el.addEventListener('mouseleave',()=>expand(false));
+});
+document.querySelectorAll('.exp-card.locked').forEach(el=>{
+  el.addEventListener('mouseenter',()=>expand(true,'LOCKED'));
+  el.addEventListener('mouseleave',()=>expand(false));
+});
+document.querySelectorAll('.nav-back').forEach(el=>{
+  el.addEventListener('mouseenter',()=>expand(true,'BACK'));
+  el.addEventListener('mouseleave',()=>expand(false));
+});
+
+// ── LIVE PREVIEW TOGGLE
+let simOn=true;
+setInterval(()=>{
+  simOn=!simOn;
+  document.getElementById('lpBtn').textContent=simOn?'PRESSED':'RELEASED';
+  document.getElementById('lpBtn').className=simOn?'lp-val':'lp-val off';
+  document.getElementById('lpGpio').textContent=simOn?'HIGH':'LOW';
+  document.getElementById('lpGpio').className=simOn?'lp-val':'lp-val off';
+  document.getElementById('lpLedState').textContent=simOn?'ON':'OFF';
+  document.getElementById('lpLedState').className=simOn?'lp-val':'lp-val off';
+  document.getElementById('lpLed').style.display=simOn?'inline-block':'none';
+  document.getElementById('lpVolt').textContent=simOn?'5.0V':'0.0V';
+  document.getElementById('lpVolt').className=simOn?'lp-val cyan':'lp-val off';
+},3200);
+
+// ── LIVE METRICS
+const lats=['12ms','14ms','10ms','11ms','15ms','13ms','9ms'];
+const temps=[28.4,27.9,28.6,28.2,29.0,28.5,28.1];
+let mi=0;
+setInterval(()=>{
+  mi=(mi+1)%lats.length;
+  document.getElementById('navLat').textContent=lats[mi];
+  document.getElementById('botLat').textContent=lats[mi];
+  document.getElementById('botTemp').textContent=temps[mi]+'°C';
+},2800);
+</script>
+</body>
+</html>
+<script>
+// ── THEME TOGGLE
+const themeBtn=document.getElementById('themeToggle');
+const saved=localStorage.getItem('arcio-theme');
+if(saved==='light')document.body.classList.add('light');
+themeBtn.addEventListener('click',()=>{
+  document.body.classList.toggle('light');
+  localStorage.setItem('arcio-theme',document.body.classList.contains('light')?'light':'dark');
+});
+</script>
