@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ARCIO — Fire &amp; Gas Safety System</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    :root {
+      --bg:#060A13;--bg2:#0A1120;--bg3:#0D1526;--bg4:#08101E;
+      --blue:#3B82F6;--blue-deep:#1D4ED8;
+      --cyan:#5EEAD4;--cyan2:#38BDF8;
+      --ink:#EAF1FF;--muted:#6B7DA0;--muted2:#4A5A7A;
+      --border:rgba(94,234,212,.10);--border-blue:rgba(59,130,246,.18);
+      --green:#34D399;--green2:#10B981;--amber:#F59E0B;--red:#F87171;--red2:#EF4444;
+      --panel-bg:rgba(10,17,32,.92);--panel-border:rgba(94,234,212,.10);
+      --radius:12px;--radius-sm:8px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{height:100%;}
+    body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);cursor:none;overflow-x:hidden;user-select:none;}
+
+    /* CURSOR */
+    .cur-dot{position:fixed;top:0;left:0;pointer-events:none;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:translate(-50%,-50%);z-index:9999;}
+    .cur-ring{position:fixed;top:0;left:0;pointer-events:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(94,234,212,.5);transform:translate(-50%,-50%);z-index:9998;transition:width .2s cubic-bezier(.2,.8,.3,1),height .2s,border-color .2s,background .2s;}
+    .cur-ring.expand{width:52px;height:52px;border-color:var(--cyan);background:rgba(94,234,212,.05);}
+    .cur-ring.danger{border-color:var(--red);background:rgba(248,113,113,.08);}
+    .cur-label{position:fixed;top:0;left:0;pointer-events:none;z-index:9997;font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.14em;color:var(--cyan);transform:translate(-50%,-50%);opacity:0;transition:opacity .18s;margin-top:24px;}
+    .cur-label.show{opacity:1;}
+
+    /* BG */
+    .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(94,234,212,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,212,.018) 1px,transparent 1px);background-size:44px 44px;}
+    .bg-atmos{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 65% 40% at 50% 0%,rgba(248,113,113,.06) 0%,transparent 65%),radial-gradient(ellipse 30% 25% at 10% 60%,rgba(94,234,212,.04) 0%,transparent 60%);transition:background 1.2s;}
+    .bg-atmos.alert-glow{background:radial-gradient(ellipse 70% 45% at 50% 0%,rgba(248,113,113,.13) 0%,transparent 65%),radial-gradient(ellipse 30% 25% at 10% 60%,rgba(248,113,113,.05) 0%,transparent 60%);}
+
+    /* TOPBAR */
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:52px;background:rgba(6,10,19,.96);border-bottom:1px solid rgba(94,234,212,.08);backdrop-filter:blur(20px);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;}
+    .topbar-logo{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.04em;color:var(--ink);text-decoration:none;}
+    .topbar-logo span{color:var(--cyan2);}
+    .topbar-sep{width:1px;height:22px;background:rgba(94,234,212,.1);}
+    .topbar-expnum{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan2);background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.2);border-radius:4px;padding:2px 8px;}
+    .topbar-exptitle{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.02em;color:var(--ink);}
+    .topbar-spacer{flex:1;}
+    .topbar-status{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:sPulse 2s ease-in-out infinite;flex-shrink:0;}
+    .status-dot.alert{background:var(--red);box-shadow:0 0 10px var(--red);animation:aPulse .5s ease-in-out infinite;}
+    .status-txt{color:var(--green);}
+    .status-txt.alert{color:var(--red);}
+    @keyframes sPulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.8);}70%{box-shadow:0 0 0 6px rgba(52,211,153,0);}100%{box-shadow:0 0 0 0 rgba(52,211,153,0);}}
+    @keyframes aPulse{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.8);}50%{box-shadow:0 0 0 8px rgba(248,113,113,0);}}
+    .nav-back{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:none;transition:color .2s;text-decoration:none;border:1px solid rgba(94,234,212,.1);padding:5px 12px;border-radius:6px;}
+    .nav-back:hover{color:var(--cyan);border-color:rgba(94,234,212,.28);}
+    .nav-back svg{transition:transform .2s;}
+    .nav-back:hover svg{transform:translateX(-2px);}
+
+    /* PAGE LAYOUT */
+    .page{position:relative;z-index:1;padding-top:52px;min-height:100vh;}
+
+    /* HERO */
+    .hero{padding:48px 40px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--red);background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.22);border-radius:20px;padding:4px 14px;margin-bottom:20px;}
+    .badge-dot{width:5px;height:5px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);animation:bdPulse 2s ease-in-out infinite;}
+    @keyframes bdPulse{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.8);}50%{box-shadow:0 0 0 5px rgba(248,113,113,0);}}
+    .hero-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:clamp(32px,5vw,56px);letter-spacing:-.04em;line-height:1;color:var(--ink);margin-bottom:12px;}
+    .hero-title .accent{background:linear-gradient(135deg,var(--red),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero-sub{font-size:14px;color:var(--muted);max-width:500px;line-height:1.6;}
+
+    /* MAIN BODY */
+    .body-grid{display:grid;grid-template-columns:1fr 300px;gap:20px;padding:24px 40px 60px;max-width:1400px;margin:0 auto;}
+
+    /* SIM ARENA */
+    .sim-arena{display:flex;flex-direction:column;gap:16px;}
+    .sim-title-row{display:flex;align-items:center;gap:10px;}
+    .sim-label{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
+    .sim-label-accent{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--cyan2);}
+
+    /* FLOORPLAN */
+    .floorplan-wrap{position:relative;background:rgba(8,13,24,.95);border:1px solid rgba(94,234,212,.12);border-radius:16px;overflow:hidden;height:460px;transition:border-color .4s,box-shadow .4s;}
+    .floorplan-wrap.danger{border-color:rgba(248,113,113,.35);box-shadow:0 0 50px rgba(248,113,113,.08) inset;}
+    .floorplan-header{position:absolute;top:0;left:0;right:0;z-index:10;height:36px;background:rgba(6,10,19,.9);border-bottom:1px solid rgba(94,234,212,.08);backdrop-filter:blur(12px);display:flex;align-items:center;padding:0 14px;gap:8px;}
+    .fp-tag{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2);}
+    .fp-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+    .fp-spacer{flex:1;}
+    .fp-coord{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted2);letter-spacing:.08em;}
+    #fpCanvas{display:block;width:100%;height:100%;}
+
+    /* TRIGGER BAR (overlays bottom of floorplan) */
+    .trigger-bar{position:absolute;bottom:0;left:0;right:0;z-index:20;height:46px;background:rgba(8,13,24,.92);border-top:1px solid rgba(94,234,212,.1);backdrop-filter:blur(12px);display:flex;align-items:center;padding:0 14px;gap:10px;}
+    .btn-trigger{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#1A0707;background:linear-gradient(135deg,var(--red),var(--red2));border:none;border-radius:8px;padding:9px 16px;cursor:none;transition:transform .15s,box-shadow .25s,opacity .2s;box-shadow:0 0 0 0 rgba(248,113,113,.5);}
+    .btn-trigger:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(248,113,113,.35);}
+    .btn-trigger:active{transform:translateY(0);}
+    .btn-trigger:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+    .btn-reset-sim{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:rgba(10,17,32,.8);border:1px solid rgba(94,234,212,.14);border-radius:8px;padding:8px 14px;cursor:none;transition:color .2s,border-color .2s;}
+    .btn-reset-sim:hover{color:var(--cyan);border-color:rgba(94,234,212,.3);}
+    .trigger-spacer{flex:1;}
+    .trigger-phase{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);text-align:right;}
+    .trigger-phase.active{color:var(--red);}
+
+    /* HINT */
+    .sim-hint{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted2);letter-spacing:.1em;text-align:center;margin-top:2px;}
+
+    /* CONSOLE */
+    .console-panel{background:rgba(6,10,19,.96);border:1px solid rgba(94,234,212,.1);border-radius:12px;overflow:hidden;}
+    .console-header{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(94,234,212,.07);}
+    .console-title{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:1;}
+    .console-clear{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted2);cursor:none;transition:color .2s;letter-spacing:.08em;}
+    .console-clear:hover{color:var(--cyan);}
+    #consoleLog{height:130px;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:3px;}
+    #consoleLog::-webkit-scrollbar{width:3px;}
+    #consoleLog::-webkit-scrollbar-thumb{background:rgba(94,234,212,.15);border-radius:2px;}
+    .log-line{font-family:'JetBrains Mono',monospace;font-size:8.5px;line-height:1.5;display:flex;gap:8px;}
+    .log-ts{color:var(--muted2);flex-shrink:0;}
+    .log-ok{color:var(--green);}
+    .log-warn{color:var(--amber);}
+    .log-alert{color:var(--red);}
+    .log-info{color:var(--cyan2);}
+
+    /* RIGHT PANEL */
+    .right-col{display:flex;flex-direction:column;gap:16px;}
+    .panel{background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:var(--radius);overflow:hidden;}
+    .panel-header{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid rgba(94,234,212,.07);}
+    .panel-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);}
+    .panel-title{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:1;}
+    .panel-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+
+    .stat-row{display:flex;align-items:center;justify-content:space-between;}
+    .stat-key{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:.08em;}
+    .stat-val{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:var(--ink);}
+    .stat-val.ok{color:var(--green);}
+    .stat-val.alert{color:var(--red);}
+    .stat-val.warn{color:var(--amber);}
+    .stat-val.info{color:var(--cyan2);}
+    .stat-sep{height:1px;background:rgba(94,234,212,.06);}
+
+    /* Hazard level bar */
+    .hazard-bar-track{height:6px;border-radius:100px;background:rgba(94,234,212,.07);overflow:hidden;margin-top:2px;}
+    .hazard-bar-fill{height:100%;border-radius:100px;width:0%;background:linear-gradient(90deg,var(--green),var(--amber),var(--red));transition:width .4s cubic-bezier(.2,.8,.3,1);}
+
+    /* SECTION CARDS */
+    .info-section{display:flex;flex-direction:column;gap:14px;padding:32px 40px;max-width:1400px;margin:0 auto;}
+    .info-section-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--ink);margin-bottom:4px;}
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+
+    .info-card{background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:14px;padding:18px 18px 20px;transition:border-color .3s,transform .35s cubic-bezier(.2,.8,.3,1),box-shadow .35s;position:relative;overflow:hidden;}
+    .info-card:hover{border-color:rgba(248,113,113,.22);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+    .info-card-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.18);}
+    .info-card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.01em;color:var(--ink);margin-bottom:5px;}
+    .info-card-desc{font-size:11.5px;color:var(--muted);line-height:1.6;}
+    .info-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(248,113,113,.2),transparent);opacity:0;transition:opacity .3s;}
+    .info-card:hover::after{opacity:1;}
+
+    /* FLOW */
+    .flow-chain{display:flex;flex-direction:column;align-items:flex-start;gap:0;}
+    .flow-step{display:flex;align-items:center;gap:12px;padding:10px 18px;background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:10px;transition:border-color .3s;}
+    .flow-step:hover{border-color:rgba(248,113,113,.24);}
+    .flow-num{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.15em;color:var(--red);background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.18);border-radius:4px;padding:2px 7px;flex-shrink:0;}
+    .flow-text{font-size:12.5px;color:var(--ink);font-weight:500;}
+    .flow-arrow{display:flex;justify-content:flex-start;padding:0 18px;}
+    .flow-arrow svg{opacity:.3;}
+
+    /* ARCH */
+    .arch-chain{display:flex;flex-direction:column;align-items:stretch;gap:0;}
+    .arch-node{display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(10,17,32,.85);border:1px solid rgba(56,189,248,.12);border-radius:10px;}
+    .arch-node-icon{width:28px;height:28px;border-radius:7px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .arch-node-label{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:var(--ink);}
+    .arch-node-sub{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;}
+    .arch-arrow{display:flex;justify-content:center;padding:2px 0;}
+    .arch-arrow svg{opacity:.25;}
+
+    /* APPS GRID */
+    .apps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+    .app-chip{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.1);border-radius:10px;transition:border-color .3s,background .3s;}
+    .app-chip:hover{border-color:rgba(248,113,113,.24);background:rgba(10,17,32,.95);}
+    .app-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);flex-shrink:0;}
+    .app-chip-name{font-size:12px;font-weight:500;color:var(--ink);}
+
+    .section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.1),transparent);margin:8px 40px;}
+
+    @media (max-width:980px){
+      .body-grid{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="cur-label" id="curLabel">TRIGGER</div>
+<div class="bg-grid"></div>
+<div class="bg-atmos" id="bgAtmos"></div>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a href="playground.html" class="topbar-logo">ARC<span>IO</span></a>
+  <div class="topbar-sep"></div>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span class="topbar-expnum">SIM 06</span>
+    <span class="topbar-exptitle">Fire &amp; Gas Safety System</span>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-status" id="topStatus">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-txt" id="statusTxt">STANDBY</span>
+  </div>
+  <div class="topbar-sep"></div>
+  <a href="playground.html" class="nav-back">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+    Playground
+  </a>
+</nav>
+
+<main class="page">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge"><div class="badge-dot"></div>Emergency Monitoring Center</div>
+    <h1 class="hero-title">Fire &amp; Gas <span class="accent">Safety</span> System</h1>
+    <p class="hero-sub">Detect gas and smoke hazards in real time and coordinate an automated alarm, shutoff, and ventilation response.</p>
+  </section>
+
+  <!-- MAIN BODY -->
+  <div class="body-grid">
+
+    <!-- SIM ARENA -->
+    <div class="sim-arena">
+      <div class="sim-title-row">
+        <span class="sim-label">Interactive Simulation</span>
+        <div style="flex:1;height:1px;background:rgba(94,234,212,.07);margin:0 8px;"></div>
+        <span class="sim-label-accent" id="phaseDisplay">PHASE: STANDBY</span>
+      </div>
+
+      <div class="floorplan-wrap" id="fpWrap">
+        <div class="floorplan-header">
+          <div class="fp-dot" id="fpDot"></div>
+          <span class="fp-tag">Facility Room — Zone G1</span>
+          <div class="fp-spacer"></div>
+          <span class="fp-coord" id="fpCoord">Gas Level: 0 PPM</span>
+        </div>
+        <canvas id="fpCanvas"></canvas>
+        <div class="trigger-bar">
+          <button class="btn-trigger" id="btnTrigger">⚠ Simulate Hazard</button>
+          <button class="btn-reset-sim" id="btnResetSim">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+            Reset
+          </button>
+          <div class="trigger-spacer"></div>
+          <span class="trigger-phase" id="triggerPhaseTxt">Awaiting trigger</span>
+        </div>
+      </div>
+
+      <div class="sim-hint">Click "Simulate Hazard" to release gas/smoke from the source — watch detection, alarm, and ventilation respond automatically</div>
+
+      <!-- CONSOLE -->
+      <div class="console-panel">
+        <div class="console-header">
+          <div class="panel-dot"></div>
+          <span class="console-title">Emergency Console</span>
+          <span class="console-clear" id="clearBtn">CLEAR</span>
+        </div>
+        <div id="consoleLog"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT COL -->
+    <div class="right-col">
+
+      <!-- ANALYTICS -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div>
+          <span class="panel-title">Analytics</span>
+        </div>
+        <div class="panel-body">
+          <div class="stat-row">
+            <span class="stat-key">Hazard Level</span>
+            <span class="stat-val ok" id="statHazardTxt">0%</span>
+          </div>
+          <div class="hazard-bar-track"><div class="hazard-bar-fill" id="hazardFill"></div></div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Alarm Status</span>
+            <span class="stat-val ok" id="statAlarm">INACTIVE</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Ventilation Status</span>
+            <span class="stat-val ok" id="statVent">OFF</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Emergency Events</span>
+            <span class="stat-val info" id="statEvents">0</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">System Health</span>
+            <span class="stat-val ok" id="statHealth">ONLINE</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Uptime</span>
+            <span class="stat-val" id="statUptime">00:00:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SENSOR READOUT -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></div>
+          <span class="panel-title">Sensor Readout</span>
+        </div>
+        <div class="panel-body">
+          <div class="stat-row">
+            <span class="stat-key">Gas Sensor</span>
+            <span class="stat-val ok" id="srGas">CLEAR</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Detector</span>
+            <span class="stat-val ok" id="srDetector">ARMED</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Shutoff Valve</span>
+            <span class="stat-val ok" id="srValve">OPEN</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-row">
+            <span class="stat-key">Ventilation Fan</span>
+            <span class="stat-val ok" id="srFan">IDLE</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAST EVENT -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot" style="background:var(--red);box-shadow:0 0 6px var(--red);"></div>
+          <span class="panel-title">Last Event</span>
+        </div>
+        <div class="panel-body">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);line-height:1.8;" id="lastEvent">
+            No events recorded.<br>System armed and monitoring.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- CONCEPTS -->
+  <div class="info-section">
+    <div class="info-section-title">Concepts Applied</div>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round"><path d="M12 2c0 0-6 6-6 11a6 6 0 0 0 12 0c0-5-6-11-6-11z"/><path d="M12 2c0 0-2 4 0 7s0 7-3 7"/></svg></div>
+        <div class="info-card-title">Gas Sensors</div>
+        <div class="info-card-desc">MQ-series gas/smoke sensors continuously sample air for combustible or hazardous concentrations and report PPM levels.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan2)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21"/></svg></div>
+        <div class="info-card-title">Safety Monitoring</div>
+        <div class="info-card-desc">A controller continuously evaluates sensor thresholds against safe operating limits to catch hazards before they escalate.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" stroke-linecap="round"><polygon points="7.86,2 16.14,2 22,7.86 22,16.14 16.14,22 7.86,22 2,16.14 2,7.86"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="info-card-title">Emergency Response</div>
+        <div class="info-card-desc">Detection triggers a coordinated response — automatic valve shutoff, audible/visual alarms, and forced ventilation.</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <div class="info-card-title">Automation Logic</div>
+        <div class="info-card-desc">Microcontroller logic sequences each safety action — detect, alarm, ventilate — without requiring human intervention.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- HOW IT WORKS + ARCH -->
+  <div class="info-section">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+      <div>
+        <div class="info-section-title" style="margin-bottom:16px;">How It Works</div>
+        <div class="flow-chain">
+          <div class="flow-step"><span class="flow-num">01</span><span class="flow-text">Hazard appears at the gas source</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">02</span><span class="flow-text">Sensor detects rising gas concentration</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">03</span><span class="flow-text">Controller processes the hazard event</span></div>
+          <div class="flow-arrow"><svg width="14" height="20" viewBox="0 0 14 20"><line x1="7" y1="0" x2="7" y2="20" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/><polyline points="3,14 7,20 11,14" fill="none" stroke="rgba(94,234,212,.4)" stroke-width="1.5"/></svg></div>
+          <div class="flow-step"><span class="flow-num">04</span><span class="flow-text">Emergency systems activated — alarm + ventilation</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="info-section-title" style="margin-bottom:16px;">IoT Architecture</div>
+        <div class="arch-chain">
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><path d="M12 2c0 0-6 6-6 11a6 6 0 0 0 12 0c0-5-6-11-6-11z"/></svg></div>
+            <div><div class="arch-node-label">Gas Sensor</div><div class="arch-node-sub">Input Layer — MQ-2 / MQ-7</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="3"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg></div>
+            <div><div class="arch-node-label">Controller</div><div class="arch-node-sub">Processing — Arduino / ESP32</div></div>
+          </div>
+          <div class="arch-arrow"><svg width="16" height="22" viewBox="0 0 16 22"><line x1="8" y1="0" x2="8" y2="22" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/><polyline points="4,16 8,22 12,16" fill="none" stroke="rgba(56,189,248,.3)" stroke-width="1.5"/></svg></div>
+          <div class="arch-node">
+            <div class="arch-node-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"><polygon points="7.86,2 16.14,2 22,7.86 22,16.14 16.14,22 7.86,22 2,16.14 2,7.86"/><line x1="12" y1="8" x2="12" y2="12"/></svg></div>
+            <div><div class="arch-node-label">Alarm &amp; Ventilation</div><div class="arch-node-sub">Output — Beacon, Siren, Fan</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- REAL WORLD -->
+  <div class="info-section">
+    <div class="info-section-title">Applications</div>
+    <div class="apps-grid">
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Factories</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Laboratories</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Industrial Plants</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Homes</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Warehouses</span></div>
+      <div class="app-chip"><div class="app-chip-dot"></div><span class="app-chip-name">Commercial Kitchens</span></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── CURSOR
+const dot=document.getElementById('curDot'),ring=document.getElementById('curRing'),lbl=document.getElementById('curLabel');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function ac(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+  dot.style.left=mx+'px';dot.style.top=my+'px';
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  lbl.style.left=rx+'px';lbl.style.top=ry+'px';
+  requestAnimationFrame(ac);})();
+document.querySelectorAll('a,.info-card,.app-chip').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ring.classList.add('expand');lbl.classList.add('show');lbl.textContent='VIEW';});
+  el.addEventListener('mouseleave',()=>{ring.classList.remove('expand');lbl.classList.remove('show');});
+});
+document.getElementById('btnTrigger').addEventListener('mouseenter',()=>{ring.classList.add('danger');lbl.classList.add('show');lbl.textContent='TRIGGER';});
+document.getElementById('btnTrigger').addEventListener('mouseleave',()=>{ring.classList.remove('danger');lbl.classList.remove('show');});
+
+// ── UPTIME
+let uptime=0;
+setInterval(()=>{uptime++;const h=String(Math.floor(uptime/3600)).padStart(2,'0'),m=String(Math.floor((uptime%3600)/60)).padStart(2,'0'),s=String(uptime%60).padStart(2,'0');document.getElementById('statUptime').textContent=`${h}:${m}:${s}`;},1000);
+
+// ── CONSOLE
+const logEl=document.getElementById('consoleLog');
+function log(msg,type='info'){
+  const now=new Date();
+  const ts=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const div=document.createElement('div');
+  div.className='log-line';
+  div.innerHTML=`<span class="log-ts">${ts}</span><span class="log-${type}">${msg}</span>`;
+  logEl.appendChild(div);
+  logEl.scrollTop=logEl.scrollHeight;
+  if(logEl.children.length>80)logEl.removeChild(logEl.children[0]);
+}
+document.getElementById('clearBtn').addEventListener('click',()=>{logEl.innerHTML='';log('Console cleared','info');});
+log('ARCIO Fire & Gas Safety System initialized','ok');
+log('Gas sensor armed — Zone G1 monitoring','ok');
+log('Standby — click Simulate Hazard to test response','info');
+
+// ── CANVAS SIM
+const canvas=document.getElementById('fpCanvas');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){
+  const rect=canvas.parentElement.getBoundingClientRect();
+  W=canvas.width=rect.width;
+  H=canvas.height=rect.height;
+}
+resize();
+window.addEventListener('resize',resize);
+
+const topPad=40; // header bar height inside canvas coords
+
+function getLayout(){
+  const room={x:W*0.05,y:topPad+H*0.04,w:W*0.90,h:H*0.86};
+  return{
+    room,
+    source:{x:room.x+room.w*0.13,y:room.y+room.h*0.80},
+    vent:{x:room.x+room.w*0.13,y:room.y+room.h*0.14},
+    detector:{x:room.x+room.w*0.5,y:room.y+room.h*0.12},
+    alarm:{x:room.x+room.w*0.87,y:room.y+room.h*0.12}
+  };
+}
+
+// State machine
+let eventCount=0;
+let phase='idle'; // idle -> leak -> detected -> alarm -> vent -> clearing -> resolved
+let triggerT0=0;
+let hazardLevel=0; // 0-100
+let particles=[];
+let fanAngle=0;
+let beaconPhase=0;
+let clearedLoggedOnce=false;
+
+const PH={
+  detect:1.8,   // seconds: sensor detects
+  alarm:2.15,   // seconds: alarm + valve shutoff
+  vent:2.5,     // seconds: ventilation kicks in
+};
+
+function now(){return performance.now()/1000;}
+
+function setBtn(disabled){document.getElementById('btnTrigger').disabled=disabled;}
+
+document.getElementById('btnTrigger').addEventListener('click',startHazard);
+document.getElementById('btnResetSim').addEventListener('click',resetSim);
+
+function startHazard(){
+  if(phase!=='idle')return;
+  phase='leak';
+  triggerT0=now();
+  clearedLoggedOnce=false;
+  setBtn(true);
+  document.getElementById('phaseDisplay').textContent='PHASE: GAS LEAK';
+  document.getElementById('triggerPhaseTxt').textContent='Gas leak in progress…';
+  document.getElementById('triggerPhaseTxt').classList.add('active');
+  document.getElementById('srGas').textContent='RISING';
+  document.getElementById('srGas').className='stat-val warn';
+  document.getElementById('srValve').textContent='OPEN';
+  document.getElementById('srValve').className='stat-val ok';
+  log('⚠ Gas leak simulated at source — concentration rising','warn');
+}
+
+function resetSim(){
+  phase='idle';
+  particles=[];
+  hazardLevel=0;
+  setBtn(false);
+  document.getElementById('phaseDisplay').textContent='PHASE: STANDBY';
+  document.getElementById('triggerPhaseTxt').textContent='Awaiting trigger';
+  document.getElementById('triggerPhaseTxt').classList.remove('active');
+  document.getElementById('fpWrap').classList.remove('danger');
+  document.getElementById('bgAtmos').classList.remove('alert-glow');
+  document.getElementById('statusDot').classList.remove('alert');
+  document.getElementById('statusTxt').textContent='STANDBY';
+  document.getElementById('statusTxt').classList.remove('alert');
+  document.getElementById('statAlarm').textContent='INACTIVE';
+  document.getElementById('statAlarm').className='stat-val ok';
+  document.getElementById('statVent').textContent='OFF';
+  document.getElementById('statVent').className='stat-val ok';
+  document.getElementById('statHazardTxt').textContent='0%';
+  document.getElementById('statHazardTxt').className='stat-val ok';
+  document.getElementById('hazardFill').style.width='0%';
+  document.getElementById('srGas').textContent='CLEAR';
+  document.getElementById('srGas').className='stat-val ok';
+  document.getElementById('srDetector').textContent='ARMED';
+  document.getElementById('srDetector').className='stat-val ok';
+  document.getElementById('srValve').textContent='OPEN';
+  document.getElementById('srValve').className='stat-val ok';
+  document.getElementById('srFan').textContent='IDLE';
+  document.getElementById('srFan').className='stat-val ok';
+  document.getElementById('fpCoord').textContent='Gas Level: 0 PPM';
+  log('System reset — armed and monitoring','ok');
+}
+
+function advancePhase(){
+  const t=now()-triggerT0;
+  if(phase==='leak'&&t>=PH.detect){
+    phase='detected';
+    document.getElementById('phaseDisplay').textContent='PHASE: HAZARD DETECTED';
+    document.getElementById('srDetector').textContent='TRIGGERED';
+    document.getElementById('srDetector').className='stat-val alert';
+    document.getElementById('srGas').textContent='HAZARD';
+    document.getElementById('srGas').className='stat-val alert';
+    document.getElementById('fpWrap').classList.add('danger');
+    document.getElementById('statusDot').classList.add('alert');
+    document.getElementById('statusTxt').textContent='ALERT';
+    document.getElementById('statusTxt').classList.add('alert');
+    eventCount++;
+    document.getElementById('statEvents').textContent=eventCount;
+    log('🔥 Gas detector triggered — threshold exceeded','alert');
+  }
+  if(phase==='detected'&&t>=PH.alarm){
+    phase='alarm';
+    document.getElementById('phaseDisplay').textContent='PHASE: ALARM ACTIVE';
+    document.getElementById('triggerPhaseTxt').textContent='Alarm active — shutoff engaged';
+    document.getElementById('statAlarm').textContent='ACTIVE';
+    document.getElementById('statAlarm').className='stat-val alert';
+    document.getElementById('srValve').textContent='CLOSED';
+    document.getElementById('srValve').className='stat-val alert';
+    document.getElementById('bgAtmos').classList.add('alert-glow');
+    log('🚨 Alarm activated — beacon and siren engaged','alert');
+    log('Emergency shutoff valve closed at source','warn');
+  }
+  if(phase==='alarm'&&t>=PH.vent){
+    phase='vent';
+    document.getElementById('phaseDisplay').textContent='PHASE: VENTILATION ACTIVE';
+    document.getElementById('triggerPhaseTxt').textContent='Ventilation clearing hazard…';
+    document.getElementById('statVent').textContent='ACTIVE';
+    document.getElementById('statVent').className='stat-val alert';
+    document.getElementById('srFan').textContent='EXTRACTING';
+    document.getElementById('srFan').className='stat-val warn';
+    log('💨 Ventilation system activated — extracting hazardous air','warn');
+  }
+  if(phase==='vent'&&hazardLevel<=2&&t>PH.vent+1.2){
+    phase='clearing';
+    document.getElementById('phaseDisplay').textContent='PHASE: CLEARING';
+    document.getElementById('triggerPhaseTxt').textContent='Hazard clearing…';
+    if(!clearedLoggedOnce){log('Gas concentration falling — area clearing','info');clearedLoggedOnce=true;}
+  }
+  if(phase==='clearing'&&particles.length===0){
+    phase='resolved';
+    document.getElementById('phaseDisplay').textContent='PHASE: HAZARD CLEARED';
+    document.getElementById('triggerPhaseTxt').textContent='Hazard cleared — restoring standby';
+    document.getElementById('srGas').textContent='CLEAR';
+    document.getElementById('srGas').className='stat-val ok';
+    document.getElementById('srDetector').textContent='ARMED';
+    document.getElementById('srDetector').className='stat-val ok';
+    document.getElementById('statAlarm').textContent='INACTIVE';
+    document.getElementById('statAlarm').className='stat-val ok';
+    document.getElementById('statVent').textContent='STANDBY';
+    document.getElementById('statVent').className='stat-val ok';
+    document.getElementById('srFan').textContent='IDLE';
+    document.getElementById('srFan').className='stat-val ok';
+    document.getElementById('srValve').textContent='OPEN';
+    document.getElementById('srValve').className='stat-val ok';
+    document.getElementById('fpWrap').classList.remove('danger');
+    document.getElementById('bgAtmos').classList.remove('alert-glow');
+    document.getElementById('statusDot').classList.remove('alert');
+    document.getElementById('statusTxt').textContent='STANDBY';
+    document.getElementById('statusTxt').classList.remove('alert');
+    document.getElementById('lastEvent').innerHTML=`Event: GAS / SMOKE HAZARD<br>Zone: G1 — Facility Room<br>Time: ${new Date().toLocaleTimeString()}<br>Count: ${eventCount}`;
+    log('✅ Hazard cleared — system restored to standby','ok');
+    setTimeout(()=>{ if(phase==='resolved'){ phase='idle'; setBtn(false); document.getElementById('phaseDisplay').textContent='PHASE: STANDBY'; document.getElementById('triggerPhaseTxt').textContent='Awaiting trigger'; document.getElementById('triggerPhaseTxt').classList.remove('active'); } },1600);
+  }
+}
+
+function spawnParticle(layout){
+  const spread=18;
+  particles.push({
+    x:layout.source.x+(Math.random()-0.5)*spread,
+    y:layout.source.y,
+    vx:(Math.random()-0.5)*8,
+    vy:-(14+Math.random()*10),
+    r:3+Math.random()*4,
+    life:1,
+    age:0
+  });
+}
+
+function updateParticles(layout,dt,ventActive){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.age+=dt;
+    if(ventActive){
+      const dx=layout.vent.x-p.x, dy=layout.vent.y-p.y;
+      const d=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+      p.vx+=(dx/d)*36*dt;
+      p.vy+=(dy/d)*36*dt;
+      p.life-=dt*0.55;
+    } else {
+      p.vy-=2*dt; // slow buoyant rise
+      p.life-=dt*0.06;
+    }
+    p.x+=p.vx*dt;
+    p.y+=p.vy*dt;
+    p.r+=dt*2.2;
+    if(p.life<=0||p.r>26)particles.splice(i,1);
+  }
+  // hazard level approximated from particle mass
+  const target=Math.min(100,particles.length*1.6);
+  hazardLevel+=(target-hazardLevel)*0.06;
+  if(hazardLevel<0.5)hazardLevel=0;
+}
+
+let lastT=now();
+function draw(){
+  const t=now();
+  const dt=Math.min(0.05,t-lastT);
+  lastT=t;
+  ctx.clearRect(0,0,W,H);
+  const layout=getLayout();
+  const room=layout.room;
+  fanAngle+= phase==='vent'||phase==='clearing' ? dt*14 : dt*0.6;
+  beaconPhase+=dt*6;
+
+  if(phase!=='idle')advancePhase();
+
+  const leaking = phase==='leak';
+  const ventActive = phase==='vent'||phase==='clearing';
+  const alarmOn = phase==='alarm'||phase==='vent'||phase==='clearing';
+  const detected = phase==='detected'||alarmOn;
+
+  if(leaking)spawnParticle(layout);
+  updateParticles(layout,dt,ventActive);
+
+  // ── Room shell
+  ctx.save();
+  ctx.fillStyle='rgba(10,20,40,.55)';
+  ctx.strokeStyle = detected? 'rgba(248,113,113,.28)':'rgba(94,234,212,.14)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(room.x,room.y,room.w,room.h,10);ctx.fill();ctx.stroke();
+  ctx.font='600 8px JetBrains Mono, monospace';
+  ctx.fillStyle='rgba(107,125,160,.55)';
+  ctx.textAlign='left';
+  ctx.fillText('FACILITY ROOM — ZONE G1',room.x+14,room.y+18);
+  ctx.restore();
+
+  // ── Smoke particles (drawn before fixtures so fixtures sit on top visually near ceiling)
+  particles.forEach(p=>{
+    const a=Math.max(0,Math.min(0.5,p.life*0.4));
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+    const col = detected? `rgba(248,113,113,${a})` : `rgba(180,190,200,${a})`;
+    g.addColorStop(0,col);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=g;ctx.fill();
+  });
+
+  // ── Gas Source (tank + valve), bottom-left
+  (function drawSource(){
+    const s=layout.source;
+    ctx.save();
+    ctx.translate(s.x,s.y);
+    ctx.fillStyle='rgba(10,17,32,.9)';
+    ctx.strokeStyle= leaking? 'rgba(248,113,113,.8)':'rgba(94,234,212,.5)';
+    ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.roundRect(-10,-26,20,40,5);ctx.fill();ctx.stroke();
+    // valve
+    ctx.beginPath();ctx.arc(0,-30,5,0,Math.PI*2);
+    ctx.fillStyle= leaking? 'rgba(248,113,113,.3)':'rgba(94,234,212,.15)';
+    ctx.fill();ctx.stroke();
+    // pulse ring while leaking
+    if(leaking){
+      const pr=4+Math.abs(Math.sin(beaconPhase*0.5))*5;
+      ctx.beginPath();ctx.arc(0,-30,pr+4,0,Math.PI*2);
+      ctx.strokeStyle='rgba(248,113,113,.35)';ctx.lineWidth=1;ctx.stroke();
+    }
+    ctx.font='600 7px JetBrains Mono,monospace';
+    ctx.fillStyle= leaking?'rgba(248,113,113,.85)':'rgba(94,234,212,.6)';
+    ctx.textAlign='center';
+    ctx.fillText('GAS SOURCE',0,24);
+    ctx.restore();
+  })();
+
+  // ── Ventilation (wall vent with spinning fan), top-left
+  (function drawVent(){
+    const v=layout.vent;
+    ctx.save();
+    ctx.translate(v.x,v.y);
+    ctx.fillStyle='rgba(10,17,32,.9)';
+    ctx.strokeStyle= ventActive? 'rgba(56,189,248,.8)':'rgba(94,234,212,.4)';
+    ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.roundRect(-18,-16,36,32,6);ctx.fill();ctx.stroke();
+    // louvers
+    ctx.strokeStyle='rgba(94,234,212,.18)';ctx.lineWidth=1;
+    for(let i=-10;i<=10;i+=5){ctx.beginPath();ctx.moveTo(-14,i);ctx.lineTo(14,i);ctx.stroke();}
+    // fan hub
+    ctx.save();ctx.translate(0,0);ctx.rotate(fanAngle);
+    ctx.strokeStyle= ventActive? 'rgba(56,189,248,.9)':'rgba(94,234,212,.45)';
+    ctx.lineWidth=1.8;
+    for(let i=0;i<3;i++){
+      ctx.save();ctx.rotate((Math.PI*2/3)*i);
+      ctx.beginPath();ctx.ellipse(0,-6,3,7,0,0,Math.PI*2);ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.beginPath();ctx.arc(0,0,2.5,0,Math.PI*2);
+    ctx.fillStyle= ventActive?'rgba(56,189,248,.9)':'rgba(94,234,212,.5)';ctx.fill();
+    // extraction arrows
+    if(ventActive){
+      const af=Math.abs(Math.sin(beaconPhase));
+      ctx.strokeStyle=`rgba(56,189,248,${0.3+af*0.4})`;
+      ctx.lineWidth=1.3;
+      for(let i=0;i<2;i++){
+        const yy=-26-i*10;
+        ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(0,yy-8);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(-3,yy-5);ctx.lineTo(0,yy-9);ctx.lineTo(3,yy-5);ctx.stroke();
+      }
+    }
+    ctx.font='600 7px JetBrains Mono,monospace';
+    ctx.fillStyle= ventActive?'rgba(56,189,248,.85)':'rgba(94,234,212,.55)';
+    ctx.textAlign='center';
+    ctx.fillText('VENTILATION',0,28);
+    ctx.restore();
+  })();
+
+  // ── Detector (ceiling sensor), top-center
+  (function drawDetector(){
+    const d=layout.detector;
+    ctx.save();
+    ctx.translate(d.x,d.y);
+    const glow= detected ? (0.5+Math.abs(Math.sin(beaconPhase))*0.3) : 0.15;
+    const grad=ctx.createRadialGradient(0,0,0,0,0,22);
+    grad.addColorStop(0, detected? `rgba(248,113,113,${glow})`:`rgba(56,189,248,${glow})`);
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
+    ctx.fillStyle='rgba(10,17,32,.9)';
+    ctx.strokeStyle= detected? 'rgba(248,113,113,.85)':'rgba(56,189,248,.6)';
+    ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.roundRect(-12,-9,24,16,4);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(0,3,3.5,0,Math.PI*2);
+    ctx.fillStyle= detected? 'rgba(248,113,113,.9)':'rgba(56,189,248,.55)';
+    ctx.fill();
+    ctx.font='600 7px JetBrains Mono,monospace';
+    ctx.fillStyle= detected?'rgba(248,113,113,.85)':'rgba(56,189,248,.6)';
+    ctx.textAlign='center';
+    ctx.fillText('DETECTOR',0,24);
+    ctx.restore();
+  })();
+
+  // ── Alarm beacon, top-right
+  (function drawAlarm(){
+    const a=layout.alarm;
+    ctx.save();
+    ctx.translate(a.x,a.y);
+    if(alarmOn){
+      const bs=Math.abs(Math.sin(beaconPhase));
+      ctx.beginPath();ctx.arc(0,0,10+bs*7,0,Math.PI*2);
+      ctx.fillStyle=`rgba(248,113,113,${0.12+bs*0.22})`;ctx.fill();
+      // sound wave rings
+      for(let i=0;i<2;i++){
+        const rr=14+ ((beaconPhase*10+i*12)%26);
+        ctx.beginPath();ctx.arc(0,0,rr,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(248,113,113,${Math.max(0,0.3-rr*0.01)})`;ctx.lineWidth=1;ctx.stroke();
+      }
+    }
+    ctx.fillStyle='rgba(10,17,32,.9)';
+    ctx.strokeStyle= alarmOn? 'rgba(248,113,113,.9)':'rgba(94,234,212,.5)';
+    ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.roundRect(-11,-9,22,16,4);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(0,2,4,0,Math.PI*2);
+    ctx.fillStyle= alarmOn? `rgba(248,113,113,${0.6+Math.abs(Math.sin(beaconPhase))*0.4})`:'rgba(94,234,212,.4)';
+    ctx.fill();
+    ctx.font='600 7px JetBrains Mono,monospace';
+    ctx.fillStyle= alarmOn?'rgba(248,113,113,.9)':'rgba(94,234,212,.55)';
+    ctx.textAlign='center';
+    ctx.fillText('ALARM',0,24);
+    ctx.restore();
+  })();
+
+  // Warning overlay flash across whole room when alarm active
+  if(alarmOn){
+    const fa=Math.max(0,Math.sin(beaconPhase))*0.05;
+    ctx.fillStyle=`rgba(248,113,113,${fa})`;
+    ctx.fillRect(room.x,room.y,room.w,room.h);
+  }
+
+  // HUD readouts
+  document.getElementById('fpCoord').textContent=`Gas Level: ${Math.round(hazardLevel*4)} PPM`;
+  document.getElementById('statHazardTxt').textContent=Math.round(hazardLevel)+'%';
+  document.getElementById('statHazardTxt').className='stat-val '+(hazardLevel>55?'alert':hazardLevel>15?'warn':'ok');
+  document.getElementById('hazardFill').style.width=Math.round(hazardLevel)+'%';
+  document.getElementById('fpDot').style.background = detected? 'var(--red)':'var(--cyan)';
+  document.getElementById('fpDot').style.boxShadow = detected? '0 0 6px var(--red)':'0 0 6px var(--cyan)';
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+// Intersection observer for info cards
+const io=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='';}
+  });
+},{threshold:0.1});
+document.querySelectorAll('.info-card,.flow-step,.arch-node,.app-chip').forEach((el,i)=>{
+  el.style.opacity='0';
+  el.style.transform='translateY(18px)';
+  el.style.transition=`opacity .55s ${i*0.07}s ease, transform .55s ${i*0.07}s cubic-bezier(.2,.8,.3,1)`;
+  io.observe(el);
+});
+</script>
+</body>
+</html>
