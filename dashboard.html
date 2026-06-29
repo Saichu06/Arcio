@@ -7,395 +7,513 @@
 <link rel="icon" type="image/png" href="./assets/logo.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 :root{
   --bg:#060A13;--bg2:#0A1120;--bg3:#0D1526;
-  --blue:#3B82F6;--blue-deep:#1D4ED8;
-  --cyan:#5EEAD4;--cyan2:#38BDF8;
+  --blue:#3B82F6;--cyan:#5EEAD4;--cyan2:#38BDF8;
   --ink:#EAF1FF;--muted:#6B7DA0;--muted2:#4A5A7A;
-  --border:rgba(94,234,212,0.14);--border-blue:rgba(59,130,246,0.22);
+  --border:rgba(94,234,212,.14);
   --green:#34D399;--green2:#10B981;
+  --amber:#F59E0B;--purple:#818CF8;--red:#F87171;
+  /* panel surface tokens — swapped wholesale in light mode so every
+     card/panel/strip stays visually consistent instead of flipping piecemeal */
+  --panel:rgba(10,17,32,.8);
+  --panel-soft:rgba(10,17,32,.6);
+  --panel-strong:rgba(10,17,32,.9);
+  --panel-solid:rgba(10,17,32,.97);
+  --panel-deep:rgba(6,10,19,.94);
+  --panel-border:rgba(94,234,212,.12);
+  --hover-text:rgba(234,241,255,.7);
+  --shadow-col:rgba(0,0,0,.55);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;overflow-x:hidden;}
 
 /* ── CURSOR ── */
-.cur-dot{position:fixed;top:0;left:0;pointer-events:none;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:translate(-50%,-50%);z-index:9999;transition:opacity .3s;}
-.cur-ring{position:fixed;top:0;left:0;pointer-events:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(94,234,212,0.5);transform:translate(-50%,-50%);z-index:9998;transition:width .2s cubic-bezier(.2,.8,.3,1),height .2s cubic-bezier(.2,.8,.3,1),border-color .2s,background .2s;}
-.cur-ring.expand{width:52px;height:52px;border-color:var(--cyan);background:rgba(94,234,212,0.05);}
+.cur-dot{position:fixed;top:0;left:0;pointer-events:none;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:translate(-50%,-50%);z-index:9999;}
+.cur-ring{position:fixed;top:0;left:0;pointer-events:none;width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(94,234,212,.5);transform:translate(-50%,-50%);z-index:9998;transition:width .2s cubic-bezier(.2,.8,.3,1),height .2s cubic-bezier(.2,.8,.3,1),border-color .2s,background .2s;}
+.cur-ring.expand{width:52px;height:52px;border-color:var(--cyan);background:rgba(94,234,212,.05);}
 .cur-label{position:fixed;top:0;left:0;pointer-events:none;z-index:9997;font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.14em;color:var(--cyan);transform:translate(-50%,-50%);opacity:0;transition:opacity .18s;}
 .cur-label.show{opacity:1;}
 
-/* ── BACKGROUND GRID ── */
-.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.028;background-image:linear-gradient(rgba(94,234,212,1) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,212,1) 1px,transparent 1px);background-size:48px 48px;}
+/* ── INTERACTIVE NODE BACKGROUND ── */
+#bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
 .bg-atmos{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(59,130,246,.07) 0%,transparent 65%);}
 
-/* ── TOP NAV ── */
-.nav{
-  position:sticky;top:0;z-index:100;
-  background:rgba(6,10,19,.92);backdrop-filter:blur(16px);
-  border-bottom:1px solid rgba(94,234,212,.08);
-  padding:0 32px;height:52px;
-  display:flex;align-items:center;justify-content:space-between;
-}
+/* ── NAV ── */
+.nav{position:sticky;top:0;z-index:200;background:var(--panel-deep);backdrop-filter:blur(16px);border-bottom:1px solid var(--panel-border);padding:0 32px;height:52px;display:flex;align-items:center;justify-content:space-between;}
 .nav-brand{display:flex;align-items:center;gap:10px;}
 .nav-logo{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.04em;color:var(--ink);}
 .nav-logo span{color:var(--cyan2);}
 .nav-pill{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:2px 8px;border:1px solid var(--border);border-radius:100px;background:rgba(94,234,212,.04);color:var(--cyan2);}
-.nav-right{display:flex;align-items:center;gap:18px;}
+.nav-right{display:flex;align-items:center;gap:14px;}
 .nav-stat{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;color:var(--muted);letter-spacing:.06em;}
 .nav-stat-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 7px var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 .nav-stat-val{color:var(--cyan2);font-weight:600;}
+.nav-xp{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;color:var(--amber);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);padding:3px 10px;border-radius:20px;cursor:default;}
 .nav-back{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:color .2s;text-decoration:none;border:1px solid rgba(94,234,212,.12);padding:4px 11px;border-radius:6px;}
 .nav-back:hover{color:var(--cyan);border-color:rgba(94,234,212,.3);}
 .nav-back svg{transition:transform .2s;}
 .nav-back:hover svg{transform:translateX(-3px);}
 
 /* ── PAGE SHELL ── */
-.page{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:38px 32px 80px;}
+.page{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:32px 32px 120px;}
+
+/* ── CONTINUE LEARNING BANNER ── */
+.continue-banner{
+  display:none;margin-bottom:24px;
+  background:linear-gradient(135deg,rgba(56,189,248,.08),rgba(94,234,212,.05));
+  border:1px solid rgba(56,189,248,.22);border-radius:14px;
+  padding:16px 22px;
+  align-items:center;gap:18px;
+  animation:fadeInDown .5s ease forwards;
+}
+.continue-banner.show{display:flex;}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+.continue-icon{width:40px;height:40px;border-radius:10px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.continue-text{}
+.continue-label{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan2);margin-bottom:3px;}
+.continue-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:var(--ink);}
+.continue-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.continue-btn{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;background:linear-gradient(135deg,rgba(56,189,248,.18),rgba(94,234,212,.1));border:1.5px solid rgba(56,189,248,.35);color:var(--cyan2);border-radius:9px;padding:8px 16px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.continue-btn:hover{transform:translateX(3px);box-shadow:0 4px 16px rgba(56,189,248,.15);}
+.continue-dismiss{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:4px;margin-left:8px;transition:color .2s;}
+.continue-dismiss:hover{color:var(--ink);}
 
 /* ── PAGE HEADER ── */
-.page-header{margin-bottom:36px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.page-header-left{}
+.page-header{margin-bottom:26px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;animation:fadeInUp .5s ease forwards .05s;opacity:0;}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
 .page-eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan2);margin-bottom:10px;}
 .page-eyebrow-dot{width:4px;height:4px;border-radius:50%;background:var(--cyan2);box-shadow:0 0 6px var(--cyan2);}
 .page-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:32px;letter-spacing:-.03em;color:var(--ink);line-height:1.1;}
-.page-sub{font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);margin-top:6px;max-width:480px;}
-.page-header-right{display:flex;gap:8px;align-items:center;}
-.hdr-badge{display:flex;align-items:center;gap:5px;background:rgba(10,17,32,.8);border:1px solid rgba(94,234,212,.14);border-radius:8px;padding:6px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.06em;}
-.hdr-badge span{color:var(--cyan2);font-weight:600;}
+.page-sub{font-size:13px;color:var(--muted);margin-top:6px;max-width:480px;}
+
+/* ── STATS ROW ── */
+.stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;animation:fadeInUp .5s ease forwards .12s;opacity:0;}
+.stat-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:10px 16px;transition:border-color .2s,transform .2s;}
+.stat-chip:hover{border-color:rgba(94,234,212,.28);transform:translateY(-2px);}
+.stat-chip-val{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:18px;color:var(--cyan2);letter-spacing:-.02em;}
+.stat-chip-label{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+
+/* ── PROGRESS CARDS ── */
+.progress-bar-wrap{margin-bottom:22px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;animation:fadeInUp .5s ease forwards .18s;opacity:0;}
+.progress-card{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:14px 18px;transition:border-color .2s;}
+.progress-card:hover{border-color:rgba(94,234,212,.22);}
+.progress-card-label{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.progress-card-val{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:20px;color:var(--ink);margin-bottom:10px;}
+.progress-track{height:4px;background:rgba(94,234,212,.08);border-radius:100px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--cyan2),var(--cyan));width:0%;transition:width 1.4s cubic-bezier(.2,.8,.3,1);}
+.progress-fill.green{background:linear-gradient(90deg,var(--green2),var(--green));}
+.progress-fill.purple{background:linear-gradient(90deg,var(--purple),var(--cyan2));}
+
+/* ── XP + ACHIEVEMENTS ROW ── */
+.xp-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;animation:fadeInUp .5s ease forwards .22s;opacity:0;}
+.xp-card{background:var(--panel);border:1px solid rgba(245,158,11,.15);border-radius:12px;padding:14px 18px;}
+.xp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.xp-level{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:15px;color:var(--amber);}
+.xp-title{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.xp-bar-wrap{display:flex;align-items:center;gap:10px;}
+.xp-bar-track{flex:1;height:6px;background:rgba(245,158,11,.1);border-radius:100px;overflow:hidden;}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--amber),#FCD34D);border-radius:100px;transition:width 1.4s cubic-bezier(.2,.8,.3,1);width:0%;}
+.xp-pts{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;color:var(--amber);}
+
+.badges-card{background:var(--panel);border:1px solid rgba(129,140,248,.15);border-radius:12px;padding:14px 18px;}
+.badges-title{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.badges-list{display:flex;gap:8px;flex-wrap:wrap;}
+.badge-item{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.08em;padding:5px 10px;border-radius:8px;background:rgba(129,140,248,.06);border:1px solid rgba(129,140,248,.18);color:var(--purple);transition:all .2s;}
+.badge-item.locked{opacity:.3;filter:grayscale(1);}
+.badge-item:not(.locked):hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(129,140,248,.15);}
+
+/* ── LEARNING PATH TIMELINE ── */
+.path-wrap{margin-bottom:22px;animation:fadeInUp .5s ease forwards .24s;opacity:0;}
+.path-title{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2);margin-bottom:14px;}
+.path-track{display:flex;align-items:center;gap:0;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none;}
+.path-track::-webkit-scrollbar{display:none;}
+.path-node{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;}
+.path-circle{
+  width:36px;height:36px;border-radius:50%;
+  border:2px solid rgba(94,234,212,.2);
+  background:var(--panel-strong);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;color:var(--muted2);
+  transition:all .3s;cursor:pointer;position:relative;
+}
+.path-circle.done{border-color:var(--green);background:rgba(52,211,153,.1);color:var(--green);}
+.path-circle.active{border-color:var(--cyan2);background:rgba(56,189,248,.1);color:var(--cyan2);box-shadow:0 0 14px rgba(56,189,248,.25);}
+.path-circle.locked{opacity:.4;}
+.path-label{font-family:'JetBrains Mono',monospace;font-size:6.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:center;max-width:54px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.path-label.done{color:var(--green);}
+.path-label.active{color:var(--cyan2);}
+.path-connector{width:28px;height:2px;background:rgba(94,234,212,.12);flex-shrink:0;margin-top:-20px;position:relative;}
+.path-connector.done{background:rgba(52,211,153,.4);}
+.path-section-label{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);opacity:.5;text-align:center;padding:0 12px;flex-shrink:0;margin-top:-18px;}
+.path-section-sep{width:1px;height:24px;background:rgba(94,234,212,.08);margin-top:-12px;flex-shrink:0;}
+
+/* ── RECENT + FAVORITES ROW ── */
+.sidebar-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;animation:fadeInUp .5s ease forwards .28s;opacity:0;}
+.mini-panel{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:14px 18px;}
+.mini-panel-title{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;}
+.mini-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(94,234,212,.05);cursor:pointer;transition:all .18s;}
+.mini-item:last-child{border-bottom:none;}
+.mini-item:hover{padding-left:4px;}
+.mini-item:hover .mini-item-label{color:var(--ink);}
+.mini-dot{width:6px;height:6px;border-radius:50%;background:rgba(94,234,212,.3);flex-shrink:0;}
+.mini-dot.green{background:var(--green);box-shadow:0 0 5px var(--green);}
+.mini-dot.amber{background:var(--amber);}
+.mini-dot.purple{background:var(--purple);}
+.mini-item-label{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;color:var(--muted);flex:1;}
+.mini-item-meta{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--muted2);}
+.mini-item-star{font-size:12px;cursor:pointer;transition:transform .2s;}
+.mini-item-star:hover{transform:scale(1.3);}
+.mini-empty{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted2);text-align:center;padding:12px 0;opacity:.5;}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px;animation:fadeInUp .5s ease forwards .3s;opacity:0;position:relative;}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:340px;}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.4;}
+.search-input{width:100%;background:var(--panel-strong);border:1px solid var(--panel-border);border-radius:9px;padding:8px 12px 8px 34px;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s;}
+.search-input::placeholder{color:var(--muted2);}
+.search-input:focus{border-color:rgba(94,234,212,.35);box-shadow:0 0 0 3px rgba(94,234,212,.05);}
+.search-suggestions{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:300;
+  background:var(--panel-solid);border:1px solid rgba(94,234,212,.18);
+  border-radius:10px;overflow:hidden;
+  box-shadow:0 16px 40px var(--shadow-col);
+  display:none;
+}
+.search-suggestions.show{display:block;}
+.suggestion-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .15s;font-size:12px;color:var(--muted);}
+.suggestion-item:hover{background:rgba(94,234,212,.06);color:var(--ink);}
+.suggestion-icon{font-size:10px;opacity:.5;}
+.suggestion-label{flex:1;}
+.suggestion-cat{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);}
+
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-tab{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:7px;cursor:pointer;border:1px solid transparent;color:var(--muted);background:var(--panel-soft);transition:all .2s;}
+.filter-tab:hover{color:var(--ink);border-color:rgba(94,234,212,.2);}
+.filter-tab.active{color:var(--cyan2);background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.28);}
+.view-toggle{display:flex;gap:4px;margin-left:auto;}
+.view-btn{width:32px;height:32px;border-radius:7px;border:1px solid var(--panel-border);background:var(--panel-soft);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;color:var(--muted2);}
+.view-btn:hover{border-color:rgba(94,234,212,.3);color:var(--cyan);}
+.view-btn.active{border-color:rgba(56,189,248,.4);background:rgba(56,189,248,.08);color:var(--cyan2);}
 
 /* ── SECTION DIVIDER ── */
-.sec-divider{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.sec-divider{display:flex;align-items:center;gap:12px;margin:32px 0 18px;}
 .sec-divider-label{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);white-space:nowrap;}
 .sec-divider-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(94,234,212,.12),transparent);}
+.sec-divider-count{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:500;color:var(--muted2);opacity:.5;}
 
-/* ══════════════════════════════════════
-   EXPERIMENT 01 — HERO CARD
-══════════════════════════════════════ */
-.exp-hero-wrap{margin-bottom:28px;}
+/* ── CARD GRID ── */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(274px,1fr));gap:16px;}
+.card-grid.hidden{display:none;}
 
-.exp-hero{
-  position:relative;overflow:hidden;cursor:pointer;
-  border-radius:16px;
-  border:1.5px solid rgba(52,211,153,.36);
-  background:linear-gradient(145deg,rgba(10,20,36,.98) 0%,rgba(8,16,28,.98) 100%);
-  box-shadow:
-    0 0 0 1px rgba(52,211,153,.08),
-    0 0 48px rgba(52,211,153,.10),
-    0 0 100px rgba(52,211,153,.04),
-    0 24px 60px rgba(0,0,0,.6);
-  padding:32px 36px 30px;
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:28px;
-  align-items:center;
-  transition:transform .35s cubic-bezier(.2,.8,.3,1),box-shadow .35s;
+/* ── LAB CARD ── */
+.lab-card{
+  position:relative;overflow:hidden;cursor:pointer;border-radius:14px;
+  border:1px solid var(--panel-border);background:var(--panel-strong);
+  display:flex;flex-direction:column;
+  transition:transform .32s cubic-bezier(.2,.8,.3,1),box-shadow .32s,border-color .32s;
 }
-.exp-hero:hover{
-  transform:translateY(-5px);
-  box-shadow:
-    0 0 0 1.5px rgba(52,211,153,.28),
-    0 0 60px rgba(52,211,153,.18),
-    0 0 120px rgba(52,211,153,.06),
-    0 36px 80px rgba(0,0,0,.7);
-}
+.lab-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:linear-gradient(90deg,transparent,rgba(94,234,212,.25) 40%,rgba(56,189,248,.2) 70%,transparent);opacity:0;transition:opacity .3s;z-index:2;}
+.lab-card:hover{transform:translateY(-6px) scale(1.012);border-color:rgba(94,234,212,.3);box-shadow:0 18px 48px rgba(0,0,0,.55),0 0 36px rgba(94,234,212,.07),0 0 70px rgba(56,189,248,.04);}
+.lab-card:hover::before{opacity:1;}
+.lab-card.locked-card{opacity:.55;}
+.lab-card.locked-card:hover{transform:none;box-shadow:none;border-color:rgba(94,234,212,.1);}
+.lab-card.favorited{border-color:rgba(245,158,11,.25);}
 
-/* Animated gradient sweep on the hero card */
-.exp-hero::before{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(115deg,transparent 30%,rgba(52,211,153,.025) 50%,transparent 70%);
-  background-size:200% 200%;
-  animation:heroSweep 5s ease-in-out infinite;
+/* HOVER OVERLAY (Steam-style quick preview) */
+.card-hover-overlay{
+  position:absolute;inset:0;z-index:10;
+  background:var(--panel-deep);backdrop-filter:blur(6px);
+  border-radius:14px;
+  padding:18px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  opacity:0;pointer-events:none;
+  transition:opacity .25s cubic-bezier(.2,.8,.3,1);
 }
-@keyframes heroSweep{0%,100%{background-position:200% 0%;}50%{background-position:-100% 100%;}}
-
-/* Corner accent lines */
-.exp-hero::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(52,211,153,.5) 30%,rgba(56,189,248,.4) 70%,transparent);
+.lab-card:not(.locked-card):hover .card-hover-overlay{opacity:1;pointer-events:all;}
+.hover-top{}
+.hover-num{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--card-color,var(--cyan));margin-bottom:8px;}
+.hover-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink);line-height:1.2;margin-bottom:14px;}
+.hover-facts{display:flex;flex-direction:column;gap:7px;}
+.hover-fact{display:flex;align-items:center;gap:8px;font-family:'Inter',sans-serif;font-size:12px;color:var(--hover-text);}
+.hover-fact-icon{font-size:13px;}
+.hover-fact-label{font-size:10px;color:var(--muted);}
+.hover-circuit{
+  flex:1;margin:14px 0;
+  background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:80px;
 }
-
-/* Green glow atmosphere inside the card */
-.hero-glow{
-  position:absolute;top:-40px;right:80px;width:320px;height:320px;
-  background:radial-gradient(circle,rgba(52,211,153,.07) 0%,rgba(16,185,129,.03) 40%,transparent 70%);
-  pointer-events:none;
-}
-
-.hero-left{}
-.hero-meta{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
-
-/* THE NUMBER — big, distinctive */
-.hero-num{
-  font-family:'Space Grotesk',sans-serif;font-weight:800;
-  font-size:11px;letter-spacing:.3em;
-  color:var(--green);text-transform:uppercase;
-  border:1px solid rgba(52,211,153,.28);border-radius:5px;
-  padding:3px 8px;background:rgba(52,211,153,.06);
-}
-.hero-category{
-  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:500;
-  letter-spacing:.16em;text-transform:uppercase;
-  color:var(--muted);
-  padding:3px 8px;border:1px solid rgba(107,125,160,.14);border-radius:5px;
-}
-
-.hero-title{
-  font-family:'Space Grotesk',sans-serif;font-weight:800;
-  font-size:28px;letter-spacing:-.03em;line-height:1.1;
-  color:var(--ink);margin-bottom:6px;
-}
-.hero-title em{font-style:normal;color:var(--cyan2);}
-.hero-desc{
-  font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);
-  line-height:1.6;max-width:520px;margin-bottom:20px;
-}
-
-/* STATUS BADGE — the star of the show */
-.hero-status{
-  display:inline-flex;align-items:center;gap:8px;
-  background:rgba(52,211,153,.07);
-  border:1.5px solid rgba(52,211,153,.32);
-  border-radius:8px;padding:7px 14px 7px 11px;
-  font-family:'JetBrains Mono',monospace;font-size:9px;
-  font-weight:600;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--green);margin-bottom:22px;
-}
-.status-ring{
-  position:relative;width:10px;height:10px;flex-shrink:0;
-}
-.status-ring-inner{
-  position:absolute;inset:0;border-radius:50%;
-  background:var(--green);
-  box-shadow:0 0 0 0 rgba(52,211,153,.6);
-  animation:statusPulse 2s cubic-bezier(.455,.03,.515,.955) infinite;
-}
-@keyframes statusPulse{
-  0%{box-shadow:0 0 0 0 rgba(52,211,153,.7);}
-  70%{box-shadow:0 0 0 7px rgba(52,211,153,.0);}
-  100%{box-shadow:0 0 0 0 rgba(52,211,153,.0);}
-}
-
-/* Tags + launch button row */
-.hero-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.hero-tag{
-  font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:500;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
-  background:rgba(10,17,32,.8);border:1px solid rgba(94,234,212,.1);
-  border-radius:5px;padding:3px 9px;
-}
-.hero-tag.blue{color:var(--cyan2);border-color:rgba(56,189,248,.18);background:rgba(56,189,248,.04);}
-.btn-launch-hero{
-  margin-left:auto;
-  display:flex;align-items:center;gap:7px;
-  font-family:'Inter',sans-serif;font-size:12px;font-weight:700;
+.hover-bottom{display:flex;gap:8px;}
+.hover-btn-open{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  font-family:'Inter',sans-serif;font-size:11px;font-weight:700;
   background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(16,185,129,.1));
-  border:1.5px solid rgba(52,211,153,.4);
-  color:var(--green);border-radius:9px;padding:9px 18px;cursor:pointer;
-  transition:transform .22s cubic-bezier(.2,.8,.3,1),box-shadow .22s,background .22s;
+  border:1.5px solid rgba(52,211,153,.4);color:var(--green);
+  border-radius:8px;padding:8px 0;cursor:pointer;transition:all .2s;
 }
-.btn-launch-hero:hover{
-  transform:translateY(-3px);
-  background:linear-gradient(135deg,rgba(52,211,153,.28),rgba(16,185,129,.18));
-  box-shadow:0 8px 28px rgba(52,211,153,.25),0 0 40px rgba(52,211,153,.08);
+.hover-btn-open:hover{background:linear-gradient(135deg,rgba(52,211,153,.28),rgba(16,185,129,.18));box-shadow:0 4px 16px rgba(52,211,153,.2);}
+.hover-btn-fav{
+  width:36px;display:flex;align-items:center;justify-content:center;
+  background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);
+  border-radius:8px;cursor:pointer;font-size:14px;transition:all .2s;
 }
-.btn-launch-hero .arr{display:inline-block;transition:transform .22s;}
-.btn-launch-hero:hover .arr{transform:translateX(3px);}
+.hover-btn-fav:hover{background:rgba(245,158,11,.14);transform:scale(1.1);}
 
-/* Right side: live preview card */
-.hero-right{min-width:180px;}
-.live-preview{
-  background:rgba(6,10,19,.95);
-  border:1px solid rgba(52,211,153,.18);
-  border-radius:10px;
-  padding:14px 16px;
-  font-family:'JetBrains Mono',monospace;
-}
-.lp-header{display:flex;align-items:center;gap:6px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(52,211,153,.09);}
-.lp-dots{display:flex;gap:4px;}
-.lp-dot{width:7px;height:7px;border-radius:50%;}
-.lp-title{font-size:7.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(234,241,255,.35);}
-.lp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:8.5px;}
-.lp-key{color:var(--muted);}
-.lp-val{font-weight:600;color:var(--green);}
-.lp-val.off{color:var(--muted);}
-.lp-val.cyan{color:var(--cyan2);}
-.lp-sep{height:1px;background:rgba(94,234,212,.07);margin:8px 0;}
-.lp-led{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green),0 0 20px rgba(52,211,153,.4);animation:ledPulse 1.4s ease-in-out infinite;vertical-align:middle;margin-right:4px;}
-@keyframes ledPulse{0%,100%{box-shadow:0 0 8px var(--green),0 0 16px rgba(52,211,153,.3);}50%{box-shadow:0 0 14px var(--green),0 0 28px rgba(52,211,153,.55);}}
+/* Card image area */
+.card-img{position:relative;width:100%;height:158px;flex-shrink:0;overflow:hidden;background:linear-gradient(145deg,rgba(13,21,38,.98),rgba(8,14,26,.98));border-bottom:1px solid rgba(94,234,212,.08);}
+.lab-card:hover .card-img-inner{transform:scale(1.08);}
+.card-img-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:transform .5s cubic-bezier(.2,.8,.3,1);}
+.card-img::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 40%,var(--card-glow,rgba(94,234,212,.05)),transparent 70%);pointer-events:none;}
+.card-img-icon{width:64px;height:64px;border-radius:16px;border:1px solid var(--card-border,rgba(94,234,212,.18));background:var(--card-icon-bg,rgba(94,234,212,.05));display:flex;align-items:center;justify-content:center;box-shadow:0 0 32px var(--card-glow,rgba(94,234,212,.1));}
+.card-img-label{position:absolute;top:10px;left:10px;font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;padding:3px 9px;border-radius:5px;background:rgba(6,10,19,.75);backdrop-filter:blur(8px);border:1px solid var(--card-border,rgba(94,234,212,.18));color:var(--card-color,var(--cyan));}
+.card-img-badge{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:6.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:100px;background:rgba(6,10,19,.8);backdrop-filter:blur(8px);}
+.card-img-badge.ready{color:var(--green);border:1px solid rgba(52,211,153,.25);}
+.card-img-badge.beta{color:var(--amber);border:1px solid rgba(245,158,11,.25);}
+.card-img-badge.coming{color:var(--muted2);border:1px solid rgba(74,90,122,.2);}
+.card-img-badge-dot{width:4px;height:4px;border-radius:50%;background:currentColor;animation:blink 2s infinite;}
+.lock-overlay{position:absolute;inset:0;background:rgba(4,7,14,.5);display:flex;align-items:center;justify-content:center;font-size:28px;}
+.fav-star{position:absolute;bottom:10px;right:10px;font-size:13px;z-index:5;opacity:.7;transition:opacity .2s;}
+.lab-card.favorited .fav-star{opacity:1;}
 
-/* ══════════════════════════════════════
-   REGULAR EXPERIMENT CARDS GRID
-══════════════════════════════════════ */
-.exp-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-  gap:14px;
-}
+/* Circuit preview inside card image */
+.circuit-svg{width:90%;height:90%;opacity:.9;}
 
-.exp-card{
-  position:relative;overflow:hidden;cursor:pointer;
-  border-radius:11px;
-  border:1px solid rgba(94,234,212,.1);
-  background:rgba(10,17,32,.85);
-  padding:20px 20px 18px;
-  transition:transform .3s cubic-bezier(.2,.8,.3,1),box-shadow .3s,border-color .3s;
-}
-.exp-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(94,234,212,.14) 40%,transparent);
-  opacity:0;transition:opacity .3s;
-}
-.exp-card:hover{
-  transform:translateY(-4px);
-  border-color:rgba(94,234,212,.22);
-  box-shadow:0 12px 32px rgba(0,0,0,.5),0 0 24px rgba(94,234,212,.05);
-}
-.exp-card:hover::before{opacity:1;}
+/* Card body */
+.card-body{padding:14px 16px 16px;display:flex;flex-direction:column;flex:1;}
+.card-num-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.card-num-tag{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--card-color,var(--cyan));}
+.card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;letter-spacing:-.02em;color:var(--ink);margin-bottom:10px;line-height:1.3;}
+.card-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:auto;}
+.card-meta-chip{font-family:'JetBrains Mono',monospace;font-size:6.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:5px;background:var(--panel);border:1px solid rgba(74,90,122,.18);color:var(--muted2);}
+.card-meta-chip.diff-b{color:var(--green);border-color:rgba(52,211,153,.22);background:rgba(52,211,153,.04);}
+.card-meta-chip.diff-i{color:var(--amber);border-color:rgba(245,158,11,.22);background:rgba(245,158,11,.04);}
+.card-meta-chip.diff-a{color:var(--red);border-color:rgba(248,113,113,.22);background:rgba(248,113,113,.04);}
+.card-diff-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;}
+.diff-dot-b{background:var(--green);box-shadow:0 0 5px var(--green);}
+.diff-dot-i{background:var(--amber);box-shadow:0 0 5px var(--amber);}
+.diff-dot-a{background:var(--red);box-shadow:0 0 5px var(--red);}
+.card-open-btn{margin-left:auto;width:28px;height:28px;border-radius:7px;border:1px solid rgba(94,234,212,.14);display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .2s;}
+.lab-card:hover .card-open-btn{background:rgba(94,234,212,.08);border-color:rgba(94,234,212,.35);transform:translateX(2px);}
+.done-check{font-size:11px;color:var(--green);}
 
-.exp-card.locked{opacity:.55;}
-.exp-card.locked:hover{transform:none;box-shadow:none;border-color:rgba(94,234,212,.1);}
+/* card color themes */
+.theme-gpio{--card-color:var(--green);--card-glow:rgba(52,211,153,.08);--card-border:rgba(52,211,153,.2);--card-icon-bg:rgba(52,211,153,.06);}
+.theme-sensor{--card-color:var(--cyan2);--card-glow:rgba(56,189,248,.08);--card-border:rgba(56,189,248,.2);--card-icon-bg:rgba(56,189,248,.06);}
+.theme-actuator{--card-color:var(--purple);--card-glow:rgba(129,140,248,.08);--card-border:rgba(129,140,248,.2);--card-icon-bg:rgba(129,140,248,.06);}
+.theme-system{--card-color:var(--amber);--card-glow:rgba(245,158,11,.08);--card-border:rgba(245,158,11,.2);--card-icon-bg:rgba(245,158,11,.06);}
+.theme-playground{--card-color:var(--cyan2);--card-glow:rgba(59,130,246,.1);--card-border:rgba(59,130,246,.22);--card-icon-bg:rgba(59,130,246,.07);}
 
-.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
-.card-num{
-  font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;
-  letter-spacing:.2em;text-transform:uppercase;
-  color:var(--muted2);
-}
-.card-status-badge{
-  display:flex;align-items:center;gap:5px;
-  font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;
-  letter-spacing:.12em;text-transform:uppercase;
-  padding:2px 8px;border-radius:100px;
-}
-.card-status-badge.coming{color:var(--muted2);background:rgba(74,90,122,.1);border:1px solid rgba(74,90,122,.2);}
-.card-status-badge.beta{color:#F59E0B;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);}
-.card-status-badge.locked{color:var(--muted2);background:rgba(74,90,122,.08);border:1px solid rgba(74,90,122,.15);}
-.card-status-badge-dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.6;}
+/* ── TABLE VIEW ── */
+.table-wrap{display:none;overflow-x:auto;margin-bottom:28px;}
+.table-wrap.show{display:block;}
+.lab-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.lab-table th{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);padding:10px 14px;border-bottom:1px solid var(--panel-border);text-align:left;background:var(--panel-soft);}
+.lab-table td{padding:12px 14px;border-bottom:1px solid rgba(94,234,212,.06);color:var(--ink);vertical-align:middle;}
+.lab-table tr:hover td{background:rgba(94,234,212,.03);}
+.tbl-num{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.14em;color:var(--muted2);}
+.tbl-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;}
+.tbl-cat{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:5px;background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.16);color:var(--cyan2);}
+.tbl-btn{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:6px;cursor:pointer;border:1px solid rgba(94,234,212,.22);background:rgba(94,234,212,.05);color:var(--cyan);transition:all .2s;}
+.tbl-btn:hover{background:rgba(94,234,212,.12);border-color:rgba(94,234,212,.4);}
 
-.card-icon{
-  width:42px;height:42px;border-radius:8px;
-  background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.18);
-  display:flex;align-items:center;justify-content:center;margin-bottom:12px;
+/* ── RECOMMENDATION BANNER ── */
+.recommend-strip{
+  display:none;margin:18px 0;
+  padding:14px 18px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(129,140,248,.06),rgba(56,189,248,.04));
+  border:1px solid rgba(129,140,248,.18);
+  align-items:center;gap:14px;
 }
-.card-icon svg{opacity:.75;}
-.card-title{
-  font-family:'Space Grotesk',sans-serif;font-weight:700;
-  font-size:14px;letter-spacing:-.02em;color:var(--ink);
-  margin-bottom:5px;line-height:1.3;
-}
-.card-desc{font-size:11.5px;color:var(--muted);line-height:1.55;margin-bottom:14px;}
+.recommend-strip.show{display:flex;}
+.recommend-icon{font-size:20px;}
+.recommend-text{}
+.recommend-label{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--purple);margin-bottom:3px;}
+.recommend-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--ink);}
+.recommend-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.recommend-btn{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:7px 14px;border-radius:7px;cursor:pointer;border:1px solid rgba(129,140,248,.3);background:rgba(129,140,248,.07);color:var(--purple);transition:all .2s;white-space:nowrap;}
+.recommend-btn:hover{background:rgba(129,140,248,.14);transform:translateY(-1px);}
 
-.card-footer{display:flex;align-items:center;justify-content:space-between;}
-.card-tags{display:flex;gap:5px;flex-wrap:wrap;}
-.card-tag{
-  font-family:'JetBrains Mono',monospace;font-size:6.5px;font-weight:500;
-  letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);
-  background:rgba(10,17,32,.8);border:1px solid rgba(74,90,122,.18);
-  border-radius:4px;padding:2px 6px;
+/* ── NO RESULTS ── */
+.no-results{display:none;text-align:center;padding:60px 24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2);letter-spacing:.1em;}
+.no-results.show{display:block;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(4,7,14,.7);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{position:relative;background:var(--panel-solid);border:1px solid rgba(94,234,212,.18);border-radius:20px;max-width:620px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 0 0 1px rgba(56,189,248,.06),0 0 80px rgba(56,189,248,.12),0 40px 100px var(--shadow-col);transform:translateY(16px);transition:transform .35s cubic-bezier(.2,.8,.3,1);}
+.modal-overlay.open .modal-box{transform:translateY(0);}
+.modal-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;border-radius:20px 20px 0 0;background:linear-gradient(90deg,transparent,rgba(94,234,212,.5) 30%,rgba(56,189,248,.4) 70%,transparent);}
+.modal-header{padding:26px 26px 18px;border-bottom:1px solid rgba(94,234,212,.09);}
+.modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;border:1px solid var(--panel-border);background:var(--panel);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;color:var(--muted);}
+.modal-close:hover{border-color:rgba(94,234,212,.35);color:var(--cyan);}
+.modal-lab-num{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan2);margin-bottom:7px;}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.03em;color:var(--ink);line-height:1.15;margin-bottom:12px;}
+.modal-badges{display:flex;gap:8px;flex-wrap:wrap;}
+.modal-badge{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:7px;}
+.modal-badge.diff-b{color:var(--green);background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.25);}
+.modal-badge.diff-i{color:var(--amber);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);}
+.modal-badge.diff-a{color:var(--red);background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.25);}
+.modal-badge.time{color:var(--cyan2);background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.2);}
+.modal-badge.cat{color:var(--muted);background:rgba(74,90,122,.08);border:1px solid rgba(74,90,122,.2);}
+.modal-body{padding:0 26px 20px;}
+.modal-section{margin-top:20px;}
+.modal-section-title{font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted2);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.modal-section-title::after{content:'';flex:1;height:1px;background:rgba(94,234,212,.07);}
+.modal-obj{font-size:13px;color:var(--hover-text);line-height:1.7;}
+.modal-chips{display:flex;gap:7px;flex-wrap:wrap;}
+.modal-chip{font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:500;letter-spacing:.06em;padding:5px 11px;border-radius:7px;background:var(--panel-strong);border:1px solid var(--panel-border);color:var(--muted);}
+.modal-footer{padding:18px 26px;display:flex;gap:10px;align-items:center;border-top:1px solid rgba(94,234,212,.09);}
+.btn-yt{display:flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;border:1.5px solid rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:#F87171;border-radius:9px;padding:9px 16px;cursor:pointer;transition:all .22s;text-decoration:none;}
+.btn-yt:hover{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.5);transform:translateY(-2px);}
+.btn-launch{display:flex;align-items:center;gap:7px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(16,185,129,.1));border:1.5px solid rgba(52,211,153,.4);color:var(--green);border-radius:9px;padding:9px 22px;cursor:pointer;transition:all .22s;flex:1;justify-content:center;}
+.btn-launch:hover{background:linear-gradient(135deg,rgba(52,211,153,.28),rgba(16,185,129,.18));box-shadow:0 8px 28px rgba(52,211,153,.2);transform:translateY(-2px);}
+.btn-launch .arr{display:inline-block;transition:transform .2s;}
+.btn-launch:hover .arr{transform:translateX(3px);}
+
+/* ── COMPLETION TOAST ── */
+.toast{
+  position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(20px);
+  z-index:800;pointer-events:none;opacity:0;
+  background:var(--panel-solid);border:1px solid rgba(52,211,153,.35);
+  border-radius:14px;padding:14px 24px;
+  text-align:center;
+  box-shadow:0 0 40px rgba(52,211,153,.12),0 20px 50px var(--shadow-col);
+  transition:opacity .4s,transform .4s cubic-bezier(.2,.8,.3,1);
+  min-width:220px;
 }
-.card-arrow{
-  width:26px;height:26px;border-radius:6px;
-  border:1px solid rgba(94,234,212,.14);
-  display:flex;align-items:center;justify-content:center;
-  transition:background .2s,border-color .2s;
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast-icon{font-size:28px;margin-bottom:4px;}
+.toast-msg{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--green);margin-bottom:3px;}
+.toast-xp{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.12em;color:var(--amber);}
+
+/* confetti canvas */
+#confettiCanvas{position:fixed;inset:0;z-index:700;pointer-events:none;}
+
+/* ── FLOATING ESP32 ── */
+.esp32-float{
+  position:fixed;bottom:80px;right:28px;z-index:150;
+  width:60px;height:60px;
+  animation:float3d 4s ease-in-out infinite;
+  cursor:pointer;
+  filter:drop-shadow(0 0 14px rgba(94,234,212,.25));
+  transition:filter .3s;
 }
-.exp-card:not(.locked):hover .card-arrow{background:rgba(94,234,212,.07);border-color:rgba(94,234,212,.28);}
-.card-lock{width:26px;height:26px;display:flex;align-items:center;justify-content:center;opacity:.28;}
+.esp32-float:hover{filter:drop-shadow(0 0 22px rgba(94,234,212,.5));}
+@keyframes float3d{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
+
+/* ── LIVE CONSOLE ── */
+.console-panel{
+  position:fixed;bottom:42px;left:24px;z-index:150;
+  width:240px;
+  background:var(--panel-deep);backdrop-filter:blur(10px);
+  border:1px solid var(--panel-border);border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 8px 30px var(--shadow-col);
+}
+.console-header{display:flex;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid rgba(94,234,212,.07);cursor:pointer;user-select:none;}
+.console-dots{display:flex;gap:3px;}
+.console-dot{width:6px;height:6px;border-radius:50%;}
+.console-title{font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-left:2px;opacity:.7;}
+.console-toggle{margin-left:auto;font-size:9px;color:var(--muted2);transition:transform .2s;}
+.console-body{height:90px;overflow:hidden;padding:8px 12px;transition:height .3s;}
+.console-body.collapsed{height:0;padding:0;}
+.console-line{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted2);line-height:1.8;display:flex;gap:6px;}
+.console-line.ok{color:var(--green);}
+.console-line.cyan{color:var(--cyan2);}
+.console-line .console-pfx{color:rgba(94,234,212,.3);}
 
 /* ── BOTTOM STATUS BAR ── */
-.bot-bar{
-  position:fixed;bottom:0;left:0;right:0;z-index:100;
-  background:rgba(6,10,19,.94);backdrop-filter:blur(10px);
-  border-top:1px solid rgba(94,234,212,.07);
-  padding:6px 24px;
-  display:flex;align-items:center;justify-content:space-between;
-  font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:500;
-  letter-spacing:.06em;
-}
-.bot-left,.bot-right{display:flex;align-items:center;gap:8px;color:rgba(234,241,255,.32);}
+.bot-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--panel-deep);backdrop-filter:blur(10px);border-top:1px solid rgba(94,234,212,.07);padding:5px 24px;display:flex;align-items:center;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:500;letter-spacing:.06em;}
+.bot-left{display:flex;align-items:center;gap:8px;color:var(--muted2);opacity:.85;}
 .bot-dot{width:4px;height:4px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite;}
+.bot-center{color:var(--muted2);opacity:.7;font-size:6.5px;display:flex;gap:18px;}
 .bot-val{color:var(--cyan2);}
-.bot-center{color:rgba(234,241,255,.16);font-size:6.5px;display:flex;gap:18px;}
-.bot-cursor{display:inline-block;width:4px;height:8px;background:var(--cyan2);animation:blink 1s steps(1) infinite;margin-left:2px;vertical-align:middle;}
-
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
-
-/* Stagger load-in */
-.exp-hero-wrap{animation:fadeIn .6s ease forwards;animation-delay:.1s;opacity:0;}
-.exp-grid .exp-card:nth-child(1){animation:fadeIn .5s ease forwards .22s;opacity:0;}
-.exp-grid .exp-card:nth-child(2){animation:fadeIn .5s ease forwards .32s;opacity:0;}
-.exp-grid .exp-card:nth-child(3){animation:fadeIn .5s ease forwards .42s;opacity:0;}
-.exp-grid .exp-card:nth-child(4){animation:fadeIn .5s ease forwards .52s;opacity:0;}
-.exp-grid .exp-card:nth-child(5){animation:fadeIn .5s ease forwards .62s;opacity:0;}
-.exp-grid .exp-card:nth-child(6){animation:fadeIn .5s ease forwards .72s;opacity:0;}
-.exp-grid .exp-card:nth-child(7){animation:fadeIn .5s ease forwards .82s;opacity:0;}
-.exp-grid .exp-card:nth-child(8){animation:fadeIn .5s ease forwards .92s;opacity:0;}
-.exp-grid .exp-card:nth-child(9){animation:fadeIn .5s ease forwards 1.02s;opacity:0;}
-.exp-grid .exp-card:nth-child(10){animation:fadeIn .5s ease forwards 1.12s;opacity:0;}
-.exp-grid .exp-card:nth-child(11){animation:fadeIn .5s ease forwards 1.22s;opacity:0;}
-
-@media(max-width:768px){
-  .nav{padding:0 16px;}
-  .page{padding:24px 16px 70px;}
-  .exp-hero{grid-template-columns:1fr;padding:24px 20px 22px;}
-  .hero-right{display:none;}
-  .hero-title{font-size:22px;}
-  .btn-launch-hero{margin-left:0;}
-  .page-header{flex-direction:column;align-items:flex-start;}
-  .exp-grid{grid-template-columns:1fr 1fr;}
-}
-@media(max-width:480px){
-  .exp-grid{grid-template-columns:1fr;}
-}
-
-/* ── LIGHT MODE ── */
-body.light{
-  --bg:#F0F4FF;--bg2:#E6EDFA;--bg3:#DCE6F8;
-  --blue:#2563EB;--blue-deep:#1D4ED8;
-  --cyan:#0891B2;--cyan2:#0284C7;
-  --ink:#0F172A;--muted:#4A5A7A;--muted2:#6B7DA0;
-  --border:rgba(8,145,178,0.14);--border-blue:rgba(37,99,235,0.22);
-  --green:#059669;--green2:#047857;
-}
-body.light .nav{background:rgba(240,244,255,.94);}
-body.light .bg-grid{opacity:.04;}
-body.light .exp-hero{background:linear-gradient(145deg,rgba(220,230,248,.98) 0%,rgba(210,224,245,.98) 100%);}
-body.light .exp-card{background:rgba(230,237,250,.9);border-color:rgba(8,145,178,.12);}
-body.light .live-preview{background:rgba(220,230,248,.98);}
-body.light .bot-bar{background:rgba(240,244,255,.96);}
-body.light .hdr-badge{background:rgba(220,230,248,.9);}
-body.light .page-sub{color:var(--muted);}
+.bot-right{display:flex;align-items:center;gap:8px;color:var(--muted2);opacity:.85;}
+.bot-cursor{display:inline-block;width:5px;height:1px;background:var(--cyan2);margin-left:3px;animation:blink .8s step-end infinite;vertical-align:middle;}
 
 /* ── THEME TOGGLE ── */
-.theme-toggle{
-  position:fixed;top:14px;right:16px;z-index:200;
-  width:36px;height:36px;border-radius:50%;
-  background:rgba(10,17,32,.85);backdrop-filter:blur(10px);
-  border:1px solid rgba(94,234,212,.22);
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:transform .2s,background .3s,border-color .3s;
-}
+.theme-toggle{position:fixed;top:14px;right:16px;z-index:200;width:36px;height:36px;border-radius:50%;background:rgba(10,17,32,.85);backdrop-filter:blur(10px);border:1px solid rgba(94,234,212,.22);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s,background .3s;}
 .theme-toggle:hover{transform:scale(1.1);}
-body.light .theme-toggle{background:rgba(240,244,255,.9);border-color:rgba(8,145,178,.3);}
+body.light .theme-toggle{background:rgba(240,244,255,.9);}
 .icon-moon{display:block;}
 .icon-sun{display:none;}
 body.light .icon-moon{display:none;}
 body.light .icon-sun{display:block;}
 
+/* ── LIGHT MODE ──
+   Swapping the --panel-* tokens (instead of patching individual components)
+   is what keeps light mode even: every card, strip, dropdown, modal and
+   the console/footer bars all pull from the same surface variables. */
+body.light{
+  --bg:#F2F5FC;--bg2:#E7EDF8;--bg3:#DCE5F4;
+  --ink:#10182B;--muted:#51607E;--muted2:#7387A8;
+  --cyan:#0E7C8C;--cyan2:#0A77B5;--green:#0E8F62;--green2:#0B7A53;
+  --amber:#B6790A;--purple:#5B5FCB;--red:#C2453F;
+  --border:rgba(14,40,60,.14);
+  --panel:rgba(255,255,255,.82);
+  --panel-soft:rgba(255,255,255,.65);
+  --panel-strong:rgba(255,255,255,.92);
+  --panel-solid:rgba(255,255,255,.97);
+  --panel-deep:rgba(255,255,255,.92);
+  --panel-border:rgba(14,40,60,.12);
+  --hover-text:rgba(16,24,43,.72);
+  --shadow-col:rgba(30,50,90,.16);
+  background:var(--bg);
+}
+body.light .bg-atmos{background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(10,119,181,.08) 0%,transparent 65%);}
+body.light .theme-toggle{background:rgba(255,255,255,.92);border-color:rgba(14,40,60,.18);}
+body.light .nav-pill{background:rgba(10,119,181,.08);border-color:rgba(10,119,181,.2);}
+body.light .nav-back{border-color:rgba(14,40,60,.16);}
+body.light .nav-xp{background:rgba(182,121,10,.08);border-color:rgba(182,121,10,.22);}
+body.light .badge-item{background:rgba(91,95,203,.07);border-color:rgba(91,95,203,.22);}
+body.light .card-meta-chip.diff-b{background:rgba(14,143,98,.06);}
+body.light .card-meta-chip.diff-i{background:rgba(182,121,10,.06);}
+body.light .card-meta-chip.diff-a{background:rgba(194,69,63,.06);}
+body.light .modal-badge.diff-b{background:rgba(14,143,98,.07);}
+body.light .modal-badge.diff-i{background:rgba(182,121,10,.07);}
+body.light .modal-badge.diff-a{background:rgba(194,69,63,.07);}
+body.light .modal-badge.time{background:rgba(10,119,181,.06);}
+body.light .modal-badge.cat{background:rgba(81,96,126,.08);}
+body.light .lab-card.favorited{border-color:rgba(182,121,10,.3);}
+body.light .recommend-strip{background:linear-gradient(135deg,rgba(91,95,203,.07),rgba(10,119,181,.05));border-color:rgba(91,95,203,.22);}
+body.light .continue-banner{background:linear-gradient(135deg,rgba(10,119,181,.07),rgba(14,124,140,.05));border-color:rgba(10,119,181,.25);}
+body.light .lab-table tr:hover td{background:rgba(14,40,60,.03);}
+body.light .lab-table td{border-bottom:1px solid rgba(14,40,60,.07);}
+body.light .tbl-cat{background:rgba(10,119,181,.06);border-color:rgba(10,119,181,.18);}
+body.light .console-dot{opacity:.8;}
+body.light .esp32-float{filter:drop-shadow(0 0 10px rgba(14,40,60,.18));}
+
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px){.progress-bar-wrap{grid-template-columns:1fr 1fr;}.xp-row{grid-template-columns:1fr;}.sidebar-row{grid-template-columns:1fr;}}
+@media(max-width:768px){.nav{padding:0 16px;}.page{padding:24px 16px 90px;}.card-grid{grid-template-columns:1fr 1fr;}.progress-bar-wrap{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:flex-start;}.view-toggle{margin-left:0;}.page-header{flex-direction:column;}.esp32-float{display:none;}.console-panel{display:none;}}
+@media(max-width:480px){.card-grid{grid-template-columns:1fr;}}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(94,234,212,.12);border-radius:100px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(94,234,212,.22);}
 </style>
 </head>
 <body>
 
-<div class="bg-grid"></div>
+<!-- Custom cursor -->
+<div class="cur-dot" id="curDot"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="cur-label" id="curLabel"></div>
+
+<!-- Interactive background canvas -->
+<canvas id="bgCanvas"></canvas>
+<div class="bg-atmos"></div>
+
+<!-- Theme toggle -->
 <button class="theme-toggle" id="themeToggle" title="Toggle theme">
   <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
 </button>
-<div class="bg-atmos"></div>
 
 <!-- NAV -->
 <nav class="nav">
@@ -405,7 +523,8 @@ body.light .icon-sun{display:block;}
   </div>
   <div class="nav-right">
     <div class="nav-stat"><div class="nav-stat-dot"></div>Engine&nbsp;<span class="nav-stat-val">Online</span></div>
-    <div class="nav-stat">Latency&nbsp;<span class="nav-stat-val" id="navLat">12ms</span></div>
+    <div class="nav-stat">ESP32&nbsp;<span class="nav-stat-val">Platform</span></div>
+    <div class="nav-xp" id="navXp">⚡ 0 XP · Lv.1</div>
     <a href="index.html" class="nav-back">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Home
@@ -416,466 +535,882 @@ body.light .icon-sun{display:block;}
 <!-- PAGE -->
 <main class="page">
 
-  <!-- Header -->
+  <!-- CONTINUE LEARNING -->
+  <div class="continue-banner" id="continueBanner">
+    <div class="continue-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"><polygon points="5,3 19,12 5,21"/></svg>
+    </div>
+    <div class="continue-text">
+      <div class="continue-label">Continue Learning</div>
+      <div class="continue-title" id="continueTitle">Lab 04 — Automatic Light Detection</div>
+      <div class="continue-sub" id="continueSub">Last opened · Resume where you left off</div>
+    </div>
+    <button class="continue-btn" id="continueBtn">Resume <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+    <button class="continue-dismiss" id="continueDismiss">×</button>
+  </div>
+
+  <!-- HEADER -->
   <div class="page-header">
-    <div class="page-header-left">
+    <div>
       <div class="page-eyebrow"><div class="page-eyebrow-dot"></div>Virtual IoT Laboratory</div>
-      <h1 class="page-title">Experiments & Playground</h1>
-      <p class="page-sub">
-Explore experiments and real-world IoT simulations through an interactive virtual laboratory.
-</p>
-    </div>
-    <div class="page-header-right">
-      <div class="hdr-badge">Components&nbsp;<span>52</span></div>
-      <div class="hdr-badge">Boards&nbsp;<span>8</span></div>
-      <div class="hdr-badge">Experiments&nbsp;<span>12</span></div>
+      <h1 class="page-title">Labs &amp; Playground</h1>
+      <p class="page-sub">Explore ESP32 experiments and real-world IoT simulations through an interactive virtual laboratory.</p>
     </div>
   </div>
 
-  <!-- ══ EXPERIMENT 01 HERO ══ -->
-  <div class="exp-hero-wrap">
-    <div class="exp-hero" id="heroCard" data-label="LAUNCH">
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-chip"><div><div class="stat-chip-val">10</div><div class="stat-chip-label">Labs</div></div></div>
+    <div class="stat-chip"><div><div class="stat-chip-val">6</div><div class="stat-chip-label">Simulations</div></div></div>
+    <div class="stat-chip"><div><div class="stat-chip-val">50+</div><div class="stat-chip-label">Components</div></div></div>
+    <div class="stat-chip"><div><div class="stat-chip-val">8</div><div class="stat-chip-label">Boards</div></div></div>
+    <div class="stat-chip"><div><div class="stat-chip-val">10</div><div class="stat-chip-label">Concepts</div></div></div>
+    <div class="stat-chip"><div><div class="stat-chip-val">100%</div><div class="stat-chip-label">Browser Based</div></div></div>
+  </div>
 
-      <div class="hero-glow"></div>
-
-      <div class="hero-left">
-        <div class="hero-meta">
-          <span class="hero-num">Experiment 01</span>
-          <span class="hero-category">Input / Output</span>
-        </div>
-
-        <h2 class="hero-title">Input&nbsp;Output<br><em>Simulator</em></h2>
-        <p class="hero-desc">Control a digital output (LED) using a digital input (push-button switch) on an Arduino UNO. Observe real-time GPIO state changes, serial monitor output, and circuit behavior.</p>
-
-        <div class="hero-status">
-          <div class="status-ring"><div class="status-ring-inner"></div></div>
-          Status:&nbsp;Ready&nbsp;Demo
-        </div>
-
-        <div class="hero-footer">
-          <span class="hero-tag">Arduino UNO</span>
-          <span class="hero-tag blue">GPIO</span>
-          <span class="hero-tag blue">Digital I/O</span>
-          <span class="hero-tag">LED</span>
-          <button class="btn-launch-hero" data-label="LAUNCH" onclick="window.location.href='./exp/exp1.html'">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-            Open Simulator
-            <span class="arr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Live preview panel -->
-      <div class="hero-right">
-        <div class="live-preview">
-          <div class="lp-header">
-            <div class="lp-dots">
-              <div class="lp-dot" style="background:#FF5F56;"></div>
-              <div class="lp-dot" style="background:#FFBD2E;"></div>
-              <div class="lp-dot" style="background:#27C93F;"></div>
-            </div>
-            <span class="lp-title">Live Preview</span>
-          </div>
-          <div class="lp-row"><span class="lp-key">Device </span><span class="lp-val cyan">Arduino UNO</span></div>
-          <div class="lp-row"><span class="lp-key">Button </span><span class="lp-val" id="lpBtn">PRESSED</span></div>
-          <div class="lp-row"><span class="lp-key">GPIO13 </span><span class="lp-val" id="lpGpio">HIGH</span></div>
-          <div class="lp-sep"></div>
-          <div class="lp-row"><span class="lp-key">LED </span><span><span class="lp-led" id="lpLed"></span><span class="lp-val" id="lpLedState">ON</span></span></div>
-          <div class="lp-row"><span class="lp-key">Voltage</span><span class="lp-val cyan" id="lpVolt">5.0V</span></div>
-        </div>
-      </div>
-
+  <!-- PROGRESS -->
+  <div class="progress-bar-wrap">
+    <div class="progress-card">
+      <div class="progress-card-label">Labs Completed</div>
+      <div class="progress-card-val" id="labsCompVal">0 / 10</div>
+      <div class="progress-track"><div class="progress-fill green" id="labsFill"></div></div>
+    </div>
+    <div class="progress-card">
+      <div class="progress-card-label">Playground Completed</div>
+      <div class="progress-card-val" id="playCompVal">0 / 6</div>
+      <div class="progress-track"><div class="progress-fill" id="playFill"></div></div>
+    </div>
+    <div class="progress-card">
+      <div class="progress-card-label">Overall Progress</div>
+      <div class="progress-card-val" id="overallVal">0%</div>
+      <div class="progress-track"><div class="progress-fill purple" id="overallFill"></div></div>
     </div>
   </div>
 
-  <!-- ══ ARCIO PLAYGROUND HERO ══ -->
-<div class="exp-hero-wrap">
-  <div class="exp-hero" style="
-      border:1.5px solid rgba(59,130,246,.36);
-      box-shadow:
-      0 0 0 1px rgba(59,130,246,.08),
-      0 0 48px rgba(59,130,246,.10),
-      0 0 100px rgba(59,130,246,.04),
-      0 24px 60px rgba(0,0,0,.6);
-  ">
-
-    <div class="hero-glow" style="
-      background:radial-gradient(circle,
-      rgba(59,130,246,.07) 0%,
-      rgba(29,78,216,.03) 40%,
-      transparent 70%);
-    "></div>
-
-    <div class="hero-left">
-
-      <div class="hero-meta">
-        <span class="hero-num" style="
-          color:var(--cyan2);
-          border-color:rgba(56,189,248,.28);
-          background:rgba(56,189,248,.06);
-        ">
-          ARCIO PLAYGROUND
-        </span>
-
-        <span class="hero-category">
-          Interactive Simulations
-        </span>
-      </div>
-
-      <h2 class="hero-title">
-        Explore IoT<br>
-        <em>In Action</em>
-      </h2>
-
-      <p class="hero-desc">
-        Experience real-world IoT applications through interactive simulations.
-        Explore smart security systems, automated doors, smart parking,
-        intelligent irrigation, street lighting automation and fire safety systems.
-      </p>
-
-      <div class="hero-status" style="
-        color:var(--cyan2);
-        border-color:rgba(56,189,248,.3);
-        background:rgba(56,189,248,.06);
-      ">
-        <div class="status-ring">
-          <div class="status-ring-inner"
-               style="background:var(--cyan2);">
-          </div>
+  <!-- XP + BADGES -->
+  <div class="xp-row">
+    <div class="xp-card">
+      <div class="xp-top">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">XP &amp; Level</div>
+          <div class="xp-level" id="xpLevelLabel">Level 1 · ESP32 Newcomer</div>
         </div>
-
-        Status:&nbsp;6&nbsp;Simulations&nbsp;Available
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted2);" id="xpSubLabel">0 / 50 XP to next level</div>
       </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill"></div></div>
+        <div class="xp-pts" id="xpPts">0 XP</div>
+      </div>
+    </div>
+    <div class="badges-card">
+      <div class="badges-title">Achievement Badges</div>
+      <div class="badges-list" id="badgesList">
+        <div class="badge-item locked" data-badge="first">🏅 First Lab</div>
+        <div class="badge-item locked" data-badge="gpio">⚡ GPIO Expert</div>
+        <div class="badge-item locked" data-badge="sensor">🌡️ Sensor Master</div>
+        <div class="badge-item locked" data-badge="actuator">⚙️ Actuator Pro</div>
+        <div class="badge-item locked" data-badge="engineer">🔧 Automation Engineer</div>
+        <div class="badge-item locked" data-badge="all10">🎓 Lab Graduate</div>
+      </div>
+    </div>
+  </div>
 
-      <div class="hero-footer">
-        <span class="hero-tag">Security</span>
-        <span class="hero-tag blue">Automation</span>
-        <span class="hero-tag blue">Smart Cities</span>
-        <span class="hero-tag">IoT</span>
+  <!-- LEARNING PATH -->
+  <div class="path-wrap">
+    <div class="path-title">Learning Path</div>
+    <div class="path-track" id="pathTrack">
+      <!-- generated by JS -->
+    </div>
+  </div>
 
-        <button
-          class="btn-launch-hero"
-          onclick="window.location.href='./playground/playground.html'"
-          style="
-            border-color:rgba(56,189,248,.35);
-            color:var(--cyan2);
-            background:rgba(56,189,248,.08);
-          "
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5,3 19,12 5,21"/>
+  <!-- RECENT + FAVORITES -->
+  <div class="sidebar-row">
+    <div class="mini-panel">
+      <div class="mini-panel-title">🕐 Recent Activity</div>
+      <div id="recentList"><div class="mini-empty">No labs opened yet</div></div>
+    </div>
+    <div class="mini-panel">
+      <div class="mini-panel-title">⭐ Favourite Labs</div>
+      <div id="favList"><div class="mini-empty">Star a lab to save it here</div></div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7DA0" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="🔍 Search Labs..." autocomplete="off">
+      <div class="search-suggestions" id="searchSuggestions"></div>
+    </div>
+    <div class="filter-tabs" id="filterTabs">
+      <div class="filter-tab active" data-filter="all">All</div>
+      <div class="filter-tab" data-filter="GPIO">GPIO</div>
+      <div class="filter-tab" data-filter="Sensors">Sensors</div>
+      <div class="filter-tab" data-filter="Actuators">Actuators</div>
+      <div class="filter-tab" data-filter="Automation">Automation</div>
+      <div class="filter-tab" data-filter="Smart Home">Smart Home</div>
+      <div class="filter-tab" data-filter="Playground">Playground</div>
+    </div>
+    <div class="view-toggle">
+      <div class="view-btn active" id="btnGrid" title="Grid View">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </div>
+      <div class="view-btn" id="btnTable" title="Table View">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </div>
+    </div>
+  </div>
+  <div class="no-results" id="noResults">No labs match your search.</div>
+
+  <!-- ══ LABS ══ -->
+
+  <div class="sec-divider lab-section" data-section="GPIO">
+    <span class="sec-divider-label">GPIO Fundamentals</span>
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-count">3 Labs</span>
+  </div>
+  <div class="card-grid" id="grid-gpio">
+
+    <!-- Lab 01 -->
+    <div class="lab-card theme-gpio" data-num="01" data-category="GPIO" data-title="LED Blinking using ESP32" data-diff="Beginner" data-time="20 Minutes" data-status="ready" data-xp="20"
+      data-obj="Learn to control digital output pins on the ESP32 by blinking an LED using GPIO. Understand setup and loop functions, digital write operations, and timing with delays."
+      data-components="ESP32,Breadboard,LED,220Ω Resistor,Jumper Wires"
+      data-concepts="GPIO Output,Digital Write,HIGH / LOW,Delay Function,Circuit Setup">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <!-- Mini circuit SVG -->
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Breadboard -->
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(52,211,153,.06)" stroke="rgba(52,211,153,.2)" stroke-width="1"/>
+            <line x1="20" y1="75" x2="20" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <line x1="30" y1="75" x2="30" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <line x1="40" y1="75" x2="40" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <line x1="50" y1="75" x2="50" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <line x1="60" y1="75" x2="60" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <line x1="70" y1="75" x2="70" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <line x1="80" y1="75" x2="80" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <line x1="90" y1="75" x2="90" y2="105" stroke="rgba(52,211,153,.15)" stroke-width=".5"/>
+            <!-- ESP32 chip -->
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- LED -->
+            <ellipse cx="120" cy="62" rx="8" ry="10" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.5)" stroke-width="1.2"/>
+            <line x1="120" y1="52" x2="120" y2="40" stroke="rgba(52,211,153,.5)" stroke-width="1.2"/>
+            <line x1="120" y1="72" x2="120" y2="85" stroke="rgba(52,211,153,.3)" stroke-width="1.2"/>
+            <!-- Resistor -->
+            <rect x="140" y="80" width="20" height="8" rx="2" fill="rgba(245,158,11,.1)" stroke="rgba(245,158,11,.4)" stroke-width="1"/>
+            <text x="150" y="87" text-anchor="middle" font-family="JetBrains Mono" font-size="5" fill="rgba(245,158,11,.7)">220Ω</text>
+            <!-- Wires -->
+            <path d="M68 38 Q95 38 112 62" stroke="rgba(52,211,153,.4)" stroke-width="1.2" fill="none"/>
+            <path d="M120 85 L120 90 L150 90 L150 88" stroke="rgba(94,234,212,.3)" stroke-width="1" fill="none"/>
+            <path d="M160 84 L160 90 L170 90 L170 38 L68 38" stroke="rgba(94,234,212,.2)" stroke-width="1" fill="none" stroke-dasharray="3,2"/>
+            <!-- Glow -->
+            <ellipse cx="120" cy="62" rx="12" ry="14" fill="rgba(52,211,153,.06)"/>
           </svg>
-
-          Open Playground
-
-          <span class="arr">
-            <svg width="11" height="11" viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </span>
-        </button>
-
+        </div>
+        <div class="card-img-label">Lab 01</div>
+        <div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div>
+        <span class="fav-star" data-num="01">☆</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">GPIO</span><span class="done-check" id="done-01" style="display:none">✔ Done</span></div>
+        <div class="card-title">LED Blinking using ESP32</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-b"><span class="card-diff-dot diff-dot-b"></span>Beginner</span>
+          <span class="card-meta-chip">20 min</span>
+          <span class="card-meta-chip">+20 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 01 · GPIO</div>
+          <div class="hover-title">LED Blinking using ESP32</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟢</span><span>Beginner</span><span class="hover-fact-label" style="margin-left:auto">20 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+20 XP on complete</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔩</span><span>ESP32 · LED · 220Ω</span></div>
+          </div>
+        </div>
+        <div class="hover-circuit"><svg viewBox="0 0 100 50" width="90" height="45" fill="none"><rect x="2" y="10" width="28" height="18" rx="2" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><text x="16" y="21" text-anchor="middle" font-size="5" fill="rgba(56,189,248,.8)" font-family="monospace">ESP32</text><ellipse cx="65" cy="19" rx="6" ry="7" fill="rgba(52,211,153,.2)" stroke="rgba(52,211,153,.6)" stroke-width=".8"/><path d="M30 19 L59 19" stroke="rgba(52,211,153,.5)" stroke-width=".8"/><rect x="75" y="15" width="14" height="6" rx="1" fill="rgba(245,158,11,.1)" stroke="rgba(245,158,11,.4)" stroke-width=".8"/></svg></div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+          <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+        </div>
       </div>
     </div>
 
-    <div class="hero-right">
-      <div class="live-preview">
-
-        <div class="lp-header">
-          <span class="lp-title">
-            Simulations Available
-          </span>
+    <!-- Lab 02 -->
+    <div class="lab-card theme-gpio" data-num="02" data-category="GPIO" data-title="Push Button Input" data-diff="Beginner" data-time="20 Minutes" data-status="ready" data-xp="20"
+      data-obj="Understand digital input reading on the ESP32. Wire a push button and read its state to control an LED output in real time."
+      data-components="ESP32,Breadboard,Push Button,LED,220Ω Resistor,10kΩ Resistor,Jumper Wires"
+      data-concepts="GPIO Input,Digital Read,Pull-up Resistor,Button Debounce,Conditional Logic">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(52,211,153,.04)" stroke="rgba(52,211,153,.15)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- Push button -->
+            <rect x="95" y="54" width="20" height="20" rx="3" fill="rgba(52,211,153,.08)" stroke="rgba(52,211,153,.4)" stroke-width="1.2"/>
+            <circle cx="105" cy="64" r="5" fill="rgba(52,211,153,.2)" stroke="rgba(52,211,153,.6)" stroke-width="1"/>
+            <!-- LED -->
+            <ellipse cx="148" cy="62" rx="7" ry="9" fill="rgba(52,211,153,.12)" stroke="rgba(52,211,153,.45)" stroke-width="1.2"/>
+            <path d="M68 35 L95 35 L95 64" stroke="rgba(52,211,153,.35)" stroke-width="1.2" fill="none"/>
+            <path d="M115 64 L141 64" stroke="rgba(52,211,153,.35)" stroke-width="1.2" fill="none"/>
+            <text x="105" y="105" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(52,211,153,.4)">10kΩ pull-up</text>
+          </svg>
         </div>
-
-        <div class="lp-row">
-          <span class="lp-key">Security</span>
-          <span class="lp-val cyan">READY</span>
+        <div class="card-img-label">Lab 02</div>
+        <div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div>
+        <span class="fav-star" data-num="02">☆</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">GPIO</span><span class="done-check" id="done-02" style="display:none">✔ Done</span></div>
+        <div class="card-title">Push Button Input</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-b"><span class="card-diff-dot diff-dot-b"></span>Beginner</span>
+          <span class="card-meta-chip">20 min</span>
+          <span class="card-meta-chip">+20 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
         </div>
-
-        <div class="lp-row">
-          <span class="lp-key">Door System</span>
-          <span class="lp-val cyan">READY</span>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 02 · GPIO</div>
+          <div class="hover-title">Push Button Input</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟢</span><span>Beginner</span><span class="hover-fact-label" style="margin-left:auto">20 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+20 XP on complete</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔩</span><span>ESP32 · Button · LED</span></div>
+          </div>
         </div>
-
-        <div class="lp-row">
-          <span class="lp-key">Street Light</span>
-          <span class="lp-val cyan">READY</span>
+        <div class="hover-circuit"><svg viewBox="0 0 100 50" width="90" height="45" fill="none"><rect x="2" y="10" width="28" height="18" rx="2" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><text x="16" y="21" text-anchor="middle" font-size="5" fill="rgba(56,189,248,.8)" font-family="monospace">ESP32</text><rect x="48" y="16" width="14" height="14" rx="2" fill="rgba(52,211,153,.1)" stroke="rgba(52,211,153,.5)" stroke-width=".8"/><circle cx="55" cy="23" r="4" fill="rgba(52,211,153,.2)"/><path d="M30 23 L48 23" stroke="rgba(52,211,153,.5)" stroke-width=".8"/><ellipse cx="82" cy="23" rx="5" ry="6" fill="rgba(52,211,153,.15)" stroke="rgba(52,211,153,.5)" stroke-width=".8"/><path d="M62 23 L77 23" stroke="rgba(52,211,153,.4)" stroke-width=".8"/></svg></div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+          <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
         </div>
-
-        <div class="lp-row">
-          <span class="lp-key">Irrigation</span>
-          <span class="lp-val cyan">READY</span>
-        </div>
-
-        <div class="lp-row">
-          <span class="lp-key">Parking</span>
-          <span class="lp-val cyan">READY</span>
-        </div>
-
-        <div class="lp-row">
-          <span class="lp-key">Fire Safety</span>
-          <span class="lp-val cyan">READY</span>
-        </div>
-
       </div>
     </div>
 
+    <!-- Lab 03 -->
+    <div class="lab-card theme-gpio" data-num="03" data-category="GPIO" data-title="Potentiometer" data-diff="Beginner" data-time="25 Minutes" data-status="beta" data-xp="20"
+      data-obj="Read analog voltage from a potentiometer using the ESP32 ADC. Map the analog value to control LED brightness via PWM output."
+      data-components="ESP32,Breadboard,Potentiometer (10kΩ),LED,220Ω Resistor,Jumper Wires"
+      data-concepts="ADC,Analog Read,PWM,Duty Cycle,analogWrite,Voltage Mapping">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(52,211,153,.04)" stroke="rgba(52,211,153,.14)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- Pot -->
+            <circle cx="110" cy="60" r="14" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.35)" stroke-width="1.2"/>
+            <circle cx="110" cy="60" r="5" fill="rgba(245,158,11,.15)" stroke="rgba(245,158,11,.5)" stroke-width="1"/>
+            <text x="110" y="94" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(245,158,11,.5)">10kΩ Pot</text>
+            <!-- LED -->
+            <ellipse cx="155" cy="50" rx="7" ry="9" fill="rgba(52,211,153,.1)" stroke="rgba(52,211,153,.4)" stroke-width="1.2"/>
+            <path d="M68 35 L94 35 L96 46" stroke="rgba(245,158,11,.35)" stroke-width="1.2" fill="none"/>
+            <path d="M124 55 L148 52" stroke="rgba(52,211,153,.3)" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 03</div>
+        <div class="card-img-badge beta"><span class="card-img-badge-dot"></span>Beta</div>
+        <span class="fav-star" data-num="03">☆</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">GPIO</span><span class="done-check" id="done-03" style="display:none">✔ Done</span></div>
+        <div class="card-title">Potentiometer</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-b"><span class="card-diff-dot diff-dot-b"></span>Beginner</span>
+          <span class="card-meta-chip">25 min</span>
+          <span class="card-meta-chip">+20 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 03 · GPIO</div>
+          <div class="hover-title">Potentiometer</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟢</span><span>Beginner</span><span class="hover-fact-label" style="margin-left:auto">25 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+20 XP on complete</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔩</span><span>ESP32 · 10kΩ Pot · LED</span></div>
+          </div>
+        </div>
+        <div class="hover-circuit"><svg viewBox="0 0 100 50" width="90" height="45" fill="none"><rect x="2" y="12" width="26" height="16" rx="2" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><text x="15" y="22" text-anchor="middle" font-size="5" fill="rgba(56,189,248,.8)" font-family="monospace">ESP32</text><circle cx="60" cy="20" r="10" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.4)" stroke-width=".8"/><circle cx="60" cy="20" r="4" fill="rgba(245,158,11,.2)"/><path d="M28 20 L50 20" stroke="rgba(245,158,11,.4)" stroke-width=".8"/><ellipse cx="86" cy="18" rx="5" ry="6" fill="rgba(52,211,153,.12)" stroke="rgba(52,211,153,.5)" stroke-width=".8"/><path d="M70 18 L81 18" stroke="rgba(52,211,153,.4)" stroke-width=".8"/></svg></div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+          <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- SENSORS -->
+  <div class="sec-divider lab-section" data-section="Sensors">
+    <span class="sec-divider-label">Sensors</span>
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-count">2 Labs</span>
+  </div>
+  <div class="card-grid" id="grid-sensors">
+    <!-- Lab 04 -->
+    <div class="lab-card theme-sensor" data-num="04" data-category="Sensors" data-title="Automatic Light Detection" data-diff="Beginner" data-time="25 Minutes" data-status="beta" data-xp="25"
+      data-obj="Interface an LDR with the ESP32 to automatically detect ambient light levels and trigger an LED based on a threshold."
+      data-components="ESP32,Breadboard,LDR Sensor,LED,220Ω Resistor,10kΩ Resistor,Jumper Wires"
+      data-concepts="LDR,Analog Sensor,Threshold Logic,ADC,Auto Trigger,Light Sensing">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(56,189,248,.04)" stroke="rgba(56,189,248,.12)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- LDR symbol -->
+            <circle cx="110" cy="55" r="12" fill="rgba(56,189,248,.06)" stroke="rgba(56,189,248,.4)" stroke-width="1.2"/>
+            <path d="M104 50 L116 60M104 56 L116 50" stroke="rgba(56,189,248,.5)" stroke-width="1"/>
+            <text x="110" y="90" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(56,189,248,.4)">LDR</text>
+            <!-- LED -->
+            <ellipse cx="152" cy="48" rx="7" ry="9" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.45)" stroke-width="1.2"/>
+            <path d="M68 34 L96 34 L98 48" stroke="rgba(56,189,248,.35)" stroke-width="1.2" fill="none"/>
+            <path d="M122 52 L145 50" stroke="rgba(56,189,248,.3)" stroke-width="1" fill="none"/>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 04</div>
+        <div class="card-img-badge beta"><span class="card-img-badge-dot"></span>Beta</div>
+        <span class="fav-star" data-num="04">☆</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">Sensors</span><span class="done-check" id="done-04" style="display:none">✔ Done</span></div>
+        <div class="card-title">Automatic Light Detection</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-b"><span class="card-diff-dot diff-dot-b"></span>Beginner</span>
+          <span class="card-meta-chip">25 min</span>
+          <span class="card-meta-chip">+25 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 04 · Sensors</div>
+          <div class="hover-title">Automatic Light Detection</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟢</span><span>Beginner</span><span class="hover-fact-label" style="margin-left:auto">25 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+25 XP on complete</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔩</span><span>ESP32 · LDR · LED</span></div>
+          </div>
+        </div>
+        <div class="hover-circuit"><svg viewBox="0 0 100 50" width="90" height="45" fill="none"><rect x="2" y="12" width="26" height="16" rx="2" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><text x="15" y="22" text-anchor="middle" font-size="5" fill="rgba(56,189,248,.8)" font-family="monospace">ESP32</text><circle cx="60" cy="22" r="9" fill="rgba(56,189,248,.06)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><path d="M55 17 L65 27M55 23 L65 17" stroke="rgba(56,189,248,.5)" stroke-width=".7"/><path d="M28 22 L51 22" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><ellipse cx="86" cy="20" rx="5" ry="6" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.5)" stroke-width=".8"/></svg></div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+          <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lab 05 -->
+    <div class="lab-card theme-sensor" data-num="05" data-category="Sensors" data-title="Temperature Monitoring" data-diff="Intermediate" data-time="35 Minutes" data-status="beta" data-xp="30"
+      data-obj="Read temperature and humidity data using a DHT22 sensor. Display real-time values over Serial Monitor and trigger alerts on threshold breach."
+      data-components="ESP32,Breadboard,DHT22 Sensor,10kΩ Resistor,Jumper Wires"
+      data-concepts="DHT22,Temperature,Humidity,Serial Monitor,Threshold Alert,Sensor Library">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(56,189,248,.04)" stroke="rgba(56,189,248,.12)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- DHT22 -->
+            <rect x="100" y="30" width="30" height="50" rx="4" fill="rgba(56,189,248,.06)" stroke="rgba(56,189,248,.4)" stroke-width="1.2"/>
+            <text x="115" y="52" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(56,189,248,.6)">DHT</text>
+            <text x="115" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(56,189,248,.6)">22</text>
+            <!-- Temperature wave -->
+            <path d="M100 46 Q88 40 78 46 Q68 52 58 46" stroke="rgba(248,113,113,.3)" stroke-width="1" fill="none"/>
+            <path d="M68 36 L100 36" stroke="rgba(56,189,248,.3)" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 05</div>
+        <div class="card-img-badge beta"><span class="card-img-badge-dot"></span>Beta</div>
+        <span class="fav-star" data-num="05">☆</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">Sensors</span><span class="done-check" id="done-05" style="display:none">✔ Done</span></div>
+        <div class="card-title">Temperature Monitoring</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-i"><span class="card-diff-dot diff-dot-i"></span>Intermediate</span>
+          <span class="card-meta-chip">35 min</span>
+          <span class="card-meta-chip">+30 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 05 · Sensors</div>
+          <div class="hover-title">Temperature Monitoring</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟡</span><span>Intermediate</span><span class="hover-fact-label" style="margin-left:auto">35 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+30 XP on complete</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔩</span><span>ESP32 · DHT22</span></div>
+          </div>
+        </div>
+        <div class="hover-circuit"><svg viewBox="0 0 100 50" width="90" height="45" fill="none"><rect x="2" y="12" width="26" height="16" rx="2" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><text x="15" y="22" text-anchor="middle" font-size="5" fill="rgba(56,189,248,.8)" font-family="monospace">ESP32</text><rect x="58" y="10" width="20" height="30" rx="3" fill="rgba(56,189,248,.06)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><text x="68" y="26" text-anchor="middle" font-size="5" fill="rgba(56,189,248,.7)" font-family="monospace">DHT22</text><path d="M28 20 L58 20" stroke="rgba(56,189,248,.4)" stroke-width=".8"/></svg></div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+          <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTUATORS -->
+  <div class="sec-divider lab-section" data-section="Actuators">
+    <span class="sec-divider-label">Actuators</span>
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-count">3 Labs</span>
+  </div>
+  <div class="card-grid" id="grid-actuators">
+    <!-- Lab 06 -->
+    <div class="lab-card theme-actuator" data-num="06" data-category="Actuators" data-title="Buzzer Control" data-diff="Beginner" data-time="20 Minutes" data-status="beta" data-xp="20"
+      data-obj="Drive a passive buzzer with the ESP32 using PWM signals. Generate different tones by varying frequency and create simple alarm patterns."
+      data-components="ESP32,Breadboard,Passive Buzzer,Jumper Wires"
+      data-concepts="PWM,Tone Generation,Frequency,Alarm Pattern,ledcWrite,Active vs Passive Buzzer">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(129,140,248,.04)" stroke="rgba(129,140,248,.12)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- Buzzer -->
+            <circle cx="120" cy="55" r="16" fill="rgba(129,140,248,.07)" stroke="rgba(129,140,248,.4)" stroke-width="1.2"/>
+            <circle cx="120" cy="55" r="8" fill="rgba(129,140,248,.12)" stroke="rgba(129,140,248,.3)" stroke-width="1"/>
+            <!-- Sound waves -->
+            <path d="M136 47 Q144 55 136 63" stroke="rgba(129,140,248,.3)" stroke-width="1" fill="none"/>
+            <path d="M141 43 Q152 55 141 67" stroke="rgba(129,140,248,.2)" stroke-width="1" fill="none"/>
+            <path d="M68 35 L104 40" stroke="rgba(129,140,248,.3)" stroke-width="1.2" fill="none"/>
+            <text x="120" y="92" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(129,140,248,.4)">Buzzer</text>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 06</div>
+        <div class="card-img-badge beta"><span class="card-img-badge-dot"></span>Beta</div>
+        <span class="fav-star" data-num="06">☆</span>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">Actuators</span><span class="done-check" id="done-06" style="display:none">✔ Done</span></div>
+        <div class="card-title">Buzzer Control</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-b"><span class="card-diff-dot diff-dot-b"></span>Beginner</span>
+          <span class="card-meta-chip">20 min</span>
+          <span class="card-meta-chip">+20 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 06 · Actuators</div>
+          <div class="hover-title">Buzzer Control</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟢</span><span>Beginner</span><span class="hover-fact-label" style="margin-left:auto">20 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+20 XP on complete</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔩</span><span>ESP32 · Passive Buzzer</span></div>
+          </div>
+        </div>
+        <div class="hover-circuit"><svg viewBox="0 0 100 50" width="90" height="45" fill="none"><rect x="2" y="12" width="26" height="16" rx="2" fill="rgba(56,189,248,.1)" stroke="rgba(56,189,248,.4)" stroke-width=".8"/><text x="15" y="22" text-anchor="middle" font-size="5" fill="rgba(56,189,248,.8)" font-family="monospace">ESP32</text><circle cx="68" cy="23" r="12" fill="rgba(129,140,248,.06)" stroke="rgba(129,140,248,.4)" stroke-width=".8"/><circle cx="68" cy="23" r="5" fill="rgba(129,140,248,.12)"/><path d="M28 22 L56 22" stroke="rgba(129,140,248,.4)" stroke-width=".8"/><path d="M80 18 Q86 23 80 28" stroke="rgba(129,140,248,.3)" stroke-width=".7" fill="none"/><path d="M83 15 Q92 23 83 31" stroke="rgba(129,140,248,.2)" stroke-width=".7" fill="none"/></svg></div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+          <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lab 07 -->
+    <div class="lab-card theme-actuator" data-num="07" data-category="Actuators" data-title="Servo Motor Control" data-diff="Intermediate" data-time="35 Minutes" data-status="coming" data-xp="30"
+      data-obj="Control a servo motor angle using the ESP32 PWM capabilities. Map potentiometer input to servo position and sweep through defined ranges."
+      data-components="ESP32,Breadboard,Servo Motor (SG90),Potentiometer,Jumper Wires"
+      data-concepts="Servo Motor,PWM Control,Angle Mapping,ESP32Servo Library,Duty Cycle,analogRead">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(129,140,248,.04)" stroke="rgba(129,140,248,.1)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- Servo -->
+            <rect x="100" y="30" width="50" height="40" rx="4" fill="rgba(129,140,248,.07)" stroke="rgba(129,140,248,.35)" stroke-width="1.2"/>
+            <circle cx="130" cy="38" r="8" fill="rgba(129,140,248,.12)" stroke="rgba(129,140,248,.4)" stroke-width="1"/>
+            <line x1="130" y1="38" x2="145" y2="26" stroke="rgba(129,140,248,.6)" stroke-width="2" stroke-linecap="round"/>
+            <text x="115" y="62" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(129,140,248,.5)">SG90</text>
+            <path d="M68 35 L100 35" stroke="rgba(129,140,248,.3)" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 07</div>
+        <div class="card-img-badge coming"><span class="card-img-badge-dot"></span>Coming Soon</div>
+        <span class="fav-star" data-num="07">☆</span>
+        <div class="lock-overlay">🔒</div>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">Actuators</span><span class="done-check" id="done-07" style="display:none">✔ Done</span></div>
+        <div class="card-title">Servo Motor Control</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-i"><span class="card-diff-dot diff-dot-i"></span>Intermediate</span>
+          <span class="card-meta-chip">35 min</span>
+          <span class="card-meta-chip">+30 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 07 · Actuators</div>
+          <div class="hover-title">Servo Motor Control</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟡</span><span>Intermediate</span><span class="hover-fact-label" style="margin-left:auto">35 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔒</span><span>Complete Lab 06 to unlock</span></div>
+          </div>
+        </div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lab 08 -->
+    <div class="lab-card theme-actuator" data-num="08" data-category="Actuators" data-title="Distance Measurement" data-diff="Intermediate" data-time="35 Minutes" data-status="coming" data-xp="30"
+      data-obj="Use an HC-SR04 ultrasonic sensor with the ESP32 to measure distances and trigger alerts when an object enters proximity range."
+      data-components="ESP32,Breadboard,HC-SR04 Ultrasonic Sensor,LED,Buzzer,Jumper Wires"
+      data-concepts="Ultrasonic Sensor,Echo / Trigger Pins,Distance Formula,Speed of Sound,pulseIn">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(129,140,248,.04)" stroke="rgba(129,140,248,.1)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- HC-SR04 -->
+            <rect x="98" y="25" width="60" height="35" rx="3" fill="rgba(129,140,248,.06)" stroke="rgba(129,140,248,.35)" stroke-width="1.2"/>
+            <circle cx="114" cy="42" r="8" fill="rgba(129,140,248,.1)" stroke="rgba(129,140,248,.4)" stroke-width="1"/>
+            <circle cx="142" cy="42" r="8" fill="rgba(129,140,248,.1)" stroke="rgba(129,140,248,.4)" stroke-width="1"/>
+            <!-- Ultrasonic waves -->
+            <path d="M160 34 Q168 42 160 50" stroke="rgba(129,140,248,.3)" stroke-width="1" fill="none"/>
+            <path d="M164 30 Q175 42 164 54" stroke="rgba(129,140,248,.2)" stroke-width="1" fill="none"/>
+            <path d="M68 35 L98 35" stroke="rgba(129,140,248,.3)" stroke-width="1.2" fill="none"/>
+            <text x="128" y="72" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(129,140,248,.4)">HC-SR04</text>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 08</div>
+        <div class="card-img-badge coming"><span class="card-img-badge-dot"></span>Coming Soon</div>
+        <span class="fav-star" data-num="08">☆</span>
+        <div class="lock-overlay">🔒</div>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">Actuators</span><span class="done-check" id="done-08" style="display:none">✔ Done</span></div>
+        <div class="card-title">Distance Measurement</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-i"><span class="card-diff-dot diff-dot-i"></span>Intermediate</span>
+          <span class="card-meta-chip">35 min</span>
+          <span class="card-meta-chip">+30 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 08 · Actuators</div>
+          <div class="hover-title">Distance Measurement</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟡</span><span>Intermediate</span><span class="hover-fact-label" style="margin-left:auto">35 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔒</span><span>Complete previous labs to unlock</span></div>
+          </div>
+        </div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTEGRATED SYSTEMS -->
+  <div class="sec-divider lab-section" data-section="Automation">
+    <span class="sec-divider-label">Integrated Systems</span>
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-count">2 Labs</span>
+  </div>
+  <div class="card-grid" id="grid-systems">
+    <!-- Lab 09 -->
+    <div class="lab-card theme-system" data-num="09" data-category="Automation" data-title="Relay Module" data-diff="Intermediate" data-time="40 Minutes" data-status="coming" data-xp="35"
+      data-obj="Interface a relay module with the ESP32 to switch high-voltage devices. Control the relay state via button input or sensor threshold logic."
+      data-components="ESP32,Relay Module (5V),Push Button,LED,Jumper Wires"
+      data-concepts="Relay,Normally Open / Closed,High Voltage Switching,Optocoupler,Digital Control,Safety Precautions">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(245,158,11,.04)" stroke="rgba(245,158,11,.12)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- Relay -->
+            <rect x="98" y="22" width="55" height="45" rx="4" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.35)" stroke-width="1.2"/>
+            <rect x="108" y="30" width="16" height="12" rx="2" fill="rgba(245,158,11,.1)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+            <path d="M118 48 L118 56 L135 50 L135 58" stroke="rgba(245,158,11,.5)" stroke-width="1.2" fill="none"/>
+            <text x="125" y="75" text-anchor="middle" font-family="JetBrains Mono" font-size="6" fill="rgba(245,158,11,.4)">Relay</text>
+            <path d="M68 35 L98 35" stroke="rgba(245,158,11,.3)" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 09</div>
+        <div class="card-img-badge coming"><span class="card-img-badge-dot"></span>Coming Soon</div>
+        <span class="fav-star" data-num="09">☆</span>
+        <div class="lock-overlay">🔒</div>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">Automation</span><span class="done-check" id="done-09" style="display:none">✔ Done</span></div>
+        <div class="card-title">Relay Module</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-i"><span class="card-diff-dot diff-dot-i"></span>Intermediate</span>
+          <span class="card-meta-chip">40 min</span>
+          <span class="card-meta-chip">+35 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 09 · Automation</div>
+          <div class="hover-title">Relay Module</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🟡</span><span>Intermediate</span><span class="hover-fact-label" style="margin-left:auto">40 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔒</span><span>Complete previous labs to unlock</span></div>
+          </div>
+        </div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lab 10 -->
+    <div class="lab-card theme-system" data-num="10" data-category="Smart Home" data-title="Smart Home Automation" data-diff="Advanced" data-time="45 Minutes" data-status="coming" data-xp="50"
+      data-obj="Build a basic smart home system using the ESP32 with WiFi connectivity. Control multiple devices remotely via a web dashboard hosted on the microcontroller."
+      data-components="ESP32,Relay Module,DHT22 Sensor,LED Strip,Buzzer,Jumper Wires,Breadboard"
+      data-concepts="WiFi,Web Server,HTTP Requests,Multi-device Control,JSON Data,Automation Logic,IoT Integration">
+      <div class="card-img">
+        <div class="card-img-inner">
+          <svg class="circuit-svg" viewBox="0 0 180 120" fill="none">
+            <rect x="10" y="70" width="160" height="40" rx="4" fill="rgba(245,158,11,.04)" stroke="rgba(245,158,11,.1)" stroke-width="1"/>
+            <rect x="12" y="18" width="56" height="40" rx="3" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.35)" stroke-width="1.2"/>
+            <text x="40" y="40" text-anchor="middle" font-family="JetBrains Mono" font-size="7" fill="rgba(56,189,248,.7)">ESP32</text>
+            <!-- House outline -->
+            <path d="M110 60 L125 40 L140 60 Z" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.35)" stroke-width="1.2"/>
+            <rect x="113" y="60" width="24" height="20" fill="rgba(245,158,11,.04)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+            <!-- WiFi -->
+            <path d="M152 30 Q160 22 168 30" stroke="rgba(56,189,248,.3)" stroke-width="1" fill="none"/>
+            <path d="M149 34 Q160 18 171 34" stroke="rgba(56,189,248,.2)" stroke-width="1" fill="none"/>
+            <circle cx="160" cy="36" r="2" fill="rgba(56,189,248,.5)"/>
+            <path d="M68 35 L110 50" stroke="rgba(245,158,11,.3)" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+        <div class="card-img-label">Lab 10</div>
+        <div class="card-img-badge coming"><span class="card-img-badge-dot"></span>Coming Soon</div>
+        <span class="fav-star" data-num="10">☆</span>
+        <div class="lock-overlay">🔒</div>
+      </div>
+      <div class="card-body">
+        <div class="card-num-row"><span class="card-num-tag">Smart Home</span><span class="done-check" id="done-10" style="display:none">✔ Done</span></div>
+        <div class="card-title">Smart Home Automation</div>
+        <div class="card-meta">
+          <span class="card-meta-chip diff-a"><span class="card-diff-dot diff-dot-a"></span>Advanced</span>
+          <span class="card-meta-chip">45 min</span>
+          <span class="card-meta-chip">+50 XP</span>
+          <div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        </div>
+      </div>
+      <div class="card-hover-overlay">
+        <div class="hover-top">
+          <div class="hover-num">Lab 10 · Smart Home</div>
+          <div class="hover-title">Smart Home Automation</div>
+          <div class="hover-facts">
+            <div class="hover-fact"><span class="hover-fact-icon">🔴</span><span>Advanced</span><span class="hover-fact-label" style="margin-left:auto">45 min</span></div>
+            <div class="hover-fact"><span class="hover-fact-icon">🔒</span><span>Complete all labs to unlock</span></div>
+          </div>
+        </div>
+        <div class="hover-bottom">
+          <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE VIEW -->
+  <div class="table-wrap" id="tableWrap">
+    <table class="lab-table" id="labTable">
+      <thead>
+        <tr><th>Lab</th><th>Title</th><th>Category</th><th>Difficulty</th><th>Time</th><th>XP</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- RECOMMENDATION STRIP -->
+  <div class="recommend-strip" id="recommendStrip">
+    <span class="recommend-icon">🎯</span>
+    <div class="recommend-text">
+      <div class="recommend-label">Recommended Next</div>
+      <div class="recommend-title" id="recommendTitle">Lab 02 — Push Button Input</div>
+      <div class="recommend-sub" id="recommendSub">Because you completed Lab 01</div>
+    </div>
+    <button class="recommend-btn" id="recommendBtn">Open Lab →</button>
+  </div>
+
+  <!-- PLAYGROUND -->
+  <div class="sec-divider" id="sec-playground">
+    <span class="sec-divider-label">IoT Playground</span>
+    <div class="sec-divider-line"></div>
+    <span class="sec-divider-count">6 Simulations</span>
+  </div>
+  <div class="card-grid" id="grid-playground">
+    <div class="lab-card theme-playground" data-num="P1" data-category="Playground" data-title="Smart Security" data-diff="Advanced" data-time="Free Explore" data-status="ready" data-xp="40" data-obj="Simulate a smart security system with PIR motion detection, alarm triggers, keypad authentication, and camera feed simulation on an ESP32 platform." data-components="ESP32,PIR Sensor,Buzzer,Keypad,LCD Display,LED Indicators,Relay" data-concepts="Motion Detection,Security Logic,Keypad Input,Authentication,Alarm System">
+      <div class="card-img"><div class="card-img-inner"><div class="card-img-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div></div><div class="card-img-label">Playground</div><div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div><span class="fav-star" data-num="P1">☆</span></div>
+      <div class="card-body"><div class="card-num-row"><span class="card-num-tag" style="color:var(--cyan2)">Simulation</span><span class="done-check" id="done-P1" style="display:none">✔ Done</span></div><div class="card-title">Smart Security</div><div class="card-meta"><span class="card-meta-chip diff-a"><span class="card-diff-dot diff-dot-a"></span>Advanced</span><span class="card-meta-chip">Explore</span><span class="card-meta-chip">+40 XP</span><div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div></div></div>
+      <div class="card-hover-overlay"><div class="hover-top"><div class="hover-num">P1 · Playground</div><div class="hover-title">Smart Security</div><div class="hover-facts"><div class="hover-fact"><span class="hover-fact-icon">🔴</span><span>Advanced</span></div><div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+40 XP on complete</span></div></div></div><div class="hover-bottom"><div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch</div><div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div></div></div>
+    </div>
+    <div class="lab-card theme-playground" data-num="P2" data-category="Playground" data-title="Automatic Door" data-diff="Intermediate" data-time="Free Explore" data-status="ready" data-xp="30" data-obj="Simulate an automatic sliding door system using IR proximity sensing and servo motor actuation. Includes open/close timing and occupancy detection." data-components="ESP32,IR Sensor,Servo Motor,LED Indicator,Relay Module" data-concepts="IR Detection,Servo Control,Auto-trigger,Timing Logic,Occupancy Sensing">
+      <div class="card-img"><div class="card-img-inner"><div class="card-img-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M9 7h3M9 12h3"/></svg></div></div><div class="card-img-label">Playground</div><div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div><span class="fav-star" data-num="P2">☆</span></div>
+      <div class="card-body"><div class="card-num-row"><span class="card-num-tag" style="color:var(--cyan2)">Simulation</span><span class="done-check" id="done-P2" style="display:none">✔ Done</span></div><div class="card-title">Automatic Door</div><div class="card-meta"><span class="card-meta-chip diff-i"><span class="card-diff-dot diff-dot-i"></span>Intermediate</span><span class="card-meta-chip">Explore</span><span class="card-meta-chip">+30 XP</span><div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div></div></div>
+      <div class="card-hover-overlay"><div class="hover-top"><div class="hover-num">P2 · Playground</div><div class="hover-title">Automatic Door</div><div class="hover-facts"><div class="hover-fact"><span class="hover-fact-icon">🟡</span><span>Intermediate</span></div><div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+30 XP on complete</span></div></div></div><div class="hover-bottom"><div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch</div><div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div></div></div>
+    </div>
+    <div class="lab-card theme-playground" data-num="P3" data-category="Playground" data-title="Street Light Automation" data-diff="Beginner" data-time="Free Explore" data-status="ready" data-xp="25" data-obj="Simulate intelligent street lighting that automatically turns on at dusk and off at dawn using LDR sensing. Includes manual override and brightness control." data-components="ESP32,LDR Sensor,LED Array,Relay,Potentiometer" data-concepts="LDR Sensing,Auto ON/OFF,Dusk Detection,Brightness Control,Energy Saving">
+      <div class="card-img"><div class="card-img-inner"><div class="card-img-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41"/><circle cx="12" cy="12" r="5"/><path d="M2 12h2M20 12h2"/></svg></div></div><div class="card-img-label">Playground</div><div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div><span class="fav-star" data-num="P3">☆</span></div>
+      <div class="card-body"><div class="card-num-row"><span class="card-num-tag" style="color:var(--cyan2)">Simulation</span><span class="done-check" id="done-P3" style="display:none">✔ Done</span></div><div class="card-title">Street Light Automation</div><div class="card-meta"><span class="card-meta-chip diff-b"><span class="card-diff-dot diff-dot-b"></span>Beginner</span><span class="card-meta-chip">Explore</span><span class="card-meta-chip">+25 XP</span><div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div></div></div>
+      <div class="card-hover-overlay"><div class="hover-top"><div class="hover-num">P3 · Playground</div><div class="hover-title">Street Light Automation</div><div class="hover-facts"><div class="hover-fact"><span class="hover-fact-icon">🟢</span><span>Beginner</span></div><div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+25 XP on complete</span></div></div></div><div class="hover-bottom"><div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch</div><div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div></div></div>
+    </div>
+    <div class="lab-card theme-playground" data-num="P4" data-category="Playground" data-title="Smart Irrigation" data-diff="Intermediate" data-time="Free Explore" data-status="ready" data-xp="30" data-obj="Simulate an automated irrigation system that monitors soil moisture and activates a water pump relay when soil drops below a set threshold." data-components="ESP32,Soil Moisture Sensor,Relay,Water Pump (simulated),LCD Display" data-concepts="Soil Moisture,Threshold Automation,Relay Control,ADC Reading,Smart Agriculture">
+      <div class="card-img"><div class="card-img-inner"><div class="card-img-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></div></div><div class="card-img-label">Playground</div><div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div><span class="fav-star" data-num="P4">☆</span></div>
+      <div class="card-body"><div class="card-num-row"><span class="card-num-tag" style="color:var(--cyan2)">Simulation</span><span class="done-check" id="done-P4" style="display:none">✔ Done</span></div><div class="card-title">Smart Irrigation</div><div class="card-meta"><span class="card-meta-chip diff-i"><span class="card-diff-dot diff-dot-i"></span>Intermediate</span><span class="card-meta-chip">Explore</span><span class="card-meta-chip">+30 XP</span><div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div></div></div>
+      <div class="card-hover-overlay"><div class="hover-top"><div class="hover-num">P4 · Playground</div><div class="hover-title">Smart Irrigation</div><div class="hover-facts"><div class="hover-fact"><span class="hover-fact-icon">🟡</span><span>Intermediate</span></div><div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+30 XP on complete</span></div></div></div><div class="hover-bottom"><div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch</div><div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div></div></div>
+    </div>
+    <div class="lab-card theme-playground" data-num="P5" data-category="Playground" data-title="Smart Parking" data-diff="Advanced" data-time="Free Explore" data-status="ready" data-xp="40" data-obj="Simulate a smart parking system with ultrasonic sensors for slot detection, servo-controlled entry/exit barriers, and an availability display panel." data-components="ESP32,Ultrasonic Sensors,Servo Motor,LED Matrix,LCD Display,Buzzer" data-concepts="Slot Detection,Barrier Control,Availability Count,Multi-sensor Coordination">
+      <div class="card-img"><div class="card-img-inner"><div class="card-img-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="10" width="18" height="12" rx="2"/><path d="M7 10V6a5 5 0 0 1 10 0v4"/></svg></div></div><div class="card-img-label">Playground</div><div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div><span class="fav-star" data-num="P5">☆</span></div>
+      <div class="card-body"><div class="card-num-row"><span class="card-num-tag" style="color:var(--cyan2)">Simulation</span><span class="done-check" id="done-P5" style="display:none">✔ Done</span></div><div class="card-title">Smart Parking</div><div class="card-meta"><span class="card-meta-chip diff-a"><span class="card-diff-dot diff-dot-a"></span>Advanced</span><span class="card-meta-chip">Explore</span><span class="card-meta-chip">+40 XP</span><div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div></div></div>
+      <div class="card-hover-overlay"><div class="hover-top"><div class="hover-num">P5 · Playground</div><div class="hover-title">Smart Parking</div><div class="hover-facts"><div class="hover-fact"><span class="hover-fact-icon">🔴</span><span>Advanced</span></div><div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+40 XP on complete</span></div></div></div><div class="hover-bottom"><div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch</div><div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div></div></div>
+    </div>
+    <div class="lab-card theme-playground" data-num="P6" data-category="Playground" data-title="Fire & Gas Safety" data-diff="Advanced" data-time="Free Explore" data-status="ready" data-xp="40" data-obj="Simulate a fire and gas detection safety system using MQ-2 gas sensor and flame detector, with buzzer alarms, LED alerts, and relay-controlled ventilation." data-components="ESP32,MQ-2 Gas Sensor,Flame Sensor,Buzzer,LED Array,Relay,LCD Display" data-concepts="Gas Detection,Flame Sensing,Emergency Alert,Relay Ventilation,Safety Logic">
+      <div class="card-img"><div class="card-img-inner"><div class="card-img-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="1.5" stroke-linecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c0 1.38-.5 2.5-2 3 1.5 0 5-.5 5-3 0-2-2-3-2-5-1 0-2 .5-3 .5-.83 0-1.5-.67-1.5-1.5S8 9 9 8c-2 1-3 3-3 5 0 1 .5 2 1 2l.5-.5z"/></svg></div></div><div class="card-img-label">Playground</div><div class="card-img-badge ready"><span class="card-img-badge-dot"></span>Ready</div><span class="fav-star" data-num="P6">☆</span></div>
+      <div class="card-body"><div class="card-num-row"><span class="card-num-tag" style="color:var(--cyan2)">Simulation</span><span class="done-check" id="done-P6" style="display:none">✔ Done</span></div><div class="card-title">Fire &amp; Gas Safety</div><div class="card-meta"><span class="card-meta-chip diff-a"><span class="card-diff-dot diff-dot-a"></span>Advanced</span><span class="card-meta-chip">Explore</span><span class="card-meta-chip">+40 XP</span><div class="card-open-btn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div></div></div>
+      <div class="card-hover-overlay"><div class="hover-top"><div class="hover-num">P6 · Playground</div><div class="hover-title">Fire &amp; Gas Safety</div><div class="hover-facts"><div class="hover-fact"><span class="hover-fact-icon">🔴</span><span>Advanced</span></div><div class="hover-fact"><span class="hover-fact-icon">⚡</span><span>+40 XP on complete</span></div></div></div><div class="hover-bottom"><div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch</div><div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div></div></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- FLOATING ESP32 -->
+<div class="esp32-float" id="esp32Float" title="ESP32 Platform">
+  <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="10" width="44" height="40" rx="4" fill="rgba(10,17,32,.95)" stroke="rgba(94,234,212,.35)" stroke-width="1.5"/>
+    <!-- chip detail lines -->
+    <rect x="14" y="16" width="32" height="28" rx="2" fill="rgba(56,189,248,.06)" stroke="rgba(56,189,248,.2)" stroke-width=".8"/>
+    <text x="30" y="31" text-anchor="middle" font-family="JetBrains Mono" font-size="5.5" fill="rgba(56,189,248,.7)">ESP32</text>
+    <text x="30" y="38" text-anchor="middle" font-family="JetBrains Mono" font-size="4" fill="rgba(94,234,212,.4)">WROOM</text>
+    <!-- pins left -->
+    <rect x="2" y="16" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="2" y="21" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="2" y="26" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="2" y="31" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="2" y="36" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="2" y="41" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <!-- pins right -->
+    <rect x="52" y="16" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="52" y="21" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="52" y="26" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="52" y="31" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="52" y="36" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <rect x="52" y="41" width="6" height="2.5" rx="1" fill="rgba(94,234,212,.2)"/>
+    <!-- LED dots -->
+    <circle cx="18" cy="44" r="2" fill="rgba(52,211,153,.6)" filter="url(#glow)"/>
+    <circle cx="24" cy="44" r="2" fill="rgba(56,189,248,.4)"/>
+    <defs><filter id="glow"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  </svg>
 </div>
 
-  <!-- ══ REST OF EXPERIMENTS ══ -->
-  <div class="sec-divider">
-    <span class="sec-divider-label">More Experiments</span>
-    <div class="sec-divider-line"></div>
-    <span class="sec-divider-label" style="opacity:.4;">11 remaining</span>
+<!-- LIVE CONSOLE -->
+<div class="console-panel" id="consolePanel">
+  <div class="console-header" id="consoleHeader">
+    <div class="console-dots">
+      <div class="console-dot" style="background:#FF5F56;"></div>
+      <div class="console-dot" style="background:#FFBD2E;"></div>
+      <div class="console-dot" style="background:#27C93F;"></div>
+    </div>
+    <span class="console-title">System Console</span>
+    <span class="console-toggle" id="consoleToggle">▾</span>
   </div>
-
-  <div class="exp-grid">
-
-    <!-- Exp 02 -->
-    <div class="exp-card" data-label="OPEN">
-      <div class="card-top">
-        <span class="card-num">Experiment 02</span>
-        <span class="card-status-badge beta"><span class="card-status-badge-dot"></span>Beta</span>
-      </div>
-      <div class="card-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
-          <circle cx="12" cy="12" r="4"/>
-        </svg>
-      </div>
-      <div class="card-title">PWM Brightness Control</div>
-      <div class="card-desc">Vary LED intensity using Pulse Width Modulation. Map analog potentiometer input to PWM duty cycle.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">PWM</span><span class="card-tag">Analog</span></div>
-        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 03 -->
-    <div class="exp-card" data-label="OPEN">
-      <div class="card-top">
-        <span class="card-num">Experiment 03</span>
-        <span class="card-status-badge beta"><span class="card-status-badge-dot"></span>Beta</span>
-      </div>
-      <div class="card-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round">
-          <path d="M3 6h18M3 12h18M3 18h18"/>
-          <circle cx="6" cy="6" r="1.5" fill="#38BDF8"/>
-          <circle cx="6" cy="12" r="1.5" fill="#38BDF8"/>
-        </svg>
-      </div>
-      <div class="card-title">Serial Communication</div>
-      <div class="card-desc">Send and receive data over UART. Monitor serial output from sensor readings in real time.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">UART</span><span class="card-tag">Serial</span></div>
-        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 04 -->
-    <div class="exp-card" data-label="OPEN">
-      <div class="card-top">
-        <span class="card-num">Experiment 04</span>
-        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
-      </div>
-      <div class="card-icon" style="background:rgba(94,234,212,.04);border-color:rgba(94,234,212,.12);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="1.5" stroke-linecap="round">
-          <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>
-          <circle cx="12" cy="9" r="2.5"/>
-        </svg>
-      </div>
-      <div class="card-title">DHT11 Temp &amp; Humidity</div>
-      <div class="card-desc">Read temperature and relative humidity from a DHT11 sensor and visualize live data on an LCD.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">Sensor</span><span class="card-tag">LCD</span><span class="card-tag">I2C</span></div>
-        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 05 -->
-    <div class="exp-card" data-label="OPEN">
-      <div class="card-top">
-        <span class="card-num">Experiment 05</span>
-        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
-      </div>
-      <div class="card-icon" style="background:rgba(129,140,248,.05);border-color:rgba(129,140,248,.14);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="1.5" stroke-linecap="round">
-          <rect x="2" y="7" width="20" height="14" rx="2"/>
-          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          <line x1="12" y1="12" x2="12" y2="16"/>
-          <line x1="10" y1="14" x2="14" y2="14"/>
-        </svg>
-      </div>
-      <div class="card-title">Servo Motor Control</div>
-      <div class="card-desc">Sweep a servo motor across its range using potentiometer input. Understand PWM angle mapping.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">Servo</span><span class="card-tag">PWM</span></div>
-        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 06 -->
-    <div class="exp-card" data-label="OPEN">
-      <div class="card-top">
-        <span class="card-num">Experiment 06</span>
-        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
-      </div>
-      <div class="card-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round">
-          <path d="M4 6h16M4 12h16M4 18h7"/>
-          <circle cx="17" cy="18" r="3"/>
-          <path d="M17 15v3l2 1"/>
-        </svg>
-      </div>
-      <div class="card-title">IR Obstacle Detector</div>
-      <div class="card-desc">Detect object proximity with an IR sensor module. Trigger output on detection and log events.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">IR</span><span class="card-tag">Interrupt</span></div>
-        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 07 -->
-    <div class="exp-card" data-label="OPEN">
-      <div class="card-top">
-        <span class="card-num">Experiment 07</span>
-        <span class="card-status-badge coming"><span class="card-status-badge-dot"></span>Coming Soon</span>
-      </div>
-      <div class="card-icon" style="background:rgba(94,234,212,.04);border-color:rgba(94,234,212,.12);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="1.5" stroke-linecap="round">
-          <path d="M4 17h16M4 7h16"/>
-          <path d="M9 7v10M15 7v10"/>
-          <rect x="2" y="5" width="20" height="14" rx="2"/>
-        </svg>
-      </div>
-      <div class="card-title">LCD Display Output</div>
-      <div class="card-desc">Interface a 16×2 LCD over I2C. Display sensor readings and scroll custom messages.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">LCD</span><span class="card-tag">I2C</span><span class="card-tag">Display</span></div>
-        <div class="card-arrow"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 08 -->
-    <div class="exp-card locked" data-label="LOCKED">
-      <div class="card-top">
-        <span class="card-num">Experiment 08</span>
-        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
-      </div>
-      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
-          <path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V7H2z"/>
-          <path d="M6 7V5a6 6 0 0 1 12 0v2"/>
-        </svg>
-      </div>
-      <div class="card-title">ESP32 WiFi Sensor</div>
-      <div class="card-desc">Publish sensor data over MQTT via WiFi. Visualize readings on a Node-RED dashboard.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">ESP32</span><span class="card-tag">WiFi</span><span class="card-tag">MQTT</span></div>
-        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 09 -->
-    <div class="exp-card locked" data-label="LOCKED">
-      <div class="card-top">
-        <span class="card-num">Experiment 09</span>
-        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
-      </div>
-      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M12 6v6l4 2"/>
-        </svg>
-      </div>
-      <div class="card-title">RTC Real-Time Clock</div>
-      <div class="card-desc">Interface a DS3231 RTC module over I2C. Log timestamped events and trigger alarms.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">RTC</span><span class="card-tag">I2C</span><span class="card-tag">Timing</span></div>
-        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 10 -->
-    <div class="exp-card locked" data-label="LOCKED">
-      <div class="card-top">
-        <span class="card-num">Experiment 10</span>
-        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
-      </div>
-      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
-          <path d="M3 3h18v18H3zM8 12h8M12 8v8"/>
-        </svg>
-      </div>
-      <div class="card-title">7-Segment Display</div>
-      <div class="card-desc">Drive a 4-digit 7-segment display to show a counter and stopwatch using multiplexing.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">7-Seg</span><span class="card-tag">Multiplex</span></div>
-        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 11 -->
-    <div class="exp-card locked" data-label="LOCKED">
-      <div class="card-top">
-        <span class="card-num">Experiment 11</span>
-        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
-      </div>
-      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-      </div>
-      <div class="card-title">ADC Waveform Capture</div>
-      <div class="card-desc">Sample an analog waveform via ADC and reconstruct it visually in the serial plotter.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">ADC</span><span class="card-tag">Waveform</span><span class="card-tag">Analog</span></div>
-        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      </div>
-    </div>
-
-    <!-- Exp 12 -->
-    <div class="exp-card locked" data-label="LOCKED">
-      <div class="card-top">
-        <span class="card-num">Experiment 12</span>
-        <span class="card-status-badge locked"><span class="card-status-badge-dot"></span>Locked</span>
-      </div>
-      <div class="card-icon" style="background:rgba(74,90,122,.06);border-color:rgba(74,90,122,.15);">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="1.5" stroke-linecap="round">
-          <path d="M4 17h16M4 7h16M9 7v10M15 7v10"/>
-          <circle cx="4" cy="12" r="2"/>
-          <circle cx="20" cy="12" r="2"/>
-        </svg>
-      </div>
-      <div class="card-title">SPI OLED Display</div>
-      <div class="card-desc">Render graphics and live sensor dashboards on a 128×64 OLED via SPI protocol.</div>
-      <div class="card-footer">
-        <div class="card-tags"><span class="card-tag">SPI</span><span class="card-tag">OLED</span><span class="card-tag">Graphics</span></div>
-        <div class="card-lock"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4A5A7A" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      </div>
-    </div>
-
-  </div><!-- /exp-grid -->
-</main>
+  <div class="console-body" id="consoleBody">
+    <div class="console-line"><span class="console-pfx">$</span><span>Initializing...</span></div>
+  </div>
+</div>
 
 <!-- BOTTOM BAR -->
 <div class="bot-bar">
   <div class="bot-left"><div class="bot-dot"></div>Simulation Engine Active</div>
   <div class="bot-center">
-    <span>Components: <span class="bot-val">52</span></span>
-    <span>Experiments: <span class="bot-val">12</span></span>
-    <span>Latency: <span class="bot-val" id="botLat">12ms</span></span>
-    <span>Temp: <span class="bot-val" id="botTemp">28.4°C</span></span>
+    <span>ARCIO <span class="bot-val">v1.0</span></span>
+    <span>SRM <span class="bot-val">IST</span></span>
+    <span>ESP32 <span class="bot-val">Platform</span></span>
+    <span>Simulation Engine <span class="bot-val">Ready</span></span>
   </div>
   <div class="bot-right">ARCIO v1.0 · SRM IST<span class="bot-cursor"></span></div>
 </div>
 
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox">
+    <button class="modal-close" id="modalClose"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <div class="modal-header">
+      <div class="modal-lab-num" id="mLabNum"></div>
+      <div class="modal-title" id="mTitle"></div>
+      <div class="modal-badges" id="mBadges"></div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section"><div class="modal-section-title">Objective</div><p class="modal-obj" id="mObj"></p></div>
+      <div class="modal-section"><div class="modal-section-title">Components Used</div><div class="modal-chips" id="mComponents"></div></div>
+      <div class="modal-section"><div class="modal-section-title">Concepts Covered</div><div class="modal-chips" id="mConcepts"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-yt" id="mYtBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02" fill="#060A13"/></svg>YouTube</button>
+      <button class="btn-launch" id="mLaunchBtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>Launch Lab<span class="arr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-icon">✅</div>
+  <div class="toast-msg" id="toastMsg">Lab Completed!</div>
+  <div class="toast-xp" id="toastXp">+20 XP Earned</div>
+</div>
+<canvas id="confettiCanvas"></canvas>
+
 <script>
-// ── CURSOR
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+const LAB_URLS={'01':'./exp/exp1.html','02':'./exp/exp2.html','03':'./exp/exp3.html','04':'./exp/exp4.html','05':'./exp/exp5.html','06':'./exp/exp6.html','07':'./exp/exp7.html','08':'./exp/exp8.html','09':'./exp/exp9.html','10':'./exp/exp10.html','P1':'./playground/security.html','P2':'./playground/door.html','P3':'./playground/streetlight.html','P4':'./playground/irrigation.html','P5':'./playground/parking.html','P6':'./playground/fire.html'};
+
+const LAB_TITLES={'01':'LED Blinking using ESP32','02':'Push Button Input','03':'Potentiometer','04':'Automatic Light Detection','05':'Temperature Monitoring','06':'Buzzer Control','07':'Servo Motor Control','08':'Distance Measurement','09':'Relay Module','10':'Smart Home Automation'};
+
+const LEVEL_THRESHOLDS=[0,50,120,220,350,500,700,950,1250,1600,2000];
+const LEVEL_NAMES=['Newcomer','Tinkerer','Builder','Maker','Explorer','Engineer','Specialist','Expert','Master','Architect','Legend'];
+
+// ═══════════════════════════════════════════════════════════
+// LOCAL STORAGE
+// ═══════════════════════════════════════════════════════════
+const STORAGE_KEY='arcio_v2';
+function getState(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{labs:{},playground:{},xp:0,recent:[],favs:[],theme:'dark'};}catch{return{labs:{},playground:{},xp:0,recent:[],favs:[],theme:'dark'};}}
+function setState(s){localStorage.setItem(STORAGE_KEY,JSON.stringify(s));}
+let S=getState();
+
+// ═══════════════════════════════════════════════════════════
+// SOUND EFFECTS
+// ═══════════════════════════════════════════════════════════
+let audioCtx=null;
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playTone(freq,dur,vol=0.08,type='sine'){try{const a=getAudio();const o=a.createOscillator();const g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=freq;o.type=type;g.gain.setValueAtTime(0,a.currentTime);g.gain.linearRampToValueAtTime(vol,a.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+dur);o.start();o.stop(a.currentTime+dur);}catch(e){}}
+function soundHover(){playTone(880,.06,.04);}
+function soundClick(){playTone(660,.08,.06);setTimeout(()=>playTone(990,.08,.04),60);}
+function soundComplete(){playTone(523,.12,.07);setTimeout(()=>playTone(659,.12,.07),120);setTimeout(()=>playTone(784,.2,.07),240);}
+function soundUnlock(){playTone(440,.1,.05);setTimeout(()=>playTone(554,.1,.05),100);setTimeout(()=>playTone(659,.15,.05),200);}
+
+// ═══════════════════════════════════════════════════════════
+// CURSOR
+// ═══════════════════════════════════════════════════════════
 const dot=document.getElementById('curDot');
 const ring=document.getElementById('curRing');
 const lbl=document.getElementById('curLabel');
@@ -884,56 +1419,472 @@ window.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left
 (function animRing(){rx+=(mx-rx)*.14;ry+=(my-ry)*.14;ring.style.left=rx+'px';ring.style.top=ry+'px';lbl.style.left=rx+'px';lbl.style.top=ry+'px';requestAnimationFrame(animRing);})();
 function setLabel(t){t?(lbl.textContent=t,lbl.classList.add('show')):lbl.classList.remove('show');}
 function expand(on,t){ring.classList.toggle('expand',on);setLabel(on&&t?t:'');}
-
-document.querySelectorAll('.exp-card:not(.locked),.exp-hero,.btn-launch-hero').forEach(el=>{
-  const lx=el.dataset.label||'OPEN';
-  el.addEventListener('mouseenter',()=>expand(true,lx));
-  el.addEventListener('mouseleave',()=>expand(false));
-});
-document.querySelectorAll('.exp-card.locked').forEach(el=>{
-  el.addEventListener('mouseenter',()=>expand(true,'LOCKED'));
-  el.addEventListener('mouseleave',()=>expand(false));
-});
-document.querySelectorAll('.nav-back').forEach(el=>{
-  el.addEventListener('mouseenter',()=>expand(true,'BACK'));
+document.querySelectorAll('.lab-card,.nav-back,.modal-close,.view-btn,.filter-tab,.hover-btn-open').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{expand(true,'OPEN');soundHover();});
   el.addEventListener('mouseleave',()=>expand(false));
 });
 
-// ── LIVE PREVIEW TOGGLE
-let simOn=true;
-setInterval(()=>{
-  simOn=!simOn;
-  document.getElementById('lpBtn').textContent=simOn?'PRESSED':'RELEASED';
-  document.getElementById('lpBtn').className=simOn?'lp-val':'lp-val off';
-  document.getElementById('lpGpio').textContent=simOn?'HIGH':'LOW';
-  document.getElementById('lpGpio').className=simOn?'lp-val':'lp-val off';
-  document.getElementById('lpLedState').textContent=simOn?'ON':'OFF';
-  document.getElementById('lpLedState').className=simOn?'lp-val':'lp-val off';
-  document.getElementById('lpLed').style.display=simOn?'inline-block':'none';
-  document.getElementById('lpVolt').textContent=simOn?'5.0V':'0.0V';
-  document.getElementById('lpVolt').className=simOn?'lp-val cyan':'lp-val off';
-},3200);
+// ═══════════════════════════════════════════════════════════
+// INTERACTIVE NODE BACKGROUND
+// ═══════════════════════════════════════════════════════════
+(function(){
+  const canvas=document.getElementById('bgCanvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,nodes=[],mouse={x:-999,y:-999};
+  const N=55,LINK_DIST=130;
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<N;i++)nodes.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25});
+  window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // mouse repel
+    nodes.forEach(n=>{
+      const dx=n.x-mouse.x,dy=n.y-mouse.y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<100){n.vx+=dx/d*.04;n.vy+=dy/d*.04;}
+      n.vx*=.995;n.vy*=.995;
+      n.x+=n.vx;n.y+=n.vy;
+      if(n.x<0||n.x>W)n.vx*=-1;if(n.y<0||n.y>H)n.vy*=-1;
+    });
+    // links
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<LINK_DIST){
+          const a=(1-d/LINK_DIST)*.06;
+          ctx.beginPath();ctx.strokeStyle=`rgba(94,234,212,${a})`;ctx.lineWidth=.7;
+          ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke();
+        }
+      }
+    }
+    // nodes
+    nodes.forEach(n=>{
+      ctx.beginPath();ctx.arc(n.x,n.y,1.6,0,Math.PI*2);ctx.fillStyle='rgba(94,234,212,.18)';ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
 
-// ── LIVE METRICS
-const lats=['12ms','14ms','10ms','11ms','15ms','13ms','9ms'];
-const temps=[28.4,27.9,28.6,28.2,29.0,28.5,28.1];
-let mi=0;
-setInterval(()=>{
-  mi=(mi+1)%lats.length;
-  document.getElementById('navLat').textContent=lats[mi];
-  document.getElementById('botLat').textContent=lats[mi];
-  document.getElementById('botTemp').textContent=temps[mi]+'°C';
-},2800);
+// ═══════════════════════════════════════════════════════════
+// XP + LEVELS + BADGES
+// ═══════════════════════════════════════════════════════════
+function getLevel(xp){for(let i=LEVEL_THRESHOLDS.length-1;i>=0;i--){if(xp>=LEVEL_THRESHOLDS[i])return i;}return 0;}
+function updateXPUI(){
+  const xp=S.xp||0;
+  const lv=getLevel(xp);
+  const nextXP=LEVEL_THRESHOLDS[Math.min(lv+1,LEVEL_THRESHOLDS.length-1)];
+  const prevXP=LEVEL_THRESHOLDS[lv];
+  const pct=lv>=LEVEL_THRESHOLDS.length-1?100:Math.round(((xp-prevXP)/(nextXP-prevXP))*100);
+  document.getElementById('navXp').textContent=`⚡ ${xp} XP · Lv.${lv+1}`;
+  document.getElementById('xpLevelLabel').textContent=`Level ${lv+1} · ESP32 ${LEVEL_NAMES[lv]||'Legend'}`;
+  document.getElementById('xpSubLabel').textContent=lv>=10?'Max Level Reached':`${xp} / ${nextXP} XP to next level`;
+  document.getElementById('xpPts').textContent=xp+' XP';
+  setTimeout(()=>document.getElementById('xpBarFill').style.width=pct+'%',500);
+  checkBadges();
+}
+function checkBadges(){
+  const labsDone=Object.keys(S.labs).filter(k=>S.labs[k]==='done');
+  const gpioLabs=['01','02','03'];
+  const sensorLabs=['04','05'];
+  const actLabs=['06','07','08'];
+  const show=(id)=>{const el=document.querySelector(`[data-badge="${id}"]`);if(el)el.classList.remove('locked');};
+  if(labsDone.length>=1)show('first');
+  if(gpioLabs.every(l=>labsDone.includes(l)))show('gpio');
+  if(sensorLabs.every(l=>labsDone.includes(l)))show('sensor');
+  if(actLabs.every(l=>labsDone.includes(l)))show('actuator');
+  if(labsDone.includes('09')&&labsDone.includes('10'))show('engineer');
+  if(labsDone.length>=10)show('all10');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROGRESS UI
+// ═══════════════════════════════════════════════════════════
+function updateProgressUI(){
+  const labsDone=Object.keys(S.labs).filter(k=>S.labs[k]==='done').length;
+  const playDone=Object.keys(S.playground).filter(k=>S.playground[k]==='done').length;
+  const overall=Math.round(((labsDone+playDone)/16)*100);
+  document.getElementById('labsCompVal').textContent=labsDone+' / 10';
+  document.getElementById('playCompVal').textContent=playDone+' / 6';
+  document.getElementById('overallVal').textContent=overall+'%';
+  setTimeout(()=>{
+    document.getElementById('labsFill').style.width=(labsDone/10*100)+'%';
+    document.getElementById('playFill').style.width=(playDone/6*100)+'%';
+    document.getElementById('overallFill').style.width=overall+'%';
+  },500);
+  // done indicators
+  document.querySelectorAll('.lab-card').forEach(card=>{
+    const num=card.dataset.num;
+    const isLab=!num.startsWith('P');
+    const done=isLab?(S.labs[num]==='done'):(S.playground[num]==='done');
+    const el=document.getElementById('done-'+num);
+    if(el)el.style.display=done?'':'none';
+    if(done)card.classList.add('done-card');
+  });
+  updateXPUI();
+  updatePathUI();
+  updateRecommend();
+  updateRecentUI();
+  updateFavUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEARNING PATH
+// ═══════════════════════════════════════════════════════════
+function updatePathUI(){
+  const track=document.getElementById('pathTrack');
+  const labsDone=Object.keys(S.labs).filter(k=>S.labs[k]==='done');
+  const sections=[{label:'GPIO',labs:['01','02','03']},{label:'Sensors',labs:['04','05']},{label:'Actuators',labs:['06','07','08']},{label:'Automation',labs:['09','10']}];
+  let html='';
+  sections.forEach((sec,si)=>{
+    if(si>0){html+=`<div class="path-section-sep"></div><div class="path-section-label">${sec.label}</div><div class="path-section-sep"></div>`;}
+    sec.labs.forEach((num,li)=>{
+      const done=labsDone.includes(num);
+      const prevDone=num==='01'||labsDone.includes(String(parseInt(num)-1).padStart(2,'0'));
+      const active=!done&&prevDone;
+      const locked=!done&&!active;
+      const cls=done?'done':active?'active':'locked';
+      if(li>0)html+=`<div class="path-connector ${done?'done':''}"></div>`;
+      html+=`<div class="path-node">
+        <div class="path-circle ${cls}" onclick="scrollToLab('${num}')" title="Lab ${num}">
+          ${done?'✓':num}
+        </div>
+        <div class="path-label ${cls}">${LAB_TITLES[num]?.split(' ')[0]||'Lab'}</div>
+      </div>`;
+    });
+  });
+  track.innerHTML=html;
+}
+function scrollToLab(num){const card=document.querySelector(`[data-num="${num}"]`);if(card)card.scrollIntoView({behavior:'smooth',block:'center'});}
+
+// ═══════════════════════════════════════════════════════════
+// RECOMMENDATION
+// ═══════════════════════════════════════════════════════════
+function updateRecommend(){
+  const labsDone=Object.keys(S.labs).filter(k=>S.labs[k]==='done');
+  const strip=document.getElementById('recommendStrip');
+  if(labsDone.length===0){strip.classList.remove('show');return;}
+  // find next lab after last done
+  const nums=['01','02','03','04','05','06','07','08','09','10'];
+  const lastDone=labsDone.sort().pop();
+  const idx=nums.indexOf(lastDone);
+  const next=nums[idx+1];
+  if(next&&S.labs[next]!=='done'){
+    document.getElementById('recommendTitle').textContent=`Lab ${next} — ${LAB_TITLES[next]}`;
+    document.getElementById('recommendSub').textContent=`Because you completed Lab ${lastDone}`;
+    document.getElementById('recommendBtn').onclick=()=>{const card=document.querySelector(`[data-num="${next}"]`);if(card){card.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>openModal(card),400);}};
+    strip.classList.add('show');
+  } else {
+    strip.classList.remove('show');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RECENT ACTIVITY
+// ═══════════════════════════════════════════════════════════
+function addRecent(num,title){
+  S.recent=S.recent.filter(r=>r.num!==num);
+  S.recent.unshift({num,title,time:'Just now'});
+  if(S.recent.length>5)S.recent=S.recent.slice(0,5);
+  setState(S);
+  updateRecentUI();
+}
+function updateRecentUI(){
+  const list=document.getElementById('recentList');
+  if(!S.recent||S.recent.length===0){list.innerHTML='<div class="mini-empty">No labs opened yet</div>';return;}
+  list.innerHTML=S.recent.map(r=>`
+    <div class="mini-item" onclick="scrollToLab('${r.num}')">
+      <div class="mini-dot ${S.labs[r.num]==='done'?'green':S.playground?.[r.num]==='done'?'green':'amber'}"></div>
+      <div class="mini-item-label">${r.title}</div>
+      <div class="mini-item-meta">${r.time}</div>
+    </div>`).join('');
+  updateContinueBanner();
+}
+function updateContinueBanner(){
+  const recent=S.recent&&S.recent[0];
+  if(recent&&S.labs[recent.num]!=='done'&&S.playground?.[recent.num]!=='done'){
+    document.getElementById('continueTitle').textContent=`Lab ${recent.num} — ${recent.title}`;
+    document.getElementById('continueSub').textContent='Last opened · Resume where you left off';
+    document.getElementById('continueBtn').onclick=()=>{
+      const card=document.querySelector(`[data-num="${recent.num}"]`);
+      if(card){card.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>openModal(card),400);}
+    };
+    document.getElementById('continueBanner').classList.add('show');
+  } else {
+    document.getElementById('continueBanner').classList.remove('show');
+  }
+}
+document.getElementById('continueDismiss').addEventListener('click',()=>{document.getElementById('continueBanner').classList.remove('show');});
+
+// ═══════════════════════════════════════════════════════════
+// FAVOURITES
+// ═══════════════════════════════════════════════════════════
+function toggleFav(card){
+  const num=card.dataset.num;
+  const title=card.dataset.title;
+  S.favs=S.favs||[];
+  if(S.favs.find(f=>f.num===num)){
+    S.favs=S.favs.filter(f=>f.num!==num);
+    card.classList.remove('favorited');
+    card.querySelectorAll('.fav-star,.hover-btn-fav').forEach(el=>el.textContent=el.classList.contains('hover-btn-fav')?'☆':'☆');
+  } else {
+    S.favs.push({num,title});
+    card.classList.add('favorited');
+    card.querySelectorAll('.fav-star,.hover-btn-fav').forEach(el=>el.textContent=el.classList.contains('hover-btn-fav')?'★':'★');
+  }
+  setState(S);updateFavUI();soundClick();
+}
+function updateFavUI(){
+  const list=document.getElementById('favList');
+  S.favs=S.favs||[];
+  if(S.favs.length===0){list.innerHTML='<div class="mini-empty">Star a lab to save it here</div>';return;}
+  list.innerHTML=S.favs.map(f=>`
+    <div class="mini-item" onclick="scrollToLab('${f.num}')">
+      <div class="mini-dot purple"></div>
+      <div class="mini-item-label">${f.title}</div>
+      <span class="mini-item-star" onclick="event.stopPropagation();unfav('${f.num}')">★</span>
+    </div>`).join('');
+  // update card star states
+  document.querySelectorAll('.lab-card').forEach(card=>{
+    const isFav=S.favs.find(f=>f.num===card.dataset.num);
+    if(isFav)card.classList.add('favorited');
+    card.querySelectorAll('.fav-star').forEach(el=>el.textContent=isFav?'★':'☆');
+  });
+}
+function unfav(num){const card=document.querySelector(`[data-num="${num}"]`);if(card)toggleFav(card);}
+
+// ═══════════════════════════════════════════════════════════
+// CONFETTI
+// ═══════════════════════════════════════════════════════════
+function launchConfetti(){
+  const canvas=document.getElementById('confettiCanvas');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  const pieces=[];
+  const colors=['#5EEAD4','#38BDF8','#34D399','#818CF8','#F59E0B','#F87171'];
+  for(let i=0;i<90;i++)pieces.push({x:Math.random()*canvas.width,y:-20,r:Math.random()*6+3,c:colors[Math.floor(Math.random()*colors.length)],vx:(Math.random()-0.5)*4,vy:Math.random()*4+2,rot:Math.random()*360,rspeed:(Math.random()-0.5)*6});
+  let frame=0;
+  function animate(){
+    if(frame++>120){ctx.clearRect(0,0,canvas.width,canvas.height);return;}
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.rot+=p.rspeed;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);ctx.fillStyle=p.c;ctx.globalAlpha=Math.max(0,1-frame/120);ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r);ctx.restore();});
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+function showToast(msg,xp){
+  document.getElementById('toastMsg').textContent=msg;
+  document.getElementById('toastXp').textContent=`+${xp} XP Earned · ${S.xp} Total`;
+  const toast=document.getElementById('toast');
+  toast.classList.add('show');
+  launchConfetti();soundComplete();
+  setTimeout(()=>toast.classList.remove('show'),3200);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+const overlay=document.getElementById('modalOverlay');
+const modalClose=document.getElementById('modalClose');
+function openModal(card){
+  const num=card.dataset.num;
+  const diff=card.dataset.diff;
+  const time=card.dataset.time;
+  const cat=card.dataset.category;
+  const status=card.dataset.status;
+  const xp=card.dataset.xp||20;
+  addRecent(num,card.dataset.title);
+  soundClick();
+  document.getElementById('mLabNum').textContent=(num.startsWith('P')?'Playground '+num:'Lab '+num.padStart(2,'0'));
+  document.getElementById('mTitle').textContent=card.dataset.title;
+  document.getElementById('mObj').textContent=card.dataset.obj;
+  const dc={'Beginner':'diff-b','Intermediate':'diff-i','Advanced':'diff-a'}[diff]||'diff-b';
+  document.getElementById('mBadges').innerHTML=`<span class="modal-badge ${dc}">${diff}</span><span class="modal-badge time">⏱ ${time}</span><span class="modal-badge cat">${cat}</span><span class="modal-badge time">⚡ +${xp} XP</span>`;
+  document.getElementById('mComponents').innerHTML=card.dataset.components.split(',').map(c=>`<span class="modal-chip">${c.trim()}</span>`).join('');
+  document.getElementById('mConcepts').innerHTML=card.dataset.concepts.split(',').map(c=>`<span class="modal-chip">${c.trim()}</span>`).join('');
+  const url=LAB_URLS[num];
+  const launchBtn=document.getElementById('mLaunchBtn');
+  if(status==='coming'){
+    launchBtn.style.opacity='.45';launchBtn.style.cursor='default';
+    launchBtn.onclick=null;
+    launchBtn.innerHTML=`🔒 Coming Soon`;
+  } else {
+    launchBtn.style.opacity='1';launchBtn.style.cursor='pointer';
+    launchBtn.onclick=()=>{
+      const isPlay=num.startsWith('P');
+      if(isPlay)S.playground[num]='done';else S.labs[num]='done';
+      S.xp=(S.xp||0)+parseInt(xp);
+      setState(S);updateProgressUI();
+      showToast(`${card.dataset.title} Launched!`,xp);
+      setTimeout(()=>{if(url)window.location.href=url;},800);
+    };
+    launchBtn.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Launch Lab <span class="arr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>`;
+  }
+  document.getElementById('mYtBtn').onclick=()=>window.open('https://www.youtube.com/@srm-arcio','_blank');
+  overlay.classList.add('open');document.body.style.overflow='hidden';
+}
+function closeModal(){overlay.classList.remove('open');document.body.style.overflow='';}
+modalClose.addEventListener('click',closeModal);
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+document.querySelectorAll('.lab-card').forEach(card=>card.addEventListener('click',()=>openModal(card)));
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH WITH SUGGESTIONS
+// ═══════════════════════════════════════════════════════════
+const allCards=document.querySelectorAll('.lab-card');
+const secDividers=document.querySelectorAll('.lab-section');
+let currentFilter='all',currentSearch='';
+
+function applyFilters(){
+  const q=currentSearch.toLowerCase();
+  let visible=0;
+  allCards.forEach(card=>{
+    const cat=card.dataset.category||'';
+    const title=card.dataset.title||'';
+    const mf=currentFilter==='all'||cat===currentFilter;
+    const ms=!q||title.toLowerCase().includes(q)||cat.toLowerCase().includes(q);
+    if(mf&&ms){card.style.display='';visible++;}else{card.style.display='none';}
+  });
+  secDividers.forEach(div=>{
+    const sec=div.dataset.section;
+    const show=currentFilter==='all'||currentFilter===sec||(sec==='Automation'&&(currentFilter==='Automation'||currentFilter==='Smart Home'));
+    div.style.display=show?'':'none';
+  });
+  const pg=document.getElementById('sec-playground');
+  if(pg)pg.style.display=(currentFilter==='all'||currentFilter==='Playground')?'':'none';
+  document.getElementById('noResults').classList.toggle('show',visible===0);
+  buildTable();
+}
+
+const searchInput=document.getElementById('searchInput');
+const searchSuggestions=document.getElementById('searchSuggestions');
+searchInput.addEventListener('input',e=>{
+  currentSearch=e.target.value;
+  applyFilters();
+  const q=e.target.value.toLowerCase();
+  if(!q){searchSuggestions.classList.remove('show');return;}
+  const matches=[...allCards].filter(c=>c.dataset.title.toLowerCase().includes(q)).slice(0,5);
+  if(matches.length===0){searchSuggestions.classList.remove('show');return;}
+  searchSuggestions.innerHTML=matches.map(c=>`
+    <div class="suggestion-item" onclick="selectSuggestion('${c.dataset.title}')">
+      <span class="suggestion-icon">🔬</span>
+      <span class="suggestion-label">${c.dataset.title}</span>
+      <span class="suggestion-cat">${c.dataset.category}</span>
+    </div>`).join('');
+  searchSuggestions.classList.add('show');
+});
+function selectSuggestion(title){searchInput.value=title;currentSearch=title;applyFilters();searchSuggestions.classList.remove('show');}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))searchSuggestions.classList.remove('show');});
+
+document.querySelectorAll('.filter-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');currentFilter=tab.dataset.filter;applyFilters();soundClick();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// VIEW TOGGLE
+// ═══════════════════════════════════════════════════════════
+const btnGrid=document.getElementById('btnGrid');
+const btnTable=document.getElementById('btnTable');
+const tableWrap=document.getElementById('tableWrap');
+const allGrids=document.querySelectorAll('.card-grid');
+
+function buildTable(){
+  const tbody=document.getElementById('tableBody');
+  const dc={'Beginner':'diff-b','Intermediate':'diff-i','Advanced':'diff-a'};
+  const sl={'ready':'<span style="color:var(--green);font-weight:600;">● Ready</span>','beta':'<span style="color:var(--amber);font-weight:600;">● Beta</span>','coming':'<span style="color:var(--muted2);">○ Coming</span>'};
+  const rows=[...allCards].filter(c=>c.style.display!=='none').map(c=>`
+    <tr>
+      <td><span class="tbl-num">${c.dataset.num.startsWith('P')?'Playground '+c.dataset.num:'Lab '+c.dataset.num}</span></td>
+      <td><span class="tbl-title">${c.dataset.title}</span></td>
+      <td><span class="tbl-cat">${c.dataset.category}</span></td>
+      <td><span class="card-meta-chip ${dc[c.dataset.diff]||''}" style="display:inline-block">${c.dataset.diff}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${c.dataset.time}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber)">+${c.dataset.xp} XP</td>
+      <td>${sl[c.dataset.status]||''}</td>
+      <td><button class="tbl-btn" onclick="openModal(document.querySelector('[data-num=\\'${c.dataset.num}\\']'))">Open</button></td>
+    </tr>`).join('');
+  tbody.innerHTML=rows||'<tr><td colspan="8" style="text-align:center;color:var(--muted2);padding:24px;font-size:12px;">No results.</td></tr>';
+}
+btnGrid.addEventListener('click',()=>{
+  btnGrid.classList.add('active');btnTable.classList.remove('active');
+  allGrids.forEach(g=>g.classList.remove('hidden'));tableWrap.classList.remove('show');
+  secDividers.forEach(d=>d.style.display='');
+  document.getElementById('sec-playground').style.display='';
+  applyFilters();soundClick();
+});
+btnTable.addEventListener('click',()=>{
+  btnTable.classList.add('active');btnGrid.classList.remove('active');
+  allGrids.forEach(g=>g.classList.add('hidden'));tableWrap.classList.add('show');
+  secDividers.forEach(d=>d.style.display='none');
+  document.getElementById('sec-playground').style.display='none';
+  buildTable();soundClick();
+});
+
+// ═══════════════════════════════════════════════════════════
+// LIVE CONSOLE
+// ═══════════════════════════════════════════════════════════
+const consoleLines=[
+  {text:'Booting ARCIO v1.0...',cls:''},
+  {text:'ESP32 Platform Detected',cls:'ok'},
+  {text:'GPIO Controller Ready',cls:'ok'},
+  {text:'Sensor Array Online',cls:'cyan'},
+  {text:'Simulation Engine Started',cls:'ok'},
+  {text:'Loading Lab Assets...',cls:''},
+  {text:'WebGL Context Initialized',cls:'cyan'},
+  {text:'All systems nominal',cls:'ok'},
+];
+let consoleIdx=0;
+const consoleBody=document.getElementById('consoleBody');
+const consoleToggle=document.getElementById('consoleToggle');
+let consoleCollapsed=false;
+document.getElementById('consoleHeader').addEventListener('click',()=>{
+  consoleCollapsed=!consoleCollapsed;
+  consoleBody.classList.toggle('collapsed',consoleCollapsed);
+  consoleToggle.style.transform=consoleCollapsed?'rotate(-90deg)':'';
+});
+function addConsoleLine(){
+  if(consoleIdx>=consoleLines.length){consoleIdx=0;}
+  const line=consoleLines[consoleIdx++];
+  const el=document.createElement('div');
+  el.className=`console-line ${line.cls}`;
+  el.innerHTML=`<span class="console-pfx">$</span><span>${line.text}</span>`;
+  consoleBody.appendChild(el);
+  while(consoleBody.children.length>4)consoleBody.removeChild(consoleBody.firstChild);
+}
+addConsoleLine();setInterval(addConsoleLine,2200);
+
+// ═══════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════
+const themeBtn=document.getElementById('themeToggle');
+if(S.theme==='light')document.body.classList.add('light');
+themeBtn.addEventListener('click',()=>{
+  document.body.classList.toggle('light');
+  S.theme=document.body.classList.contains('light')?'light':'dark';
+  setState(S);
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+updateProgressUI();
+updateRecentUI();
+updateFavUI();
+updatePathUI();
+buildTable();
+
+// ESP32 float tooltip
+document.getElementById('esp32Float').addEventListener('click',()=>{
+  showToast('ESP32 Platform Ready!',0);
+});
 </script>
 </body>
 </html>
-<script>
-// ── THEME TOGGLE
-const themeBtn=document.getElementById('themeToggle');
-const saved=localStorage.getItem('arcio-theme');
-if(saved==='light')document.body.classList.add('light');
-themeBtn.addEventListener('click',()=>{
-  document.body.classList.toggle('light');
-  localStorage.setItem('arcio-theme',document.body.classList.contains('light')?'light':'dark');
-});
-</script>
