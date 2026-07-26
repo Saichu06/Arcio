@@ -1843,8 +1843,9 @@
             backdrop-filter: blur(20px);
             opacity: 0;
             visibility: hidden;
-            transform: scale(.92);
-            transition: opacity .3s cubic-bezier(.2, .8, .3, 1), transform .3s cubic-bezier(.2, .8, .3, 1), visibility 0s .3s;
+            transform: scale(.06);
+            transform-origin: 50% 50%;
+            transition: opacity .42s cubic-bezier(.16, .84, .2, 1), transform .42s cubic-bezier(.16, .84, .2, 1), visibility 0s .42s;
             display: flex;
             flex-direction: column;
         }
@@ -1853,7 +1854,7 @@
             opacity: 1;
             visibility: visible;
             transform: scale(1);
-            transition: opacity .3s cubic-bezier(.2, .8, .3, 1), transform .3s cubic-bezier(.2, .8, .3, 1), visibility 0s;
+            transition: opacity .42s cubic-bezier(.16, .84, .2, 1), transform .42s cubic-bezier(.16, .84, .2, 1), visibility 0s;
         }
 
         .afs-topbar {
@@ -2262,7 +2263,7 @@
 
     <script>
         // Theme sync with dashboard
-        (function() {
+        (function () {
             function applyTheme() {
                 try {
                     const state = JSON.parse(localStorage.getItem('arcio_v2')) || {};
@@ -2274,7 +2275,7 @@
                     }
                     const btn = document.getElementById('themeToggleBtn');
                     if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
-                } catch(e){}
+                } catch (e) { }
             }
             applyTheme();
             document.addEventListener('DOMContentLoaded', () => {
@@ -2287,7 +2288,7 @@
                             state.theme = state.theme === 'light' ? 'dark' : 'light';
                             localStorage.setItem('arcio_v2', JSON.stringify(state));
                             applyTheme();
-                        } catch(e){}
+                        } catch (e) { }
                     });
                 }
             });
@@ -2950,11 +2951,11 @@
                 highlightComponent(id, false);
             });
 
-            // Fullscreen Arduino Visualizer
+            // Fullscreen Arduino Visualizer — double-click zooms straight into the board
             if (type === 'arduino') {
                 built.el.addEventListener('dblclick', e => {
                     e.stopPropagation();
-                    openArduinoFullscreen(id);
+                    openArduinoFullscreen(id, built.el);
                 });
             }
 
@@ -3623,30 +3624,47 @@
         // ═══════════════════════════
         // FULLSCREEN ARDUINO VISUALIZER
         // ═══════════════════════════
+        const PWM_PINS = [3, 5, 6, 9, 10, 11];
         const PIN_DETAILS = { D2: { mode: 'INPUT', desc: 'Digital input pin, reads button/switch state.' }, D13: { mode: 'OUTPUT', desc: 'Digital output pin, drives onboard/external LED.' } };
-        for (let i = 0; i <= 13; i++) if (!PIN_DETAILS['D' + i]) PIN_DETAILS['D' + i] = { mode: 'UNUSED', desc: 'Not currently connected in this circuit.' };
+        for (let i = 0; i <= 13; i++) if (!PIN_DETAILS['D' + i]) PIN_DETAILS['D' + i] = { mode: PWM_PINS.includes(i) ? 'PWM CAPABLE' : 'UNUSED', desc: PWM_PINS.includes(i) ? 'Supports analogWrite() pulse-width modulation output. Not currently connected in this circuit.' : 'Not currently connected in this circuit.' };
         for (let i = 0; i <= 5; i++) PIN_DETAILS['A' + i] = { mode: 'UNUSED', desc: 'Analog input pin, not currently connected.' };
 
         let afsParticleRAF = null;
+        let afsPwmPhase = 0;
 
+        // Returns 'high' | 'low' | 'pwm'. D13 mirrors the live GPIO13 state; unused
+        // PWM-capable pins gently pulse while the simulation is running so the
+        // PWM styling / behaviour is visible even though this experiment doesn't
+        // wire up an analogWrite() output.
         function pinState(pinName) {
             if (!simRunning) return 'low';
             if (pinName === 'D2') return document.getElementById('liveGpio2').textContent === 'HIGH' ? 'high' : 'low';
             if (pinName === 'D13') return document.getElementById('liveGpio13').textContent === 'HIGH' ? 'high' : 'low';
+            if (pinName.startsWith('D')) {
+                const n = parseInt(pinName.slice(1), 10);
+                if (PWM_PINS.includes(n)) return 'pwm';
+            }
             return 'low';
         }
 
+        function pinClassFor(pinName) {
+            const st = pinState(pinName);
+            if (st === 'high') return 'afs-pin-high';
+            if (st === 'pwm') return 'afs-pin-pwm';
+            return 'afs-pin-low';
+        }
+
         function buildFullscreenBoardSVG() {
-            const dPinEls = Array.from({length:14},(_,i)=>13-i).map((n, idx) => {
-                const cls = pinState('D'+n) === 'high' ? 'afs-pin-high' : 'afs-pin-low';
+            const dPinEls = Array.from({ length: 14 }, (_, i) => 13 - i).map((n, idx) => {
+                const cls = pinClassFor('D' + n);
                 return `<g class="afs-pin" data-pin="D${n}" style="cursor:none;">
-                    <rect x="${40+idx*44}" y="24" width="12" height="22" rx="2" class="${cls}"/>
-                    <text x="${46+idx*44}" y="18" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="#6B7DA0">D${n}</text>
+                    <rect x="${40 + idx * 44}" y="24" width="12" height="22" rx="2" class="${cls}"/>
+                    <text x="${46 + idx * 44}" y="18" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="#6B7DA0">D${n}${PWM_PINS.includes(n) ? '~' : ''}</text>
                 </g>`;
             }).join('');
-            const aPinEls = [0,1,2,3,4,5].map((n, idx) => `<g class="afs-pin" data-pin="A${n}" style="cursor:none;">
-                <rect x="${330+idx*44}" y="374" width="12" height="22" rx="2" class="afs-pin-low"/>
-                <text x="${336+idx*44}" y="412" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="#6B7DA0">A${n}</text>
+            const aPinEls = [0, 1, 2, 3, 4, 5].map((n, idx) => `<g class="afs-pin" data-pin="A${n}" style="cursor:none;">
+                <rect x="${330 + idx * 44}" y="374" width="12" height="22" rx="2" class="afs-pin-low"/>
+                <text x="${336 + idx * 44}" y="412" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="#6B7DA0">A${n}</text>
             </g>`).join('');
 
             return `<svg class="afs-board-svg" width="700" height="420" viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
@@ -3794,7 +3812,7 @@
             document.getElementById('afsPinInfo').innerHTML = `
                 <div class="afs-pin-info-title">Pin ${pinName}</div>
                 <div class="afs-pin-info-row"><span>Mode</span><span>${info.mode}</span></div>
-                <div class="afs-pin-info-row"><span>Voltage</span><span>${state === 'high' ? '5V' : '0V'}</span></div>
+                <div class="afs-pin-info-row"><span>Voltage</span><span>${state === 'high' ? '5V' : state === 'pwm' ? '0–5V (PWM)' : '0V'}</span></div>
                 <div class="afs-pin-info-row"><span>Current State</span><span>${state.toUpperCase()}</span></div>
                 <div class="insp-txt" style="margin-top:6px;">${info.desc}</div>
             `;
@@ -3854,8 +3872,14 @@
             if (!document.getElementById('arduinoFullscreen').classList.contains('active')) return;
             ['D2', 'D13'].forEach(p => {
                 const el = document.querySelector(`.afs-pin[data-pin="${p}"] rect`);
-                if (el) el.setAttribute('class', pinState(p) === 'high' ? 'afs-pin-high' : 'afs-pin-low');
+                if (el) el.setAttribute('class', pinClassFor(p));
             });
+            PWM_PINS.forEach(n => {
+                const el = document.querySelector(`.afs-pin[data-pin="D${n}"] rect`);
+                if (el) el.setAttribute('class', pinClassFor('D' + n));
+            });
+            const ledEl = document.getElementById('afsLedL');
+            if (ledEl) ledEl.setAttribute('fill', pinState('D13') === 'high' ? 'rgba(255,165,0,0.9)' : '#2a2a2a');
         }
 
         function updateFullscreenRunState() {
@@ -3865,14 +3889,30 @@
             document.getElementById('afsRunTxt').textContent = simRunning ? 'Simulation Running' : 'Idle';
         }
 
-        function openArduinoFullscreen(compId) {
+        // Compute where (as % of viewport) the double-clicked Arduino sits so the
+        // fullscreen overlay can visually "zoom in" from that exact point rather
+        // than just fading in centered on the screen.
+        function setZoomOrigin(sourceEl) {
+            const overlay = document.getElementById('arduinoFullscreen');
+            if (!sourceEl) { overlay.style.transformOrigin = '50% 50%'; return; }
+            const rect = sourceEl.getBoundingClientRect();
+            const originX = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+            const originY = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
+            overlay.style.transformOrigin = `${originX}% ${originY}%`;
+        }
+
+        function openArduinoFullscreen(compId, sourceEl) {
             const overlay = document.getElementById('arduinoFullscreen');
             document.getElementById('afsBoardWrap').innerHTML = buildFullscreenBoardSVG();
+            setZoomOrigin(sourceEl);
+            // Force the browser to register the pre-active transform/origin before
+            // flipping the class, otherwise the transition can get skipped.
+            void overlay.offsetWidth;
             overlay.classList.add('active');
             attachFullscreenPinEvents();
             renderMiniPreview();
             updateFullscreenRunState();
-            log('Opened fullscreen Arduino Visualizer', 'info');
+            log('Opened fullscreen Arduino Visualizer (zoomed in from canvas)', 'info');
             startParticleLoop();
         }
 
