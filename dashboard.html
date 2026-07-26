@@ -1255,6 +1255,36 @@
       transition: all .2s;
     }
 
+    /* Arduino Expanded Button - NEW */
+    .hover-btn-arduino {
+      flex: 1;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      background: rgba(94, 234, 212, .1);
+      border: 1px solid rgba(94, 234, 212, .3);
+      color: var(--cyan);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .2s cubic-bezier(.2, .8, .3, 1);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .hover-btn-arduino:hover {
+      background: rgba(94, 234, 212, .2);
+      border-color: rgba(94, 234, 212, .6);
+      box-shadow: 0 0 12px rgba(94, 234, 212, .2);
+      transform: translateY(-1px);
+    }
+
+    .hover-btn-arduino:active {
+      transform: translateY(0);
+    }
+
     .hover-btn-open:hover {
       background: linear-gradient(135deg, rgba(52, 211, 153, .28), rgba(16, 185, 129, .18));
       box-shadow: 0 4px 16px rgba(52, 211, 153, .2);
@@ -2482,7 +2512,648 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(94, 234, 212, .22);
     }
+    /* Arduino Expanded Modal Styles - NEW */
+.arduino-expanded-content {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--panel-solid);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* Wiring diagram tab */
+#arduino-wiring-diagram {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.wiring-svg-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.wiring-svg-wrap svg {
+  display: block;
+  min-width: 560px;
+  width: 100%;
+  height: auto;
+}
+
+.wiring-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.wiring-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+
+.wiring-legend-swatch {
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.wiring-legend-swatch.dashed {
+  background-image: linear-gradient(90deg, currentColor 60%, transparent 40%);
+  background-size: 6px 2px;
+  color: var(--muted2);
+}
+
+.wiring-legend-swatch.dotted {
+  background-image: linear-gradient(90deg, currentColor 40%, transparent 40%);
+  background-size: 4px 2px;
+  color: var(--amber);
+}
+
+/* The outer wrapper had no positioning at all, so the modal rendered
+   as plain static content at the bottom of the page instead of as an
+   overlay. Also force its nested .modal-overlay to be visible, since
+   it never gets the .open class the other modal system relies on. */
+#arduino-expanded-modal.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+#arduino-expanded-modal.modal .modal-overlay {
+  opacity: 1;
+  pointer-events: all;
+  z-index: 0;
+}
+
+.arduino-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-strong);
+  border-radius: 12px 12px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.arduino-board-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cyan);
+  margin-bottom: 4px;
+}
+
+.arduino-exp-title {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.arduino-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--panel-border);
+  padding: 0 24px;
+  background: var(--panel);
+  overflow-x: auto;
+  position: sticky;
+  top: 68px;
+}
+
+.arduino-tab-btn {
+  flex: 0 0 auto;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  white-space: nowrap;
+}
+
+.arduino-tab-btn:hover {
+  color: var(--cyan);
+}
+
+.arduino-tab-btn.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+
+.arduino-tabs-content {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.arduino-tab-content {
+  display: none;
+}
+
+.arduino-tab-content.active {
+  display: block;
+  animation: fadeIn .2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.arduino-section {
+  margin-bottom: 32px;
+}
+
+.arduino-section:last-child {
+  margin-bottom: 0;
+}
+
+.arduino-section h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cyan);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(94, 234, 212, .08);
+  font-size: 13px;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.info-value {
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+.expected-output {
+  background: var(--panel);
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+#arduino-procedure-list {
+  list-style: decimal-leading-zero;
+  padding-left: 24px;
+  color: var(--ink);
+}
+
+#arduino-procedure-list li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.pins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.pin-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all .2s;
+}
+
+.pin-card:hover {
+  border-color: rgba(94, 234, 212, .3);
+  box-shadow: 0 0 12px rgba(94, 234, 212, .1);
+}
+
+.pin-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--cyan);
+  margin-bottom: 6px;
+}
+
+.pin-function {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.code-container {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 6px 12px;
+  background: rgba(94, 234, 212, .12);
+  border: 1px solid rgba(94, 234, 212, .3);
+  color: var(--cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all .2s;
+  z-index: 5;
+}
+
+.code-copy-btn:hover {
+  background: rgba(94, 234, 212, .2);
+  border-color: rgba(94, 234, 212, .5);
+}
+
+#arduino-code-pre {
+  margin: 0;
+  padding: 16px;
+  padding-top: 40px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink);
+  overflow-x: auto;
+  max-height: 500px;
+}
+
+#arduino-code-pre code {
+  color: var(--ink);
+  background: transparent;
+}
+
+.libraries-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.library-item {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.library-icon {
+  font-size: 16px;
+}
+
+.library-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  transition: color .2s;
+  padding: 4px 8px;
+}
+
+.modal-close:hover {
+  color: var(--cyan);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .arduino-expanded-content {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .arduino-tabs {
+    padding: 0 12px;
+  }
+  
+  .arduino-tab-btn {
+    padding: 10px 14px;
+    font-size: 7px;
+  }
+  
+  .arduino-tabs-content {
+    padding: 16px;
+  }
+  
+  .pins-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  #arduino-code-pre {
+    font-size: 10px;
+    padding: 12px;
+    padding-top: 40px;
+  }
+}
   </style>
+  <script>
+    // Load experiment data from JSON
+    let experimentsData = {};
+    
+    // Embedded directly so this works even when the file is opened
+    // straight from disk (file://), where fetch() of local JSON is blocked.
+    experimentsData = {"experiments": [{"id": "exp-001", "num": "01", "category": "Basic I/O", "title": "LED Blink", "difficulty": "Beginner", "duration": "15 Minutes", "xp": 15, "status": "ready", "objective": "Master basic digital output by blinking an LED at different intervals. Understand GPIO pins, digitalWrite, and timing using delay().", "components": ["ESP32", "Breadboard", "LED", "220Ω Resistor", "Jumper Wires"], "concepts": ["Digital Output", "GPIO", "digitalWrite", "delay()", "Blink Pattern", "LED"], "arduino": {"board": "ESP32", "pins": {"LED": "GPIO 5"}, "libraries": [], "code": "void setup() {\n  pinMode(5, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(5, HIGH);\n  delay(1000);\n  digitalWrite(5, LOW);\n  delay(1000);\n}"}, "procedureSteps": ["Connect LED positive leg to GPIO 5 through 220Ω resistor", "Connect LED negative leg to GND", "Upload the code to ESP32", "Observe LED blinking pattern"], "expectedOutput": "LED blinks on and off at 1-second intervals"}, {"id": "exp-002", "num": "02", "category": "Basic I/O", "title": "Button Input", "difficulty": "Beginner", "duration": "20 Minutes", "xp": 20, "status": "ready", "objective": "Read digital input from a button and control an LED based on button state. Learn about digitalRead and debouncing.", "components": ["ESP32", "Breadboard", "Button", "LED", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["Digital Input", "Button State", "digitalRead", "Debouncing", "Conditional Logic", "Simultaneous Input/Output"], "arduino": {"board": "ESP32", "pins": {"BUTTON": "GPIO 4", "LED": "GPIO 5"}, "libraries": [], "code": "void setup() {\n  pinMode(4, INPUT_PULLUP);\n  pinMode(5, OUTPUT);\n}\n\nvoid loop() {\n  if (digitalRead(4) == LOW) {\n    digitalWrite(5, HIGH);\n  } else {\n    digitalWrite(5, LOW);\n  }\n  delay(20);\n}"}, "procedureSteps": ["Connect button to GPIO 4 with 10kΩ pull-up resistor", "Connect LED to GPIO 5 through 220Ω resistor", "Upload code and press the button", "LED should turn on when button is pressed"], "expectedOutput": "LED lights up when button is pressed, turns off when released"}, {"id": "exp-003", "num": "03", "category": "Analog I/O", "title": "PWM LED Dimming", "difficulty": "Intermediate", "duration": "30 Minutes", "xp": 30, "status": "ready", "objective": "Control LED brightness using PWM (Pulse Width Modulation). Learn about analog output and brightness control.", "components": ["ESP32", "Breadboard", "LED", "220Ω Resistor", "Jumper Wires"], "concepts": ["PWM", "Analog Output", "Duty Cycle", "ledcSetup", "ledcWrite", "Brightness Control"], "arduino": {"board": "ESP32", "pins": {"LED": "GPIO 5"}, "libraries": [], "code": "const int ledPin = 5;\nconst int ledChannel = 0;\nconst int frequency = 1000;\nconst int resolution = 8;\n\nvoid setup() {\n  ledcSetup(ledChannel, frequency, resolution);\n  ledcAttachPin(ledPin, ledChannel);\n}\n\nvoid loop() {\n  for (int brightness = 0; brightness <= 255; brightness++) {\n    ledcWrite(ledChannel, brightness);\n    delay(10);\n  }\n  for (int brightness = 255; brightness >= 0; brightness--) {\n    ledcWrite(ledChannel, brightness);\n    delay(10);\n  }\n}"}, "procedureSteps": ["Connect LED to GPIO 5 through 220Ω resistor", "Upload the PWM control code", "Observe LED brightness changing smoothly", "Try adjusting delay values to change fade speed"], "expectedOutput": "LED fades in and out smoothly in a continuous loop"}, {"id": "exp-004", "num": "04", "category": "Sensors", "title": "Automatic Light Detection", "difficulty": "Beginner", "duration": "25 Minutes", "xp": 25, "status": "beta", "objective": "Interface an LDR with the ESP32 to automatically detect ambient light levels and trigger an LED based on a threshold.", "components": ["ESP32", "Breadboard", "LDR Sensor", "LED", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["LDR", "Analog Sensor", "Threshold Logic", "ADC", "Auto Trigger", "Light Sensing"], "arduino": {"board": "ESP32", "pins": {"LDR": "GPIO 34 (ADC)", "LED": "GPIO 5"}, "libraries": [], "code": "const int ldrPin = 34;\nconst int ledPin = 5;\nconst int threshold = 2048;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  int ldrValue = analogRead(ldrPin);\n  Serial.println(ldrValue);\n  \n  if (ldrValue < threshold) {\n    digitalWrite(ledPin, HIGH);\n  } else {\n    digitalWrite(ledPin, LOW);\n  }\n  delay(100);\n}"}, "procedureSteps": ["Connect LDR with 10kΩ resistor as voltage divider to GPIO 34", "Connect LED to GPIO 5", "Upload code and observe Serial Monitor", "Cover LDR to trigger LED"], "expectedOutput": "LED turns on when light level drops below threshold value"}, {"id": "exp-005", "num": "05", "category": "Sensors", "title": "Temperature Monitoring", "difficulty": "Intermediate", "duration": "35 Minutes", "xp": 30, "status": "beta", "objective": "Read temperature and humidity data using a DHT22 sensor. Display real-time values over Serial Monitor and trigger alerts on threshold breach.", "components": ["ESP32", "Breadboard", "DHT22 Sensor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["DHT22", "Temperature", "Humidity", "Serial Monitor", "Threshold Alert", "Sensor Library"], "arduino": {"board": "ESP32", "pins": {"DHT22": "GPIO 17"}, "libraries": ["DHT sensor library", "Adafruit Unified Sensor"], "code": "#include \"DHT.h\"\n\nconst int dhtPin = 17;\nconst int dhtType = DHT22;\nDHT dht(dhtPin, dhtType);\n\nvoid setup() {\n  Serial.begin(115200);\n  dht.begin();\n}\n\nvoid loop() {\n  float humidity = dht.readHumidity();\n  float temperature = dht.readTemperature();\n  \n  if (!isnan(humidity) && !isnan(temperature)) {\n    Serial.print(\"Temp: \");\n    Serial.print(temperature);\n    Serial.print(\"°C, Humidity: \");\n    Serial.println(humidity);\n  }\n  delay(2000);\n}"}, "procedureSteps": ["Connect DHT22 data pin to GPIO 17", "Add pull-up resistor (10kΩ) between data and VCC", "Install DHT library through Arduino IDE", "Upload code and open Serial Monitor", "Observe temperature and humidity readings"], "expectedOutput": "Serial Monitor displays temperature and humidity values updating every 2 seconds"}, {"id": "exp-006", "num": "06", "category": "Actuators", "title": "Buzzer Control", "difficulty": "Beginner", "duration": "20 Minutes", "xp": 20, "status": "beta", "objective": "Drive a passive buzzer with the ESP32 using PWM signals. Generate different tones by varying frequency and create simple alarm patterns.", "components": ["ESP32", "Breadboard", "Passive Buzzer", "Jumper Wires"], "concepts": ["PWM", "Tone Generation", "Frequency", "Alarm Pattern", "ledcWrite", "Active vs Passive Buzzer"], "arduino": {"board": "ESP32", "pins": {"BUZZER": "GPIO 12"}, "libraries": [], "code": "const int buzzerPin = 12;\nconst int ledChannel = 0;\nconst int frequency = 1000;\nconst int resolution = 8;\n\nvoid setup() {\n  ledcSetup(ledChannel, frequency, resolution);\n  ledcAttachPin(buzzerPin, ledChannel);\n}\n\nvoid playTone(int freq, int duration) {\n  ledcChangeFrequency(ledChannel, freq, resolution);\n  ledcWrite(ledChannel, 128);\n  delay(duration);\n  ledcWrite(ledChannel, 0);\n  delay(100);\n}\n\nvoid loop() {\n  playTone(1000, 500);\n  playTone(1500, 500);\n  delay(1000);\n}"}, "procedureSteps": ["Connect buzzer positive to GPIO 12, negative to GND", "Upload code to ESP32", "Buzzer should play alternating tones", "Try changing frequency values for different pitches"], "expectedOutput": "Buzzer produces alternating tones (1000Hz and 1500Hz) with 500ms duration each"}, {"id": "exp-007", "num": "07", "category": "Communication", "title": "WiFi Connection", "difficulty": "Intermediate", "duration": "30 Minutes", "xp": 35, "status": "beta", "objective": "Connect ESP32 to WiFi network and display connection status. Learn about WiFi libraries and network debugging.", "components": ["ESP32", "USB Cable"], "concepts": ["WiFi", "Network Connection", "SSID", "Password", "Connection Status", "Serial Debugging"], "arduino": {"board": "ESP32", "pins": {}, "libraries": ["WiFi.h"], "code": "#include <WiFi.h>\n\nconst char* ssid = \"YOUR_SSID\";\nconst char* password = \"YOUR_PASSWORD\";\n\nvoid setup() {\n  Serial.begin(115200);\n  WiFi.begin(ssid, password);\n  \n  while (WiFi.status() != WL_CONNECTED) {\n    delay(500);\n    Serial.print(\".\");\n  }\n  Serial.println(\"\\nWiFi connected!\");\n  Serial.println(WiFi.localIP());\n}\n\nvoid loop() {\n  Serial.print(\"Signal strength: \");\n  Serial.println(WiFi.RSSI());\n  delay(5000);\n}"}, "procedureSteps": ["Replace YOUR_SSID and YOUR_PASSWORD with actual WiFi credentials", "Upload code to ESP32", "Open Serial Monitor at 115200 baud", "Watch connection progress and obtain IP address"], "expectedOutput": "Serial Monitor shows connection dots, then displays local IP address and signal strength updates"}, {"id": "exp-008", "num": "08", "category": "Advanced", "title": "Motion Detection", "difficulty": "Intermediate", "duration": "30 Minutes", "xp": 35, "status": "beta", "objective": "Interface a PIR (Passive Infrared) motion sensor with ESP32. Detect motion and trigger alerts or notifications.", "components": ["ESP32", "Breadboard", "PIR Sensor", "LED", "220Ω Resistor", "Jumper Wires"], "concepts": ["PIR Sensor", "Motion Detection", "Interrupt Handling", "Debouncing", "Alert Logic"], "arduino": {"board": "ESP32", "pins": {"PIR": "GPIO 13", "LED": "GPIO 5"}, "libraries": [], "code": "const int pirPin = 13;\nconst int ledPin = 5;\nint motionDetected = 0;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(pirPin, INPUT);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  motionDetected = digitalRead(pirPin);\n  \n  if (motionDetected == HIGH) {\n    digitalWrite(ledPin, HIGH);\n    Serial.println(\"Motion detected!\");\n  } else {\n    digitalWrite(ledPin, LOW);\n    Serial.println(\"No motion\");\n  }\n  delay(100);\n}"}, "procedureSteps": ["Connect PIR sensor output to GPIO 13", "Connect LED to GPIO 5", "Upload code and wait 30-60 seconds for sensor warm-up", "Move in front of sensor to trigger detection"], "expectedOutput": "LED lights up and serial prints 'Motion detected!' when movement is detected"}, {"id": "exp-009", "num": "09", "category": "Advanced", "title": "Servo Motor Control", "difficulty": "Intermediate", "duration": "35 Minutes", "xp": 40, "status": "beta", "objective": "Control servo motor angle using PWM signals. Learn servo protocols and precision angle positioning.", "components": ["ESP32", "Breadboard", "Servo Motor", "Jumper Wires"], "concepts": ["Servo Motor", "PWM Pulse Width", "Angle Control", "180-degree sweep"], "arduino": {"board": "ESP32", "pins": {"SERVO": "GPIO 15"}, "libraries": ["ESP32Servo"], "code": "#include <ESP32Servo.h>\n\nServo myServo;\nconst int servoPin = 15;\n\nvoid setup() {\n  myServo.attach(servoPin);\n}\n\nvoid loop() {\n  for (int angle = 0; angle <= 180; angle += 5) {\n    myServo.write(angle);\n    delay(50);\n  }\n  for (int angle = 180; angle >= 0; angle -= 5) {\n    myServo.write(angle);\n    delay(50);\n  }\n}"}, "procedureSteps": ["Connect servo signal to GPIO 15, VCC to 5V, GND to GND", "Install ESP32Servo library", "Upload code to ESP32", "Observe servo sweeping 0-180 degrees"], "expectedOutput": "Servo motor sweeps from 0° to 180° smoothly and back in continuous cycle"}, {"id": "exp-010", "num": "10", "category": "Integration", "title": "Smart Home Scene", "difficulty": "Advanced", "duration": "45 Minutes", "xp": 50, "status": "beta", "objective": "Combine multiple sensors and actuators to create an integrated smart home scene with WiFi control.", "components": ["ESP32", "Breadboard", "LED", "Button", "LDR", "Buzzer", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["Integration", "State Management", "WiFi Control", "Multi-sensor Logic", "Real-world Application"], "arduino": {"board": "ESP32", "pins": {"BUTTON": "GPIO 4", "LED": "GPIO 5", "LDR": "GPIO 34", "BUZZER": "GPIO 12"}, "libraries": ["WiFi.h"], "code": "// Multi-component integration example\nconst int buttonPin = 4;\nconst int ledPin = 5;\nconst int ldrPin = 34;\nconst int buzzerPin = 12;\n\nvoid setup() {\n  pinMode(buttonPin, INPUT_PULLUP);\n  pinMode(ledPin, OUTPUT);\n  pinMode(buzzerPin, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  int buttonState = digitalRead(buttonPin);\n  int lightLevel = analogRead(ldrPin);\n  \n  if (buttonState == LOW) {\n    digitalWrite(ledPin, HIGH);\n    digitalWrite(buzzerPin, HIGH);\n  } else if (lightLevel < 2048) {\n    digitalWrite(ledPin, HIGH);\n    digitalWrite(buzzerPin, LOW);\n  } else {\n    digitalWrite(ledPin, LOW);\n    digitalWrite(buzzerPin, LOW);\n  }\n  delay(100);\n}"}, "procedureSteps": ["Connect all components as per pin assignments", "Upload integrated control code", "Test button control - should activate LED and buzzer", "Test light sensor - should activate LED when dark", "Experiment with combining different sensor inputs"], "expectedOutput": "System responds to button and light level independently and in combination"}]};
+    console.log('✓ Experiments loaded:', experimentsData.experiments.length, 'labs');
+      // Component visual styles keyed by pin name — used to build the wiring diagram
+const WIRING_COMPONENT_STYLES = {
+  LED:     { icon: '💡', label: 'LED',         color: '#34D399', power: false },
+  BUTTON:  { icon: '⏺',  label: 'Push Button', color: '#38BDF8', power: false },
+  LDR:     { icon: '🔆', label: 'LDR Sensor',   color: '#F59E0B', power: true  },
+  DHT22:   { icon: '🌡️', label: 'DHT22 Sensor', color: '#A78BFA', power: true  },
+  BUZZER:  { icon: '🔊', label: 'Buzzer',       color: '#F87171', power: false },
+  PIR:     { icon: '📡', label: 'PIR Sensor',   color: '#5EEAD4', power: true  },
+  SERVO:   { icon: '⚙️', label: 'Servo Motor',  color: '#F59E0B', power: true  },
+};
+
+function wiringStyleFor(pinName) {
+  return WIRING_COMPONENT_STYLES[pinName] || { icon: '🔌', label: pinName, color: '#94A3B8', power: true };
+}
+
+function renderWiringDiagram(experiment) {
+  const pins = experiment.arduino.pins || {};
+  const entries = Object.entries(pins);
+
+  if (entries.length === 0) {
+    // e.g. WiFi-only experiments with no external wiring
+    return `
+      <div class="wiring-svg-wrap">
+        <svg viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="220" y="70" width="120" height="60" rx="8" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.4)" stroke-width="1.5"/>
+          <text x="280" y="105" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#38BDF8">ESP32</text>
+          <path d="M300 70 Q305 45 320 40" stroke="#5EEAD4" stroke-width="1.5" fill="none" opacity=".7"/>
+          <path d="M300 70 Q315 35 335 32" stroke="#5EEAD4" stroke-width="1.5" fill="none" opacity=".5"/>
+          <path d="M300 70 Q325 30 350 30" stroke="#5EEAD4" stroke-width="1.5" fill="none" opacity=".3"/>
+          <text x="280" y="160" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#7387A8">No external wiring required</text>
+          <text x="280" y="178" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#7387A8">Power the board over USB — everything else happens over onboard WiFi</text>
+        </svg>
+      </div>`;
+  }
+
+  const rowH = 92;
+  const topPad = 46;
+  const bottomPad = 54;
+  const hasPower = entries.some(([name]) => wiringStyleFor(name).power);
+  const width = 640;
+  const height = topPad + entries.length * rowH + bottomPad;
+
+  const boardX = 20, boardW = 130;
+  const boardTop = topPad - 20;
+  const boardBottom = topPad + entries.length * rowH - (rowH - 60);
+  const boardH = boardBottom - boardTop;
+
+  const compX = 430, compW = 170, compH = 56;
+  const gndRailY = height - 24;
+  const vccRailY = 14;
+
+  let svg = '';
+  svg += `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // rails
+  if (hasPower) {
+    svg += `<line x1="${boardX + boardW + 10}" y1="${vccRailY}" x2="${width - 20}" y2="${vccRailY}" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="2,2" opacity=".6"/>`;
+    svg += `<text x="${width - 20}" y="${vccRailY - 5}" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="9" fill="#F59E0B">3V3</text>`;
+  }
+  svg += `<line x1="${boardX + boardW + 10}" y1="${gndRailY}" x2="${width - 20}" y2="${gndRailY}" stroke="#7387A8" stroke-width="1.2" stroke-dasharray="4,3" opacity=".6"/>`;
+  svg += `<text x="${width - 20}" y="${gndRailY + 14}" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="9" fill="#7387A8">GND</text>`;
+
+  // ESP32 board
+  svg += `<rect x="${boardX}" y="${boardTop}" width="${boardW}" height="${boardH}" rx="10" fill="rgba(56,189,248,.08)" stroke="rgba(56,189,248,.45)" stroke-width="1.5"/>`;
+  svg += `<text x="${boardX + boardW / 2}" y="${boardTop + boardH / 2 + 4}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="600" font-size="13" fill="#38BDF8">ESP32</text>`;
+
+  entries.forEach(([pinName, gpioStr], i) => {
+    const style = wiringStyleFor(pinName);
+    const y = topPad + i * rowH + 30;
+    const gpioMatch = String(gpioStr).match(/\d+/);
+    const gpioNum = gpioMatch ? gpioMatch[0] : '?';
+    const isADC = /ADC/i.test(gpioStr);
+
+    // pin stub off the board
+    svg += `<line x1="${boardX + boardW}" y1="${y}" x2="${boardX + boardW + 10}" y2="${y}" stroke="${style.color}" stroke-width="2"/>`;
+    svg += `<circle cx="${boardX + boardW + 10}" cy="${y}" r="3" fill="${style.color}"/>`;
+    svg += `<text x="${boardX + boardW - 6}" y="${y - 8}" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="8.5" fill="${style.color}">GPIO ${gpioNum}${isADC ? ' (ADC)' : ''}</text>`;
+
+    // signal wire to component
+    svg += `<line x1="${boardX + boardW + 10}" y1="${y}" x2="${compX}" y2="${y}" stroke="${style.color}" stroke-width="1.8"/>`;
+
+    // component box
+    svg += `<rect x="${compX}" y="${y - compH / 2}" width="${compW}" height="${compH}" rx="9" fill="rgba(255,255,255,.02)" stroke="${style.color}" stroke-width="1.3"/>`;
+    svg += `<text x="${compX + 22}" y="${y + 6}" font-size="20" text-anchor="middle">${style.icon}</text>`;
+    svg += `<text x="${compX + 42}" y="${y - 3}" font-family="Inter, sans-serif" font-weight="600" font-size="11" fill="#E4ECFB">${style.label}</text>`;
+    svg += `<text x="${compX + 42}" y="${y + 12}" font-family="JetBrains Mono, monospace" font-size="8" fill="#7387A8">pin: ${pinName}</text>`;
+
+    // ground return
+    const compMidX = compX + compW / 2;
+    svg += `<line x1="${compMidX}" y1="${y + compH / 2}" x2="${compMidX}" y2="${gndRailY}" stroke="#7387A8" stroke-width="1.2" stroke-dasharray="4,3" opacity=".7"/>`;
+
+    // power (VCC) if needed
+    if (style.power) {
+      svg += `<line x1="${compMidX}" y1="${y - compH / 2}" x2="${compMidX}" y2="${vccRailY}" stroke="#F59E0B" stroke-width="1.2" stroke-dasharray="2,2" opacity=".7"/>`;
+    }
+  });
+
+  svg += `</svg>`;
+
+  const legend = `
+    <div class="wiring-legend">
+      <div class="wiring-legend-item"><span class="wiring-legend-swatch" style="background:#5EEAD4"></span>Signal (GPIO)</div>
+      ${hasPower ? '<div class="wiring-legend-item"><span class="wiring-legend-swatch dotted"></span>3V3 power</div>' : ''}
+      <div class="wiring-legend-item"><span class="wiring-legend-swatch dashed"></span>Common GND</div>
+    </div>`;
+
+  return `<div class="wiring-svg-wrap">${svg}</div>${legend}`;
+}
+
+// Arduino Expanded Modal Functions - NEW
+
+function showArduinoExpanded(cardElement) {
+  const labNum = cardElement.getAttribute('data-num');
+  const title = cardElement.getAttribute('data-title');
+  
+  // Find experiment in loaded data
+  if (!experimentsData.experiments) {
+    alert('Experiment data has not loaded yet. Make sure dashboard.html is opened via a local server (http://localhost:8000/...) and experiments.json is in the same folder, then reload.');
+    return;
+  }
+  const experiment = experimentsData.experiments.find(exp => exp.num === labNum);
+  
+  if (!experiment) {
+    console.error('Experiment not found:', labNum);
+    return;
+  }
+  
+  // Populate modal header
+  document.getElementById('arduino-board').textContent = experiment.arduino.board;
+  document.getElementById('arduino-exp-title').textContent = `Lab ${labNum} · ${title}`;
+  document.getElementById('arduino-board-full').textContent = experiment.arduino.board;
+  
+  // Populate overview tab
+  document.getElementById('arduino-expected-output').textContent = experiment.expectedOutput;
+  
+  // Populate procedure steps
+  const procedureList = document.getElementById('arduino-procedure-list');
+  procedureList.innerHTML = '';
+  experiment.procedureSteps.forEach(step => {
+    const li = document.createElement('li');
+    li.textContent = step;
+    procedureList.appendChild(li);
+  });
+  
+  // Populate wiring diagram
+  document.getElementById('arduino-wiring-diagram').innerHTML = renderWiringDiagram(experiment);
+
+  // Populate pin mapping
+  const pinsGrid = document.getElementById('arduino-pins-grid');
+  pinsGrid.innerHTML = '';
+  Object.entries(experiment.arduino.pins).forEach(([name, gpio]) => {
+    const pinCard = document.createElement('div');
+    pinCard.className = 'pin-card';
+    pinCard.innerHTML = `
+      <div class="pin-name">${name}</div>
+      <div class="pin-function">${gpio}</div>
+    `;
+    pinsGrid.appendChild(pinCard);
+  });
+  
+  // Populate code
+  document.getElementById('arduino-code-content').textContent = experiment.arduino.code;
+  
+  // Populate libraries
+  const libsList = document.getElementById('arduino-libs-list');
+  libsList.innerHTML = '';
+  if (experiment.arduino.libraries.length === 0) {
+    libsList.innerHTML = '<p style="color: var(--muted);">No external libraries required</p>';
+  } else {
+    experiment.arduino.libraries.forEach(lib => {
+      const libItem = document.createElement('div');
+      libItem.className = 'library-item';
+      libItem.innerHTML = `
+        <span class="library-icon">📚</span>
+        <span class="library-name">${lib}</span>
+      `;
+      libsList.appendChild(libItem);
+    });
+  }
+  
+  // Show modal
+  document.getElementById('arduino-expanded-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeArduinoExpanded() {
+  document.getElementById('arduino-expanded-modal').style.display = 'none';
+  document.body.style.overflow = 'auto';
+  // Reset to first tab
+  switchArduinoTab('overview');
+}
+
+function switchArduinoTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.arduino-tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  document.querySelectorAll('.arduino-tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Show selected tab
+  document.getElementById(`arduino-tab-${tabName}`).classList.add('active');
+  
+  // Update active button
+  event.target.classList.add('active');
+}
+
+function copyArduinoCode() {
+  const code = document.getElementById('arduino-code-content').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => {
+      btn.textContent = originalText;
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy:', err);
+    alert('Could not copy code');
+  });
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('arduino-expanded-modal');
+  if (!modal) return; // Safety check
+  
+  const overlay = modal.querySelector('.modal-overlay');
+  overlay.addEventListener('click', closeArduinoExpanded);
+  
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.style.display !== 'none') {
+      closeArduinoExpanded();
+    }
+  });
+});
+  </script>
 </head>
 
 <body>
@@ -2828,10 +3499,10 @@
                 stroke-width=".8" />
             </svg></div>
           <div class="hover-bottom">
-            <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open
-              Lab</div>
-            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
-          </div>
+  <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+  <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+  <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+</div>
         </div>
       </div>
 
@@ -2905,10 +3576,10 @@
               <path d="M62 23 L77 23" stroke="rgba(52,211,153,.4)" stroke-width=".8" />
             </svg></div>
           <div class="hover-bottom">
-            <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open
-              Lab</div>
-            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
-          </div>
+  <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+  <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+  <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+</div>
         </div>
       </div>
 
@@ -2983,10 +3654,10 @@
               <path d="M70 18 L81 18" stroke="rgba(52,211,153,.4)" stroke-width=".8" />
             </svg></div>
           <div class="hover-bottom">
-            <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open
-              Lab</div>
-            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
-          </div>
+  <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+  <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+  <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+</div>
         </div>
       </div>
     </div>
@@ -3067,10 +3738,10 @@
                 stroke-width=".8" />
             </svg></div>
           <div class="hover-bottom">
-            <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open
-              Lab</div>
-            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
-          </div>
+  <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+  <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+  <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+</div>
         </div>
       </div>
 
@@ -3140,10 +3811,10 @@
               <path d="M28 20 L58 20" stroke="rgba(56,189,248,.4)" stroke-width=".8" />
             </svg></div>
           <div class="hover-bottom">
-            <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open
-              Lab</div>
-            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
-          </div>
+  <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+  <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+  <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+</div>
         </div>
       </div>
     </div>
@@ -3224,10 +3895,10 @@
               <path d="M83 15 Q92 23 83 31" stroke="rgba(129,140,248,.2)" stroke-width=".7" fill="none" />
             </svg></div>
           <div class="hover-bottom">
-            <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open
-              Lab</div>
-            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
-          </div>
+  <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Open Lab</div>
+  <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+  <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
+</div>
         </div>
       </div>
 
@@ -3290,6 +3961,8 @@
           </div>
           <div class="hover-bottom">
             <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
       </div>
@@ -3356,6 +4029,8 @@
           </div>
           <div class="hover-bottom">
             <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
       </div>
@@ -3426,6 +4101,8 @@
           </div>
           <div class="hover-bottom">
             <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
       </div>
@@ -3489,6 +4166,8 @@
           </div>
           <div class="hover-bottom">
             <div class="hover-btn-open" style="opacity:.5;cursor:default">🔒 Locked</div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
+            <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
       </div>
@@ -3572,6 +4251,7 @@
           <div class="hover-bottom">
             <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch
             </div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
             <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
@@ -3618,6 +4298,7 @@
           <div class="hover-bottom">
             <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch
             </div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
             <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
@@ -3666,6 +4347,7 @@
           <div class="hover-bottom">
             <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch
             </div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
             <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
@@ -3711,6 +4393,7 @@
           <div class="hover-bottom">
             <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch
             </div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
             <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
@@ -3757,6 +4440,7 @@
           <div class="hover-bottom">
             <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch
             </div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
             <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
@@ -3803,6 +4487,7 @@
           <div class="hover-bottom">
             <div class="hover-btn-open" onclick="event.stopPropagation();openModal(this.closest('.lab-card'))">▶ Launch
             </div>
+            <div class="hover-btn-arduino" onclick="event.stopPropagation();showArduinoExpanded(this.closest('.lab-card'))">⚙ Arduino</div>
             <div class="hover-btn-fav" onclick="event.stopPropagation();toggleFav(this.closest('.lab-card'))">☆</div>
           </div>
         </div>
@@ -4456,6 +5141,85 @@
       showToast('ESP32 Platform Ready!', 0);
     });
   </script>
+  <!-- Arduino Expanded Modal - NEW -->
+<div id="arduino-expanded-modal" class="modal" style="display:none;">
+  <div class="modal-overlay" onclick="closeArduinoExpanded()"></div>
+  <div class="modal-content arduino-expanded-content">
+    <div class="arduino-header">
+      <div>
+        <div class="arduino-board-name" id="arduino-board"></div>
+        <div class="arduino-exp-title" id="arduino-exp-title"></div>
+      </div>
+      <button class="modal-close" onclick="closeArduinoExpanded()">✕</button>
+    </div>
+    
+    <div class="arduino-tabs">
+      <button class="arduino-tab-btn active" onclick="switchArduinoTab('overview')">Overview</button>
+      <button class="arduino-tab-btn" onclick="switchArduinoTab('wiring')">Wiring</button>
+      <button class="arduino-tab-btn" onclick="switchArduinoTab('pins')">Pin Mapping</button>
+      <button class="arduino-tab-btn" onclick="switchArduinoTab('code')">Code</button>
+      <button class="arduino-tab-btn" onclick="switchArduinoTab('libs')">Libraries</button>
+    </div>
+    
+    <div class="arduino-tabs-content">
+      <!-- Overview Tab -->
+      <div id="arduino-tab-overview" class="arduino-tab-content active">
+        <div class="arduino-section">
+          <h3>Board Information</h3>
+          <div class="info-row">
+            <span class="info-label">Board:</span>
+            <span class="info-value" id="arduino-board-full"></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Core Voltage:</span>
+            <span class="info-value">3.3V</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Clock Speed:</span>
+            <span class="info-value">240 MHz</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">RAM:</span>
+            <span class="info-value">520 KB SRAM</span>
+          </div>
+        </div>
+        
+        <div class="arduino-section">
+          <h3>Expected Output</h3>
+          <div class="expected-output" id="arduino-expected-output"></div>
+        </div>
+        
+        <div class="arduino-section">
+          <h3>Procedure Steps</h3>
+          <ol id="arduino-procedure-list"></ol>
+        </div>
+      </div>
+      
+      <!-- Wiring Diagram Tab -->
+      <div id="arduino-tab-wiring" class="arduino-tab-content">
+        <div id="arduino-wiring-diagram"></div>
+      </div>
+      
+      <!-- Pin Mapping Tab -->
+      <div id="arduino-tab-pins" class="arduino-tab-content">
+        <div class="pins-grid" id="arduino-pins-grid"></div>
+      </div>
+      
+      <!-- Code Tab -->
+      <div id="arduino-tab-code" class="arduino-tab-content">
+        <div class="code-container">
+          <button class="code-copy-btn" onclick="copyArduinoCode()">Copy Code</button>
+          <pre id="arduino-code-pre"><code id="arduino-code-content"></code></pre>
+        </div>
+      </div>
+      
+      <!-- Libraries Tab -->
+      <div id="arduino-tab-libs" class="arduino-tab-content">
+        <div class="libraries-list" id="arduino-libs-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 
 </html>

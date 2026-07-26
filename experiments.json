@@ -1,0 +1,290 @@
+{
+  "experiments": [
+    {
+      "id": "exp-001",
+      "num": "01",
+      "category": "Basic I/O",
+      "title": "LED Blink",
+      "difficulty": "Beginner",
+      "duration": "15 Minutes",
+      "xp": 15,
+      "status": "ready",
+      "objective": "Master basic digital output by blinking an LED at different intervals. Understand GPIO pins, digitalWrite, and timing using delay().",
+      "components": ["ESP32", "Breadboard", "LED", "220Ω Resistor", "Jumper Wires"],
+      "concepts": ["Digital Output", "GPIO", "digitalWrite", "delay()", "Blink Pattern", "LED"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "LED": "GPIO 5"
+        },
+        "libraries": [],
+        "code": "void setup() {\n  pinMode(5, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(5, HIGH);\n  delay(1000);\n  digitalWrite(5, LOW);\n  delay(1000);\n}"
+      },
+      "procedureSteps": [
+        "Connect LED positive leg to GPIO 5 through 220Ω resistor",
+        "Connect LED negative leg to GND",
+        "Upload the code to ESP32",
+        "Observe LED blinking pattern"
+      ],
+      "expectedOutput": "LED blinks on and off at 1-second intervals"
+    },
+    {
+      "id": "exp-002",
+      "num": "02",
+      "category": "Basic I/O",
+      "title": "Button Input",
+      "difficulty": "Beginner",
+      "duration": "20 Minutes",
+      "xp": 20,
+      "status": "ready",
+      "objective": "Read digital input from a button and control an LED based on button state. Learn about digitalRead and debouncing.",
+      "components": ["ESP32", "Breadboard", "Button", "LED", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"],
+      "concepts": ["Digital Input", "Button State", "digitalRead", "Debouncing", "Conditional Logic", "Simultaneous Input/Output"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "BUTTON": "GPIO 4",
+          "LED": "GPIO 5"
+        },
+        "libraries": [],
+        "code": "void setup() {\n  pinMode(4, INPUT_PULLUP);\n  pinMode(5, OUTPUT);\n}\n\nvoid loop() {\n  if (digitalRead(4) == LOW) {\n    digitalWrite(5, HIGH);\n  } else {\n    digitalWrite(5, LOW);\n  }\n  delay(20);\n}"
+      },
+      "procedureSteps": [
+        "Connect button to GPIO 4 with 10kΩ pull-up resistor",
+        "Connect LED to GPIO 5 through 220Ω resistor",
+        "Upload code and press the button",
+        "LED should turn on when button is pressed"
+      ],
+      "expectedOutput": "LED lights up when button is pressed, turns off when released"
+    },
+    {
+      "id": "exp-003",
+      "num": "03",
+      "category": "Analog I/O",
+      "title": "PWM LED Dimming",
+      "difficulty": "Intermediate",
+      "duration": "30 Minutes",
+      "xp": 30,
+      "status": "ready",
+      "objective": "Control LED brightness using PWM (Pulse Width Modulation). Learn about analog output and brightness control.",
+      "components": ["ESP32", "Breadboard", "LED", "220Ω Resistor", "Jumper Wires"],
+      "concepts": ["PWM", "Analog Output", "Duty Cycle", "ledcSetup", "ledcWrite", "Brightness Control"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "LED": "GPIO 5"
+        },
+        "libraries": [],
+        "code": "const int ledPin = 5;\nconst int ledChannel = 0;\nconst int frequency = 1000;\nconst int resolution = 8;\n\nvoid setup() {\n  ledcSetup(ledChannel, frequency, resolution);\n  ledcAttachPin(ledPin, ledChannel);\n}\n\nvoid loop() {\n  for (int brightness = 0; brightness <= 255; brightness++) {\n    ledcWrite(ledChannel, brightness);\n    delay(10);\n  }\n  for (int brightness = 255; brightness >= 0; brightness--) {\n    ledcWrite(ledChannel, brightness);\n    delay(10);\n  }\n}"
+      },
+      "procedureSteps": [
+        "Connect LED to GPIO 5 through 220Ω resistor",
+        "Upload the PWM control code",
+        "Observe LED brightness changing smoothly",
+        "Try adjusting delay values to change fade speed"
+      ],
+      "expectedOutput": "LED fades in and out smoothly in a continuous loop"
+    },
+    {
+      "id": "exp-004",
+      "num": "04",
+      "category": "Sensors",
+      "title": "Automatic Light Detection",
+      "difficulty": "Beginner",
+      "duration": "25 Minutes",
+      "xp": 25,
+      "status": "beta",
+      "objective": "Interface an LDR with the ESP32 to automatically detect ambient light levels and trigger an LED based on a threshold.",
+      "components": ["ESP32", "Breadboard", "LDR Sensor", "LED", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"],
+      "concepts": ["LDR", "Analog Sensor", "Threshold Logic", "ADC", "Auto Trigger", "Light Sensing"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "LDR": "GPIO 34 (ADC)",
+          "LED": "GPIO 5"
+        },
+        "libraries": [],
+        "code": "const int ldrPin = 34;\nconst int ledPin = 5;\nconst int threshold = 2048;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  int ldrValue = analogRead(ldrPin);\n  Serial.println(ldrValue);\n  \n  if (ldrValue < threshold) {\n    digitalWrite(ledPin, HIGH);\n  } else {\n    digitalWrite(ledPin, LOW);\n  }\n  delay(100);\n}"
+      },
+      "procedureSteps": [
+        "Connect LDR with 10kΩ resistor as voltage divider to GPIO 34",
+        "Connect LED to GPIO 5",
+        "Upload code and observe Serial Monitor",
+        "Cover LDR to trigger LED"
+      ],
+      "expectedOutput": "LED turns on when light level drops below threshold value"
+    },
+    {
+      "id": "exp-005",
+      "num": "05",
+      "category": "Sensors",
+      "title": "Temperature Monitoring",
+      "difficulty": "Intermediate",
+      "duration": "35 Minutes",
+      "xp": 30,
+      "status": "beta",
+      "objective": "Read temperature and humidity data using a DHT22 sensor. Display real-time values over Serial Monitor and trigger alerts on threshold breach.",
+      "components": ["ESP32", "Breadboard", "DHT22 Sensor", "10kΩ Resistor", "Jumper Wires"],
+      "concepts": ["DHT22", "Temperature", "Humidity", "Serial Monitor", "Threshold Alert", "Sensor Library"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "DHT22": "GPIO 17"
+        },
+        "libraries": ["DHT sensor library", "Adafruit Unified Sensor"],
+        "code": "#include \"DHT.h\"\n\nconst int dhtPin = 17;\nconst int dhtType = DHT22;\nDHT dht(dhtPin, dhtType);\n\nvoid setup() {\n  Serial.begin(115200);\n  dht.begin();\n}\n\nvoid loop() {\n  float humidity = dht.readHumidity();\n  float temperature = dht.readTemperature();\n  \n  if (!isnan(humidity) && !isnan(temperature)) {\n    Serial.print(\"Temp: \");\n    Serial.print(temperature);\n    Serial.print(\"°C, Humidity: \");\n    Serial.println(humidity);\n  }\n  delay(2000);\n}"
+      },
+      "procedureSteps": [
+        "Connect DHT22 data pin to GPIO 17",
+        "Add pull-up resistor (10kΩ) between data and VCC",
+        "Install DHT library through Arduino IDE",
+        "Upload code and open Serial Monitor",
+        "Observe temperature and humidity readings"
+      ],
+      "expectedOutput": "Serial Monitor displays temperature and humidity values updating every 2 seconds"
+    },
+    {
+      "id": "exp-006",
+      "num": "06",
+      "category": "Actuators",
+      "title": "Buzzer Control",
+      "difficulty": "Beginner",
+      "duration": "20 Minutes",
+      "xp": 20,
+      "status": "beta",
+      "objective": "Drive a passive buzzer with the ESP32 using PWM signals. Generate different tones by varying frequency and create simple alarm patterns.",
+      "components": ["ESP32", "Breadboard", "Passive Buzzer", "Jumper Wires"],
+      "concepts": ["PWM", "Tone Generation", "Frequency", "Alarm Pattern", "ledcWrite", "Active vs Passive Buzzer"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "BUZZER": "GPIO 12"
+        },
+        "libraries": [],
+        "code": "const int buzzerPin = 12;\nconst int ledChannel = 0;\nconst int frequency = 1000;\nconst int resolution = 8;\n\nvoid setup() {\n  ledcSetup(ledChannel, frequency, resolution);\n  ledcAttachPin(buzzerPin, ledChannel);\n}\n\nvoid playTone(int freq, int duration) {\n  ledcChangeFrequency(ledChannel, freq, resolution);\n  ledcWrite(ledChannel, 128);\n  delay(duration);\n  ledcWrite(ledChannel, 0);\n  delay(100);\n}\n\nvoid loop() {\n  playTone(1000, 500);\n  playTone(1500, 500);\n  delay(1000);\n}"
+      },
+      "procedureSteps": [
+        "Connect buzzer positive to GPIO 12, negative to GND",
+        "Upload code to ESP32",
+        "Buzzer should play alternating tones",
+        "Try changing frequency values for different pitches"
+      ],
+      "expectedOutput": "Buzzer produces alternating tones (1000Hz and 1500Hz) with 500ms duration each"
+    },
+    {
+      "id": "exp-007",
+      "num": "07",
+      "category": "Communication",
+      "title": "WiFi Connection",
+      "difficulty": "Intermediate",
+      "duration": "30 Minutes",
+      "xp": 35,
+      "status": "beta",
+      "objective": "Connect ESP32 to WiFi network and display connection status. Learn about WiFi libraries and network debugging.",
+      "components": ["ESP32", "USB Cable"],
+      "concepts": ["WiFi", "Network Connection", "SSID", "Password", "Connection Status", "Serial Debugging"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {},
+        "libraries": ["WiFi.h"],
+        "code": "#include <WiFi.h>\n\nconst char* ssid = \"YOUR_SSID\";\nconst char* password = \"YOUR_PASSWORD\";\n\nvoid setup() {\n  Serial.begin(115200);\n  WiFi.begin(ssid, password);\n  \n  while (WiFi.status() != WL_CONNECTED) {\n    delay(500);\n    Serial.print(\".\");\n  }\n  Serial.println(\"\\nWiFi connected!\");\n  Serial.println(WiFi.localIP());\n}\n\nvoid loop() {\n  Serial.print(\"Signal strength: \");\n  Serial.println(WiFi.RSSI());\n  delay(5000);\n}"
+      },
+      "procedureSteps": [
+        "Replace YOUR_SSID and YOUR_PASSWORD with actual WiFi credentials",
+        "Upload code to ESP32",
+        "Open Serial Monitor at 115200 baud",
+        "Watch connection progress and obtain IP address"
+      ],
+      "expectedOutput": "Serial Monitor shows connection dots, then displays local IP address and signal strength updates"
+    },
+    {
+      "id": "exp-008",
+      "num": "08",
+      "category": "Advanced",
+      "title": "Motion Detection",
+      "difficulty": "Intermediate",
+      "duration": "30 Minutes",
+      "xp": 35,
+      "status": "beta",
+      "objective": "Interface a PIR (Passive Infrared) motion sensor with ESP32. Detect motion and trigger alerts or notifications.",
+      "components": ["ESP32", "Breadboard", "PIR Sensor", "LED", "220Ω Resistor", "Jumper Wires"],
+      "concepts": ["PIR Sensor", "Motion Detection", "Interrupt Handling", "Debouncing", "Alert Logic"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "PIR": "GPIO 13",
+          "LED": "GPIO 5"
+        },
+        "libraries": [],
+        "code": "const int pirPin = 13;\nconst int ledPin = 5;\nint motionDetected = 0;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(pirPin, INPUT);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  motionDetected = digitalRead(pirPin);\n  \n  if (motionDetected == HIGH) {\n    digitalWrite(ledPin, HIGH);\n    Serial.println(\"Motion detected!\");\n  } else {\n    digitalWrite(ledPin, LOW);\n    Serial.println(\"No motion\");\n  }\n  delay(100);\n}"
+      },
+      "procedureSteps": [
+        "Connect PIR sensor output to GPIO 13",
+        "Connect LED to GPIO 5",
+        "Upload code and wait 30-60 seconds for sensor warm-up",
+        "Move in front of sensor to trigger detection"
+      ],
+      "expectedOutput": "LED lights up and serial prints 'Motion detected!' when movement is detected"
+    },
+    {
+      "id": "exp-009",
+      "num": "09",
+      "category": "Advanced",
+      "title": "Servo Motor Control",
+      "difficulty": "Intermediate",
+      "duration": "35 Minutes",
+      "xp": 40,
+      "status": "beta",
+      "objective": "Control servo motor angle using PWM signals. Learn servo protocols and precision angle positioning.",
+      "components": ["ESP32", "Breadboard", "Servo Motor", "Jumper Wires"],
+      "concepts": ["Servo Motor", "PWM Pulse Width", "Angle Control", "180-degree sweep"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "SERVO": "GPIO 15"
+        },
+        "libraries": ["ESP32Servo"],
+        "code": "#include <ESP32Servo.h>\n\nServo myServo;\nconst int servoPin = 15;\n\nvoid setup() {\n  myServo.attach(servoPin);\n}\n\nvoid loop() {\n  for (int angle = 0; angle <= 180; angle += 5) {\n    myServo.write(angle);\n    delay(50);\n  }\n  for (int angle = 180; angle >= 0; angle -= 5) {\n    myServo.write(angle);\n    delay(50);\n  }\n}"
+      },
+      "procedureSteps": [
+        "Connect servo signal to GPIO 15, VCC to 5V, GND to GND",
+        "Install ESP32Servo library",
+        "Upload code to ESP32",
+        "Observe servo sweeping 0-180 degrees"
+      ],
+      "expectedOutput": "Servo motor sweeps from 0° to 180° smoothly and back in continuous cycle"
+    },
+    {
+      "id": "exp-010",
+      "num": "10",
+      "category": "Integration",
+      "title": "Smart Home Scene",
+      "difficulty": "Advanced",
+      "duration": "45 Minutes",
+      "xp": 50,
+      "status": "beta",
+      "objective": "Combine multiple sensors and actuators to create an integrated smart home scene with WiFi control.",
+      "components": ["ESP32", "Breadboard", "LED", "Button", "LDR", "Buzzer", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"],
+      "concepts": ["Integration", "State Management", "WiFi Control", "Multi-sensor Logic", "Real-world Application"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": {
+          "BUTTON": "GPIO 4",
+          "LED": "GPIO 5",
+          "LDR": "GPIO 34",
+          "BUZZER": "GPIO 12"
+        },
+        "libraries": ["WiFi.h"],
+        "code": "// Multi-component integration example\nconst int buttonPin = 4;\nconst int ledPin = 5;\nconst int ldrPin = 34;\nconst int buzzerPin = 12;\n\nvoid setup() {\n  pinMode(buttonPin, INPUT_PULLUP);\n  pinMode(ledPin, OUTPUT);\n  pinMode(buzzerPin, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  int buttonState = digitalRead(buttonPin);\n  int lightLevel = analogRead(ldrPin);\n  \n  if (buttonState == LOW) {\n    digitalWrite(ledPin, HIGH);\n    digitalWrite(buzzerPin, HIGH);\n  } else if (lightLevel < 2048) {\n    digitalWrite(ledPin, HIGH);\n    digitalWrite(buzzerPin, LOW);\n  } else {\n    digitalWrite(ledPin, LOW);\n    digitalWrite(buzzerPin, LOW);\n  }\n  delay(100);\n}"
+      },
+      "procedureSteps": [
+        "Connect all components as per pin assignments",
+        "Upload integrated control code",
+        "Test button control - should activate LED and buzzer",
+        "Test light sensor - should activate LED when dark",
+        "Experiment with combining different sensor inputs"
+      ],
+      "expectedOutput": "System responds to button and light level independently and in combination"
+    }
+  ]
+}
