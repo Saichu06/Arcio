@@ -1862,6 +1862,9 @@
             <span id="btnRunTxt">Run Simulation</span>
         </button>
 
+        <button class="btn btn-ghost" id="themeToggleBtn" title="Toggle Theme" style="padding:4px 8px;">
+            🌙
+        </button>
         <div class="topbar-sep"></div>
         <a href="../dashboard.html" class="nav-back">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1870,6 +1873,40 @@
             Dashboard
         </a>
     </header>
+
+    <script>
+        // Theme sync with dashboard
+        (function() {
+            function applyTheme() {
+                try {
+                    const state = JSON.parse(localStorage.getItem('arcio_v2')) || {};
+                    const theme = state.theme || 'dark';
+                    if (theme === 'light') {
+                        document.documentElement.setAttribute('data-theme', 'light');
+                    } else {
+                        document.documentElement.removeAttribute('data-theme');
+                    }
+                    const btn = document.getElementById('themeToggleBtn');
+                    if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+                } catch(e){}
+            }
+            applyTheme();
+            document.addEventListener('DOMContentLoaded', () => {
+                applyTheme();
+                const btn = document.getElementById('themeToggleBtn');
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        try {
+                            const state = JSON.parse(localStorage.getItem('arcio_v2')) || {};
+                            state.theme = state.theme === 'light' ? 'dark' : 'light';
+                            localStorage.setItem('arcio_v2', JSON.stringify(state));
+                            applyTheme();
+                        } catch(e){}
+                    });
+                }
+            });
+        })();
+    </script>
 
     <!-- ══════════════ MAIN LAYOUT ══════════════ -->
     <div class="layout">
@@ -1984,6 +2021,365 @@
 
             </div>
         </aside>
+    </style>
+
+    <style>
+        /* ═══════════ ARDUINO FULLSCREEN VISUALIZER ═══════════ */
+        .arduino-fullscreen-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: rgba(4, 7, 13, .97);
+            backdrop-filter: blur(20px);
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(.92);
+            transition: opacity .3s cubic-bezier(.2, .8, .3, 1), transform .3s cubic-bezier(.2, .8, .3, 1), visibility 0s .3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .arduino-fullscreen-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+            transition: opacity .3s cubic-bezier(.2, .8, .3, 1), transform .3s cubic-bezier(.2, .8, .3, 1), visibility 0s;
+        }
+
+        .afs-topbar {
+            height: 52px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(94, 234, 212, .1);
+            background: rgba(6, 10, 19, .9);
+        }
+
+        .afs-back {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            cursor: none;
+            border: 1px solid rgba(94, 234, 212, .14);
+            border-radius: 6px;
+            padding: 6px 12px;
+            transition: all .2s;
+        }
+
+        .afs-back:hover {
+            color: var(--cyan);
+            border-color: rgba(94, 234, 212, .3);
+        }
+
+        .afs-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--ink);
+        }
+
+        .afs-spacer {
+            flex: 1;
+        }
+
+        .afs-run-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8px;
+            font-weight: 600;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted2);
+        }
+
+        .afs-run-indicator .status-dot {
+            background: var(--muted2);
+            box-shadow: none;
+            animation: none;
+        }
+
+        .afs-run-indicator.live .status-dot {
+            background: var(--cyan2);
+            box-shadow: 0 0 10px var(--cyan2);
+            animation: simPulse .8s ease-in-out infinite;
+        }
+
+        .afs-run-indicator.live {
+            color: var(--cyan2);
+        }
+
+        .afs-main {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .afs-board-svg {
+            max-width: 82%;
+            max-height: 82%;
+            filter: drop-shadow(0 20px 60px rgba(0, 0, 0, .6));
+        }
+
+        #afsBoardWrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .afs-pin {
+            cursor: none;
+            transition: filter .15s, opacity .15s;
+        }
+
+        .afs-pin:hover {
+            filter: drop-shadow(0 0 6px var(--cyan));
+        }
+
+        .afs-pin-high {
+            fill: var(--green);
+            filter: drop-shadow(0 0 6px var(--green));
+        }
+
+        .afs-pin-low {
+            fill: #3a4256;
+        }
+
+        .afs-pin-pwm {
+            fill: var(--cyan2);
+            animation: pwmPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pwmPulse {
+
+            0%,
+            100% {
+                opacity: .5;
+            }
+
+            50% {
+                opacity: 1;
+                filter: drop-shadow(0 0 8px var(--cyan2));
+            }
+        }
+
+        .afs-particle {
+            fill: var(--cyan);
+            filter: drop-shadow(0 0 4px var(--cyan));
+            opacity: 0;
+        }
+
+        .afs-pin-info {
+            position: absolute;
+            top: 70px;
+            right: 24px;
+            width: 220px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            opacity: 0;
+            transform: translateY(-6px);
+            pointer-events: none;
+            transition: all .2s cubic-bezier(.2, .8, .3, 1);
+            z-index: 10;
+        }
+
+        .afs-pin-info.show {
+            opacity: 1;
+            transform: none;
+            pointer-events: auto;
+        }
+
+        .afs-pin-info-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
+        .afs-pin-info-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8.5px;
+            color: var(--muted);
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(94, 234, 212, .05);
+        }
+
+        .afs-pin-info-row span:last-child {
+            color: var(--cyan2);
+            font-weight: 600;
+        }
+
+        .afs-mini-preview {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 160px;
+            height: 110px;
+            background: rgba(6, 10, 19, .9);
+            border: 1px solid rgba(94, 234, 212, .14);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .afs-mini-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 6px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--muted2);
+            position: absolute;
+            top: 4px;
+            left: 6px;
+        }
+
+        /* ═══════════ SMART INSPECTOR ═══════════ */
+        .inspector-overlay {
+            position: absolute;
+            top: 41px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--panel-bg);
+            z-index: 6;
+            overflow-y: auto;
+            padding: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(4px);
+            transition: opacity .18s ease, transform .18s ease;
+        }
+
+        .inspector-overlay.active {
+            opacity: 1;
+            transform: none;
+            pointer-events: auto;
+        }
+
+        .inspector-overlay::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .inspector-overlay::-webkit-scrollbar-thumb {
+            background: rgba(94, 234, 212, .1);
+            border-radius: 2px;
+        }
+
+        .insp-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .insp-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(56, 189, 248, .08);
+            border: 1px solid rgba(56, 189, 248, .2);
+            flex-shrink: 0;
+        }
+
+        .insp-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--ink);
+        }
+
+        .insp-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 7px;
+            color: var(--green);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .insp-block {
+            margin-bottom: 12px;
+        }
+
+        .insp-block-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 6.5px;
+            font-weight: 600;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--muted2);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .insp-block-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(94, 234, 212, .06);
+        }
+
+        .insp-txt {
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .insp-spec-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8.5px;
+            color: var(--muted);
+            padding: 3px 0;
+        }
+
+        .insp-spec-row span:last-child {
+            color: var(--cyan2);
+            font-weight: 600;
+        }
+
+        /* ═══════════ COMPONENT HIGHLIGHT ═══════════ */
+        .canvas-comp.hovered .comp-body {
+            border-color: rgba(94, 234, 212, .55) !important;
+            box-shadow: 0 0 0 2px rgba(94, 234, 212, .15), 0 0 24px rgba(94, 234, 212, .25) !important;
+        }
+
+        .port.pin-highlight {
+            border-color: var(--cyan) !important;
+            box-shadow: 0 0 10px rgba(94, 234, 212, .6) !important;
+            animation: portPing .7s ease-in-out infinite;
+        }
+
+        .wire-highlight {
+            stroke: rgba(94, 234, 212, .9) !important;
+            stroke-width: 2.6 !important;
+            filter: drop-shadow(0 0 4px rgba(94, 234, 212, .6));
+        }
+    </style>
 
         <!-- ══ CENTER: SIMULATION CANVAS ══ -->
         <main class="panel center-panel" id="centerPanel">
@@ -2028,6 +2424,8 @@
                 <div class="panel-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber);"></div>
                 <span class="panel-title">Circuit Analyzer</span>
             </div>
+
+            <div class="inspector-overlay" id="inspectorOverlay"></div>
 
             <div class="analyzer-section">
                 <div class="analyzer-sect-title">Components</div>
@@ -2191,6 +2589,32 @@
             <span>Latency: <span class="sb-val" id="sbLat">12ms</span></span>
         </div>
         <div class="sb-right">ARCIO v1.0 · EXP-02<span class="sb-cursor"></span></div>
+    </div>
+
+    <!-- ARDUINO FULLSCREEN VISUALIZER -->
+    <div class="arduino-fullscreen-overlay" id="arduinoFullscreen">
+        <div class="afs-topbar">
+            <div class="afs-back" id="afsBack">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M19 12H5M12 5l-7 7 7 7" />
+                </svg>
+                Back to Canvas
+            </div>
+            <div class="afs-title">Arduino UNO R3</div>
+            <div class="afs-spacer"></div>
+            <div class="afs-run-indicator" id="afsRunIndicator">
+                <div class="status-dot"></div>
+                <span id="afsRunTxt">Idle</span>
+            </div>
+        </div>
+        <div class="afs-main" id="afsMain">
+            <div id="afsBoardWrap"></div>
+            <div class="afs-pin-info" id="afsPinInfo"></div>
+            <div class="afs-mini-preview" id="afsMiniPreview">
+                <div class="afs-mini-label">CIRCUIT OVERVIEW</div>
+                <svg id="afsMiniSvg" width="100%" height="100%"></svg>
+            </div>
+        </div>
     </div>
 
     <!-- ════════════════════════════════════════════
@@ -2496,11 +2920,23 @@
                 portEl.addEventListener('mouseleave', () => expandCursor(false));
             });
 
-            // Select
-            built.el.addEventListener('mousedown', e => {
-                if (e.target.classList.contains('port') || e.target.classList.contains('comp-delete-btn') || e.target.closest('.btn-cap')) return;
-                selectComponent(id);
+            // Smart Inspector hover + highlight
+            built.el.addEventListener('mouseenter', () => {
+                showInspector(type, id);
+                highlightComponent(id, true);
             });
+            built.el.addEventListener('mouseleave', () => {
+                hideInspector();
+                highlightComponent(id, false);
+            });
+
+            // Fullscreen Arduino Visualizer
+            if (type === 'arduino') {
+                built.el.addEventListener('dblclick', e => {
+                    e.stopPropagation();
+                    openArduinoFullscreen(id);
+                });
+            }
 
             // Button press interaction
             if (type === 'button') {
@@ -2797,6 +3233,8 @@
             document.getElementById('liveLed').className = `gpio-live-val ${ledActive ? 'high' : 'low'}`;
 
             if (ledActive) observe('Signal propagated: Push Button HIGH → ESP32 → LED Output activated');
+
+            refreshFullscreenPins();
         }
 
         // ═══════════════════════════
@@ -2900,6 +3338,8 @@
             log('loop() running...', 'info');
             observe('Simulation started. Press the Push Button to control the LED.');
             showToast('success', 'Simulation Active', 'Press the Push Button to control the LED output.');
+            updateFullscreenRunState();
+            refreshFullscreenPins();
         }
 
         function stopSimulation() {
@@ -2958,6 +3398,8 @@
 
             log('--- Simulation stopped ---', 'warn');
             observe('Simulation ended. All outputs reset to LOW.');
+            updateFullscreenRunState();
+            refreshFullscreenPins();
         }
 
         // ═══════════════════════════
@@ -3037,10 +3479,374 @@
             }
         }
 
-        function friendlyName(type) {
-            const map = { arduino: 'ESP32', button: 'Push Button', switch: 'Switch', led: 'LED', bulb: 'Bulb', buzzer: 'Buzzer' };
-            return map[type] || type || '—';
+        // ═══════════════════════════
+        // SMART INSPECTOR
+        // ═══════════════════════════
+        const COMPONENT_INFO = {
+            arduino: {
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M8 6V4M16 6V4M8 18v2M16 18v2M6 12h4M14 12h4"/></svg>`,
+                name: 'Arduino UNO / Controller', desc: 'A microcontroller board with digital I/O pins and analog inputs, used as the central controller of the circuit.',
+                principle: 'Executes stored firmware that reads input pin states and drives output pins according to setup() and loop() logic.',
+                applications: 'Prototyping, robotics, home automation, sensor logging.',
+                specs: [['Clock Speed', '16/240 MHz'], ['Operating Voltage', '5V / 3.3V'], ['Digital Pins', '14+'], ['PWM Pins', 'Supported']]
+            },
+            button: {
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"><rect x="5" y="5" width="14" height="14" rx="3"/><circle cx="12" cy="12" r="3"/></svg>`,
+                name: 'Push Button', desc: 'A momentary, normally-open switch that closes a circuit only while physically pressed.',
+                principle: 'Pressing closes internal contacts, pulling the connected digital pin HIGH.',
+                applications: 'User input, mode switching, event triggers.',
+                specs: [['Type', 'Momentary'], ['Default State', 'Open (LOW)'], ['Debounce Needed', 'Yes'], ['Voltage', 'Logic Level']]
+            },
+            switch: {
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="8" width="20" height="8" rx="4"/><circle cx="16" cy="12" r="3"/></svg>`,
+                name: 'Toggle Switch', desc: 'A latching two-position switch that maintains its state until manually changed.',
+                principle: 'Mechanically holds contact once toggled, giving a stable logic level.',
+                applications: 'Power control, persistent mode selection.',
+                specs: [['Type', 'Latching (SPST)'], ['States', 'ON / OFF'], ['Voltage', 'Logic Level']]
+            },
+            led: {
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="10" r="5"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="9" y1="19" x2="15" y2="19"/></svg>`,
+                name: 'LED', desc: 'A light-emitting diode that converts electrical current into visible light.',
+                principle: 'Emits light when forward biased above its threshold voltage; a series resistor limits current.',
+                applications: 'Status indicators, visual feedback.',
+                specs: [['Forward Voltage', '~2.0V'], ['Current Rating', '20 mA'], ['Package', '5mm THT'], ['Color', 'Green']]
+            },
+            bulb: {
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.5" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 5 11.93V17H7v-3.07A7 7 0 0 1 12 2z"/></svg>`,
+                name: 'Indicator Bulb', desc: 'A simple indicator bulb used to visualize an active output signal.',
+                principle: 'Illuminates when supplied with rated voltage from an output pin.',
+                applications: 'Panel indicators, general-purpose signaling.',
+                specs: [['Rated Voltage', '5V'], ['Type', 'Indicator'], ['Response', 'Instant']]
+            },
+            buzzer: {
+                icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.5" stroke-linecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`,
+                name: 'Piezo Buzzer', desc: 'An active piezoelectric buzzer that produces sound when driven HIGH.',
+                principle: 'A piezo element vibrates when voltage is applied, generating an audible tone.',
+                applications: 'Audible alerts, notifications, alarms.',
+                specs: [['Type', 'Active Piezo'], ['Voltage', '5V'], ['Sound', 'Fixed tone']]
+            }
+        };
+
+        function buildInspectorHTML(type, compId) {
+            const info = COMPONENT_INFO[type];
+            if (!info) return '';
+            const comp = components.find(c => c.id === compId);
+            const connectedWires = wires.filter(w => w.from.compId === compId || w.to.compId === compId);
+            const connNames = connectedWires.map(w => {
+                const otherId = w.from.compId === compId ? w.to.compId : w.from.compId;
+                const other = components.find(c => c.id === otherId);
+                return friendlyName(other?.type);
+            });
+            const firstPort = Object.keys(comp?.ports || {})[0];
+            const pinMap = type === 'arduino' ? 'GPIO 2 (IN) · GPIO 13 (OUT)' : (GPIO_MAP[firstPort] || '—');
+            const stateLabel = comp?.state ? 'HIGH' : 'LOW';
+
+            const gpioStatesHTML = type === 'arduino'
+                ? `<div class="insp-spec-row"><span>GPIO 2 (Input)</span><span>${pinState('D2').toUpperCase()}</span></div><div class="insp-spec-row"><span>GPIO 13 (Output)</span><span>${pinState('D13').toUpperCase()}</span></div>`
+                : `<div class="insp-spec-row"><span>State</span><span>${simRunning ? stateLabel : '—'}</span></div>`;
+
+            return `
+              <div class="insp-header">
+                <div class="insp-icon">${info.icon}</div>
+                <div>
+                  <div class="insp-name">${info.name}</div>
+                  <div class="insp-status">${simRunning ? 'Simulating' : 'Idle'}</div>
+                </div>
+              </div>
+              <div class="insp-block"><div class="insp-block-title">Description</div><div class="insp-txt">${info.desc}</div></div>
+              <div class="insp-block"><div class="insp-block-title">Working Principle</div><div class="insp-txt">${info.principle}</div></div>
+              <div class="insp-block"><div class="insp-block-title">Applications</div><div class="insp-txt">${info.applications}</div></div>
+              <div class="insp-block"><div class="insp-block-title">Technical Specifications</div>${info.specs.map(s => `<div class="insp-spec-row"><span>${s[0]}</span><span>${s[1]}</span></div>`).join('')}</div>
+              <div class="insp-block"><div class="insp-block-title">Current Simulation State</div>${simRunning ? gpioStatesHTML : '<div class="insp-spec-row"><span>State</span><span>—</span></div>'}</div>
+              <div class="insp-block"><div class="insp-block-title">Connections</div><div class="insp-txt">${connNames.length ? connNames.join(', ') : 'Not connected'}</div></div>
+              <div class="insp-block"><div class="insp-block-title">Pin Mapping</div><div class="insp-txt">${pinMap}</div></div>
+            `;
         }
+
+        function showInspector(type, compId) {
+            const overlay = document.getElementById('inspectorOverlay');
+            if (!overlay) return;
+            overlay.innerHTML = buildInspectorHTML(type, compId);
+            overlay.classList.add('active');
+        }
+
+        function hideInspector() {
+            const overlay = document.getElementById('inspectorOverlay');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        // ═══════════════════════════
+        // COMPONENT HIGHLIGHTING
+        // ═══════════════════════════
+        function highlightComponent(compId, on) {
+            const comp = components.find(c => c.id === compId);
+            if (!comp) return;
+            comp.el.classList.toggle('hovered', on);
+            wires.forEach(w => {
+                const involved = w.from.compId === compId || w.to.compId === compId;
+                if (w.el) w.el.classList.toggle('wire-highlight', on && involved);
+                if (involved) {
+                    const otherId = w.from.compId === compId ? w.to.compId : w.from.compId;
+                    const otherPort = w.from.compId === compId ? w.to.portName : w.from.portName;
+                    const ownPort = w.from.compId === compId ? w.from.portName : w.to.portName;
+                    const otherComp = components.find(c => c.id === otherId);
+                    if (comp.ports[ownPort]) comp.ports[ownPort].classList.toggle('pin-highlight', on);
+                    if (otherComp && otherComp.ports[otherPort]) otherComp.ports[otherPort].classList.toggle('pin-highlight', on);
+                }
+            });
+        }
+
+        // ═══════════════════════════
+        // FULLSCREEN ARDUINO VISUALIZER
+        // ═══════════════════════════
+        const PIN_DETAILS = { D2: { mode: 'INPUT', desc: 'Digital input pin, reads button/switch state.' }, D13: { mode: 'OUTPUT', desc: 'Digital output pin, drives onboard/external LED.' } };
+        for (let i = 0; i <= 13; i++) if (!PIN_DETAILS['D' + i]) PIN_DETAILS['D' + i] = { mode: 'UNUSED', desc: 'Not currently connected in this circuit.' };
+        for (let i = 0; i <= 5; i++) PIN_DETAILS['A' + i] = { mode: 'UNUSED', desc: 'Analog input pin, not currently connected.' };
+
+        let afsParticleRAF = null;
+
+        function pinState(pinName) {
+            if (!simRunning) return 'low';
+            if (pinName === 'D2') return document.getElementById('liveGpio2') && document.getElementById('liveGpio2').textContent === 'HIGH' ? 'high' : 'low';
+            if (pinName === 'D13') return document.getElementById('liveGpio13') && document.getElementById('liveGpio13').textContent === 'HIGH' ? 'high' : 'low';
+            return 'low';
+        }
+
+        function buildFullscreenBoardSVG() {
+            const dPinEls = Array.from({length:14},(_,i)=>13-i).map((n, idx) => {
+                const cls = pinState('D'+n) === 'high' ? 'afs-pin-high' : 'afs-pin-low';
+                return `<g class="afs-pin" data-pin="D${n}" style="cursor:none;">
+                    <rect x="${40+idx*44}" y="24" width="12" height="22" rx="2" class="${cls}"/>
+                    <text x="${46+idx*44}" y="18" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="#6B7DA0">D${n}</text>
+                </g>`;
+            }).join('');
+            const aPinEls = [0,1,2,3,4,5].map((n, idx) => `<g class="afs-pin" data-pin="A${n}" style="cursor:none;">
+                <rect x="${330+idx*44}" y="374" width="12" height="22" rx="2" class="afs-pin-low"/>
+                <text x="${336+idx*44}" y="412" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="#6B7DA0">A${n}</text>
+            </g>`).join('');
+
+            return `<svg class="afs-board-svg" width="700" height="420" viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+                <rect x="20" y="20" width="660" height="380" rx="14" fill="#0d2a0d" stroke="#2d5a2d" stroke-width="2"/>
+                <text x="350" y="395" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="rgba(255,255,255,0.18)" letter-spacing="3">ARCIO ARDUINO UNO R3</text>
+
+                <g stroke="rgba(76,175,80,.18)" stroke-width="1" fill="none">
+                    <path d="M340,70 h260 M340,110 h260 M340,150 h300"/>
+                    <circle cx="620" cy="280" r="34"/>
+                    <circle cx="560" cy="320" r="18"/>
+                    <path d="M120,126 Q240,200 270,218"/>
+                    <path d="M120,126 Q300,300 440,216"/>
+                </g>
+                <g fill="rgba(76,175,80,.25)" stroke="none">
+                    <circle cx="400" cy="150" r="3"/>
+                    <circle cx="440" cy="150" r="3"/>
+                    <circle cx="480" cy="150" r="3"/>
+                    <circle cx="520" cy="150" r="3"/>
+                    <circle cx="560" cy="150" r="3"/>
+                    <circle cx="600" cy="150" r="3"/>
+                </g>
+
+                ${dPinEls}${aPinEls}
+
+                <g class="afs-chip-group" id="afsChipAtmega" style="cursor:none;" data-comp="atmega">
+                    <rect x="70" y="60" width="100" height="66" rx="4" fill="#1a1a3a" stroke="#38BDF8" stroke-width="1.5"/>
+                    <text x="120" y="88" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#38BDF8">ATmega328P</text>
+                    <text x="120" y="102" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="rgba(56,189,248,0.5)">PDIP-28</text>
+                    <circle cx="75" cy="63" r="3" fill="#38BDF8" opacity="0.3"/>
+                    <line x1="70" y1="72" x2="60" y2="72" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="70" y1="80" x2="60" y2="80" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="70" y1="88" x2="60" y2="88" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="70" y1="96" x2="60" y2="96" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="70" y1="104" x2="60" y2="104" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="70" y1="112" x2="60" y2="112" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="170" y1="72" x2="180" y2="72" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="170" y1="80" x2="180" y2="80" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="170" y1="88" x2="180" y2="88" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="170" y1="96" x2="180" y2="96" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="170" y1="104" x2="180" y2="104" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                    <line x1="170" y1="112" x2="180" y2="112" stroke="rgba(76,175,80,.5)" stroke-width="2"/>
+                </g>
+
+                <g id="afsChipCrystal" style="cursor:none;" data-comp="crystal">
+                    <rect x="200" y="75" width="14" height="32" rx="3" fill="#c9c9c9" stroke="#888" stroke-width="1.5"/>
+                    <text x="207" y="116" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="6" fill="#6B7DA0">16MHz</text>
+                    <line x1="207" y1="75" x2="207" y2="65" stroke="#888" stroke-width="1.5"/>
+                    <line x1="207" y1="107" x2="207" y2="117" stroke="#888" stroke-width="1.5"/>
+                </g>
+
+                <g id="afsChipUsb" style="cursor:none;" data-comp="usb">
+                    <rect x="28" y="200" width="40" height="54" rx="3" fill="#c0c0c0" stroke="#888" stroke-width="1"/>
+                    <rect x="32" y="208" width="32" height="12" rx="1" fill="#888"/>
+                    <text x="48" y="270" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="#6B7DA0">USB-B</text>
+                    <line x1="28" y1="195" x2="68" y2="195" stroke="#888" stroke-width="1"/>
+                </g>
+
+                <g id="afsChipReset" style="cursor:none;" data-comp="reset">
+                    <circle cx="270" cy="220" r="18" fill="#1a2232" stroke="#F59E0B" stroke-width="2"/>
+                    <circle cx="270" cy="220" r="10" fill="#2d3545" stroke="#F59E0B" stroke-width="1"/>
+                    <text x="270" y="248" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="#F59E0B">RESET</text>
+                    <circle id="afsResetBtn" cx="270" cy="220" r="10" fill="transparent" stroke="none" style="cursor:none;"/>
+                </g>
+
+                <g id="afsChipPower" style="cursor:none;" data-comp="power">
+                    <rect x="440" y="196" width="84" height="18" rx="2" fill="#1a2232" stroke="#F87171" stroke-width="1"/>
+                    <text x="482" y="208" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="#F87171">5V · 3V3 · GND</text>
+                    <circle cx="452" cy="205" r="2.5" fill="#222"/>
+                    <circle cx="464" cy="205" r="2.5" fill="#222"/>
+                    <circle cx="476" cy="205" r="2.5" fill="#222"/>
+                    <circle cx="488" cy="205" r="2.5" fill="#222"/>
+                    <circle cx="500" cy="205" r="2.5" fill="#222"/>
+                    <circle cx="512" cy="205" r="2.5" fill="#222"/>
+                </g>
+
+                <g id="afsChipIcsp" style="cursor:none;" data-comp="icsp">
+                    <rect x="440" y="240" width="84" height="18" rx="2" fill="#1a2232" stroke="rgba(94,234,212,.45)" stroke-width="1"/>
+                    <text x="482" y="252" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="rgba(94,234,212,.8)">ICSP HEADER</text>
+                    <circle cx="456" cy="249" r="2" fill="#222"/>
+                    <circle cx="470" cy="249" r="2" fill="#222"/>
+                    <circle cx="484" cy="249" r="2" fill="#222"/>
+                    <circle cx="498" cy="249" r="2" fill="#222"/>
+                    <circle cx="512" cy="249" r="2" fill="#222"/>
+                </g>
+
+                <g id="afsOnboardLed">
+                    <circle cx="340" cy="56" r="5" fill="${pinState('D13') === 'high' ? 'rgba(255,165,0,0.9)' : '#2a2a2a'}" stroke="#aaa" stroke-width="1" id="afsLedL"/>
+                    <text x="340" y="47" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="6" fill="#6B7DA0">L</text>
+                </g>
+
+                <path id="afsFlowPath" d="M120,126 C120,280 480,280 480,216" fill="none" stroke="rgba(94,234,212,.15)" stroke-width="2"/>
+            </svg>`;
+        }
+
+        function attachFullscreenPinEvents() {
+            document.querySelectorAll('.afs-pin').forEach(pin => pin.addEventListener('click', () => showPinInfo(pin.dataset.pin)));
+            const reset = document.getElementById('afsResetBtn');
+            if (reset) reset.addEventListener('click', () => showToast('warning', 'Reset', 'Arduino RESET pressed (simulated).'));
+
+            const COMP_INFO = {
+                atmega: { title: 'ATmega328P MCU', body: 'The main microcontroller. Runs your sketch at 16 MHz. Has 32KB Flash, 2KB SRAM, 1KB EEPROM. Controls all GPIO pins.' },
+                crystal: { title: '16 MHz Crystal', body: 'Provides the precise clock signal for the ATmega328P. Ensures accurate timing for delay(), millis() and communication protocols.' },
+                usb: { title: 'USB-B Connector', body: 'Connects to your PC for power and serial communication. Used to upload sketches via the USB-to-serial chip.' },
+                reset: { title: 'RESET Button', body: 'Restarts the Arduino. Pulls the RESET pin LOW momentarily, re-running setup() and restarting loop().' },
+                power: { title: 'Power Headers', body: 'Provide regulated 5V, 3.3V, and GND pins for external components. The 5V rail can source up to 500mA from USB.' },
+                icsp: { title: 'ICSP Header', body: 'In-Circuit Serial Programming header. Used by programmers like AVRISP to flash firmware directly bypassing the bootloader.' }
+            };
+            document.querySelectorAll('[data-comp]').forEach(el => {
+                el.addEventListener('mouseenter', () => {
+                    const info = COMP_INFO[el.dataset.comp];
+                    if (!info) return;
+                    const pinInfoEl = document.getElementById('afsPinInfo');
+                    pinInfoEl.innerHTML = `<div class="afs-pin-info-title">${info.title}</div><div class="insp-txt" style="margin-top:6px;">${info.body}</div>`;
+                    pinInfoEl.classList.add('show');
+                });
+                el.addEventListener('mouseleave', () => {
+                    document.getElementById('afsPinInfo').classList.remove('show');
+                });
+            });
+        }
+
+        function showPinInfo(pinName) {
+            const info = PIN_DETAILS[pinName] || { mode: 'UNUSED', desc: '' };
+            const state = pinState(pinName);
+            document.getElementById('afsPinInfo').innerHTML = `
+                <div class="afs-pin-info-title">Pin ${pinName}</div>
+                <div class="afs-pin-info-row"><span>Mode</span><span>${info.mode}</span></div>
+                <div class="afs-pin-info-row"><span>Voltage</span><span>${state === 'high' ? '5V' : '0V'}</span></div>
+                <div class="afs-pin-info-row"><span>Current State</span><span>${state.toUpperCase()}</span></div>
+                <div class="insp-txt" style="margin-top:6px;">${info.desc}</div>
+            `;
+            document.getElementById('afsPinInfo').classList.add('show');
+        }
+
+        function renderMiniPreview() {
+            const svg = document.getElementById('afsMiniSvg');
+            if (!svg || !components.length) { if(svg) svg.innerHTML = ''; return; }
+            const xs = components.map(c => c.x), ys = components.map(c => c.y);
+            const minX = Math.min(...xs), maxX = Math.max(...xs, minX + 100);
+            const minY = Math.min(...ys), maxY = Math.max(...ys, minY + 100);
+            const scale = Math.min(150 / (maxX - minX + 140), 100 / (maxY - minY + 100));
+            const dots = components.map(c => {
+                const cx = (c.x - minX) * scale + 10, cy = (c.y - minY) * scale + 14;
+                const color = c.type === 'arduino' ? '#38BDF8' : ['led', 'bulb', 'buzzer'].includes(c.type) ? '#34D399' : '#F59E0B';
+                return `<circle cx="${cx}" cy="${cy}" r="4" fill="${color}"/>`;
+            }).join('');
+            const lines = wires.map(w => {
+                const fc = components.find(c => c.id === w.from.compId), tc = components.find(c => c.id === w.to.compId);
+                if (!fc || !tc) return '';
+                return `<line x1="${(fc.x - minX) * scale + 10}" y1="${(fc.y - minY) * scale + 14}" x2="${(tc.x - minX) * scale + 10}" y2="${(tc.y - minY) * scale + 14}" stroke="rgba(94,234,212,.4)" stroke-width="1"/>`;
+            }).join('');
+            svg.innerHTML = lines + dots;
+        }
+
+        function startParticleLoop() {
+            const path = document.getElementById('afsFlowPath');
+            if (!path) return;
+            const svg = document.querySelector('.afs-board-svg');
+            let t = 0;
+            function step() {
+                if (!document.getElementById('arduinoFullscreen') || !document.getElementById('arduinoFullscreen').classList.contains('active')) return;
+                let particle = svg ? svg.querySelector('.afs-particle') : null;
+                if (simRunning && document.getElementById('liveGpio13') && document.getElementById('liveGpio13').textContent === 'HIGH') {
+                    const len = path.getTotalLength();
+                    t = (t + 4) % len;
+                    const pt = path.getPointAtLength(t);
+                    if (!particle && svg) {
+                        particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        particle.setAttribute('r', '3');
+                        particle.setAttribute('class', 'afs-particle');
+                        svg.appendChild(particle);
+                    }
+                    if (particle) {
+                        particle.setAttribute('cx', pt.x);
+                        particle.setAttribute('cy', pt.y);
+                        particle.style.opacity = '1';
+                    }
+                } else if (particle) {
+                    particle.style.opacity = '0';
+                }
+                afsParticleRAF = requestAnimationFrame(step);
+            }
+            step();
+        }
+
+        function refreshFullscreenPins() {
+            if (!document.getElementById('arduinoFullscreen') || !document.getElementById('arduinoFullscreen').classList.contains('active')) return;
+            ['D2', 'D13'].forEach(p => {
+                const el = document.querySelector(`.afs-pin[data-pin="${p}"] rect`);
+                if (el) el.setAttribute('class', pinState(p) === 'high' ? 'afs-pin-high' : 'afs-pin-low');
+            });
+            const ledL = document.getElementById('afsLedL');
+            if (ledL) ledL.setAttribute('fill', pinState('D13') === 'high' ? 'rgba(255,165,0,0.9)' : '#2a2a2a');
+        }
+
+        function updateFullscreenRunState() {
+            const ind = document.getElementById('afsRunIndicator');
+            if (!ind) return;
+            ind.classList.toggle('live', simRunning);
+            document.getElementById('afsRunTxt').textContent = simRunning ? 'Simulation Running' : 'Idle';
+        }
+
+        function openArduinoFullscreen(compId) {
+            const overlay = document.getElementById('arduinoFullscreen');
+            if (!overlay) return;
+            document.getElementById('afsBoardWrap').innerHTML = buildFullscreenBoardSVG();
+            overlay.classList.add('active');
+            attachFullscreenPinEvents();
+            renderMiniPreview();
+            updateFullscreenRunState();
+            log('Opened fullscreen Arduino Visualizer', 'info');
+            startParticleLoop();
+        }
+
+        function closeArduinoFullscreen() {
+            const overlay = document.getElementById('arduinoFullscreen');
+            if (overlay) overlay.classList.remove('active');
+            const pinInfo = document.getElementById('afsPinInfo');
+            if (pinInfo) pinInfo.classList.remove('show');
+            if (afsParticleRAF) cancelAnimationFrame(afsParticleRAF);
+        }
+
+        const afsBackBtn = document.getElementById('afsBack');
+        if (afsBackBtn) afsBackBtn.addEventListener('click', closeArduinoFullscreen);
 
         // ═══════════════════════════
         // STATUS BAR
@@ -3072,9 +3878,18 @@
             });
         });
 
+        const arcioState2 = JSON.parse(localStorage.getItem('arcio_v2')) || {};
+        if (arcioState2.theme === 'light') {
+            document.documentElement.dataset.theme = 'light';
+        }
+
         document.getElementById('themeToggle').addEventListener('click', () => {
             const isLight = document.documentElement.dataset.theme === 'light';
-            document.documentElement.dataset.theme = isLight ? '' : 'light';
+            const nextTheme = isLight ? '' : 'light';
+            document.documentElement.dataset.theme = nextTheme;
+            const current = JSON.parse(localStorage.getItem('arcio_v2')) || {};
+            current.theme = nextTheme === 'light' ? 'light' : 'dark';
+            localStorage.setItem('arcio_v2', JSON.stringify(current));
             document.getElementById('themeIcon').innerHTML = isLight
                 ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
                 : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
