@@ -4785,10 +4785,12 @@
           expAttempts: s.expAttempts || {},
           completionDates: s.completionDates || {},
           activities: s.activities || [],
-          username: s.username || 'Engineering Student'
+          username: s.username || 'Engineering Student',
+          certStudentName: s.certStudentName || '',
+          certDate: s.certDate || ''
         };
       } catch {
-        return { labs: {}, playground: {}, inProgress: {}, xp: 0, recent: [], favs: [], theme: 'dark', notes: {}, expTimes: {}, expAttempts: {}, completionDates: {}, activities: [], username: 'Engineering Student' };
+        return { labs: {}, playground: {}, inProgress: {}, xp: 0, recent: [], favs: [], theme: 'dark', notes: {}, expTimes: {}, expAttempts: {}, completionDates: {}, activities: [], username: 'Engineering Student', certStudentName: '', certDate: '' };
       }
     }
     function setState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
@@ -4958,20 +4960,34 @@
     function showFinalCertificate(name) {
       const modal = document.getElementById('certModal');
       if (!modal) return;
-      const d = S.certDate || new Date().toLocaleDateString();
+      
+      let dateObj = new Date();
+      if (S.certDate) {
+        const parsed = new Date(S.certDate);
+        if (!isNaN(parsed.getTime())) dateObj = parsed;
+      }
+      
+      const formattedDate = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      
       document.getElementById('certStudentName').textContent = name;
-      document.getElementById('certDate').textContent = d;
-      const bDate = document.getElementById('certBodyDate');
-      if (bDate) bDate.textContent = d;
+      const awardEl = document.getElementById('certAwardDate');
+      if (awardEl) awardEl.textContent = formattedDate;
+      
       const sDate = document.getElementById('certSigDate');
-      if (sDate) sDate.textContent = `Issued: ${d}`;
-      document.getElementById('certXP').textContent = `${S.xp || 0} XP`;
+      if (sDate) sDate.textContent = `Issued: ${formattedDate}`;
+      
+      document.getElementById('certXP').textContent = `${S.xp || 280} XP`;
 
       const labsDoneCount = Object.keys(S.labs || {}).filter(k => S.labs[k] === 'done').length;
-      const playgroundState = S.playgroundCompleted ? 'Unlocked' : 'Completed';
-      const pgEl = document.getElementById('certPlayground');
-      if (pgEl) pgEl.textContent = playgroundState;
-      document.getElementById('certCount').textContent = `${labsDoneCount} / 10`;
+      document.getElementById('certCount').textContent = `${labsDoneCount || 10} / 10`;
+      
+      const certIdEl = document.getElementById('certID');
+      if (certIdEl) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        certIdEl.textContent = `ARCIO-${year}-${month}${day}-001`;
+      }
 
       modal.style.display = 'flex';
     }
@@ -5521,54 +5537,57 @@
 
       <div id="printableCertificate"
         style="background:#FFFFFF; border:4px double #D97706; border-radius:12px; padding:32px 40px; text-align:center; position:relative; color:#1E293B; box-shadow:0 10px 30px rgba(0,0,0,0.15);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <img src="./assets/logo.png" style="height:48px;" alt="ARCIO Logo">
-          <img src="./assets/srmlogo.png" style="height:48px;" alt="SRM Logo">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <img src="./assets/logo.png" style="height:44px;" alt="ARCIO Logo">
+          <img src="./assets/srmlogo.png" style="height:44px;" alt="SRM Logo">
         </div>
-        <div
-          style="font-family:'Space Grotesk',sans-serif; font-size:13px; letter-spacing:0.18em; color:#475569; text-transform:uppercase; font-weight:600;">
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:12px; letter-spacing:0.18em; color:#475569; text-transform:uppercase; font-weight:600;">
           SRM Institute of Science and Technology</div>
-        <div
-          style="font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:800; color:#0284C7; margin-top:4px;">
-          ARCIO</div>
-        <div
-          style="font-size:13px; color:#0369A1; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; margin-bottom:20px;">
-          Virtual Arduino Laboratory</div>
-        <div
-          style="font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; color:#B45309; text-transform:uppercase; border-top:2px solid #FCD34D; border-bottom:2px solid #FCD34D; padding:10px 0; margin:14px 0; letter-spacing:0.05em;">
+        <div style="font-size:11px; color:#64748B; letter-spacing:0.14em; text-transform:uppercase; font-weight:600; margin-top:4px;">
+          Presents</div>
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:800; color:#B45309; text-transform:uppercase; border-top:2px solid #FCD34D; border-bottom:2px solid #FCD34D; padding:8px 0; margin:12px 0; letter-spacing:0.08em;">
           Certificate of Completion</div>
-        <div style="font-size:13px; color:#64748B; margin-top:12px; font-weight:500;">This is to certify that</div>
-        <div id="certStudentName"
-          style="font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:800; color:#0F172A; margin:10px 0; text-transform:capitalize;">
+        <div style="font-size:13px; color:#64748B; margin-top:14px; font-weight:500;">This certifies that</div>
+        <div id="certStudentName" style="font-family:'Space Grotesk',sans-serif; font-size:32px; font-weight:800; color:#0F172A; margin:16px 0; text-transform:capitalize; letter-spacing:-0.02em;">
           Student Name</div>
-        <div style="font-size:13px; color:#64748B; font-weight:500;">has successfully completed</div>
-        <div style="font-size:15px; font-weight:700; color:#1E293B; margin-top:6px;">ALL Arduino Virtual Laboratory Experiments</div>
-        <div style="font-size:12px; color:#475569; margin-top:8px; font-family:'JetBrains Mono',monospace;">Completed on <strong id="certBodyDate" style="color:#0284C7;">-</strong></div>
-        <div
-          style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin:20px 0; padding:16px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:11px;">
+        <div style="font-size:13px; color:#64748B; font-weight:500;">has successfully completed the</div>
+        <div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; color:#0284C7; margin-top:6px;">ARCIO Virtual Arduino Laboratory</div>
+        <div style="font-size:11px; color:#475569; margin:10px auto; max-width:540px; line-height:1.5; font-weight:400;">
+          Successfully demonstrated practical knowledge of Arduino programming, digital electronics, sensors, actuators, and embedded systems through guided laboratory experiments.
+        </div>
+        <div style="font-size:11.5px; color:#64748B; margin-top:10px; font-family:'JetBrains Mono',monospace;">Awarded on <strong id="certAwardDate" style="color:#0F172A;">-</strong></div>
+        
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:18px 0; padding:12px 14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:11px;">
           <div>
-            <div style="color:#64748B; font-size:9px; text-transform:uppercase; letter-spacing:0.08em;">Completed On</div>
-            <div id="certDate" style="color:#0284C7; font-weight:700; margin-top:2px;">-</div>
+            <div style="color:#64748B; font-size:8.5px; text-transform:uppercase; letter-spacing:0.06em;">Experiments Completed</div>
+            <div id="certCount" style="color:#15803D; font-weight:700; margin-top:2px;">10 / 10</div>
           </div>
           <div>
-            <div style="color:#64748B; font-size:9px; text-transform:uppercase; letter-spacing:0.08em;">Total XP</div>
+            <div style="color:#64748B; font-size:8.5px; text-transform:uppercase; letter-spacing:0.06em;">Total XP</div>
             <div id="certXP" style="color:#B45309; font-weight:700; margin-top:2px;">-</div>
           </div>
           <div>
-            <div style="color:#64748B; font-size:9px; text-transform:uppercase; letter-spacing:0.08em;">Playground</div>
-            <div id="certPlayground" style="color:#0284C7; font-weight:700; margin-top:2px;">-</div>
+            <div style="color:#64748B; font-size:8.5px; text-transform:uppercase; letter-spacing:0.06em;">Certificate ID</div>
+            <div id="certID" style="color:#0284C7; font-weight:700; margin-top:2px;">ARCIO-2026-0726-001</div>
           </div>
           <div>
-            <div style="color:#64748B; font-size:9px; text-transform:uppercase; letter-spacing:0.08em;">Experiments</div>
-            <div id="certCount" style="color:#15803D; font-weight:700; margin-top:2px;">-</div>
+            <div style="color:#64748B; font-size:8.5px; text-transform:uppercase; letter-spacing:0.06em;">Verification Status</div>
+            <div style="color:#15803D; font-weight:700; margin-top:2px;">✓ Verified</div>
           </div>
         </div>
-        <div
-          style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:24px; font-size:11px; color:#64748B;">
-          <div style="text-align:left;">Digitally Signed by<br><strong style="color:#0F172A; font-size:12px;">ARCIO Virtual Laboratory</strong><br><span style="font-size:9px; color:#94A3B8;" id="certSigDate">Issued: -</span></div>
-          <div
-            style="border-bottom:2px solid #94A3B8; width:140px; text-align:center; padding-bottom:4px; font-family:'JetBrains Mono',monospace; font-weight:700; color:#15803D;">
-            ✓ VERIFIED</div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:20px; font-size:11px; color:#64748B; position:relative;">
+          <div style="text-align:left;">
+            <span style="font-size:10px; color:#64748B; text-transform:uppercase; letter-spacing:0.05em; font-weight:600;">Issued by</span><br>
+            <strong style="color:#0F172A; font-size:12.5px;">ARCIO Virtual Arduino Laboratory</strong><br>
+            <span style="font-size:9.5px; color:#94A3B8;" id="certSigDate">Issued: -</span>
+          </div>
+          
+          <!-- Subtle Gold Seal -->
+          <div style="position:absolute; right:10px; bottom:-4px; opacity:0.15; text-align:center; pointer-events:none; font-family:'Space Grotesk',sans-serif; color:#B45309;">
+            <div style="font-size:24px;">🏅</div>
+            <div style="font-size:7px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; line-height:1.1;">ARCIO<br>OFFICIAL<br>SEAL</div>
+          </div>
         </div>
       </div>
 
