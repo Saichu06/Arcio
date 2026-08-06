@@ -458,6 +458,47 @@
         .loc-search-wrap { width: 100%; }
         .water-stats { gap: 18px; }
     }
+
+
+    /* ── FLOATING SIMULATE BUTTON ── */
+.sim-float-btn {
+  position: fixed;
+  right: 28px; bottom: 28px;
+  z-index: 500;
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700; font-size: 13px;
+  letter-spacing: -.01em; color: #06101E;
+  background: linear-gradient(135deg, var(--cyan2), var(--cyan));
+  border: none; border-radius: 100px;
+  padding: 13px 20px 13px 18px;
+  text-decoration: none;
+  cursor: none;
+  box-shadow: 0 4px 20px rgba(56,189,248,.28), 0 0 0 1px rgba(94,234,212,.15);
+  transition: transform .25s cubic-bezier(.2,.8,.3,1), box-shadow .25s;
+  animation: simFloatPulse 2.6s ease-in-out infinite;
+}
+.sim-float-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 28px rgba(56,189,248,.4), 0 0 0 1px rgba(94,234,212,.25);
+}
+.sim-float-btn svg { flex-shrink: 0; }
+.sim-float-btn .sim-float-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #06101E; opacity: .55;
+  animation: simFloatDot 1.4s ease-in-out infinite;
+}
+@keyframes simFloatPulse {
+  0%,100% { box-shadow: 0 4px 20px rgba(56,189,248,.28), 0 0 0 1px rgba(94,234,212,.15); }
+  50% { box-shadow: 0 4px 26px rgba(56,189,248,.42), 0 0 0 1px rgba(94,234,212,.25); }
+}
+@keyframes simFloatDot {
+  0%,100% { opacity: .3; }
+  50% { opacity: .9; }
+}
+@media (max-width: 700px) {
+  .sim-float-btn { right: 16px; bottom: 16px; padding: 12px 16px 12px 14px; font-size: 12px; }
+}
 </style>
 </head>
 
@@ -1446,5 +1487,13 @@ initGeolocation();
 
 })();
 </script>
+<!-- FLOATING SIMULATE BUTTON -->
+<a href="../advance/simulator/agrisim.html" class="sim-float-btn">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="5 3 19 12 5 21 5 3"/>
+  </svg>
+  Simulate it!
+  <span class="sim-float-dot"></span>
+</a>
 </body>
 </html>

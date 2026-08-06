@@ -42,6 +42,12 @@
       user-select: none;
       min-height: 100vh;
     }
+    /* On touch / coarse-pointer devices the custom cursor makes no sense —
+       fall back to normal touch interaction (fixes the sim being unusable on mobile/tablet). */
+    body.coarse-pointer { cursor: auto; }
+    body.coarse-pointer .cur-dot,
+    body.coarse-pointer .cur-ring { display: none; }
+    body.coarse-pointer * { cursor: auto !important; }
 
     /* ── CURSOR ── */
     .cur-dot {
@@ -218,13 +224,15 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 20px;
       border-bottom: 1px solid rgba(94,234,212,.07);
+      gap: 10px;
     }
-    .panel-title-wrap { display: flex; align-items: center; gap: 10px; }
+    .panel-title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .panel-icon {
       width: 30px; height: 30px; border-radius: 7px;
       display: flex; align-items: center; justify-content: center;
       background: rgba(56,189,248,.08);
       border: 1px solid rgba(56,189,248,.15);
+      flex-shrink: 0;
     }
     .panel-title {
       font-family: 'Space Grotesk', sans-serif;
@@ -237,6 +245,37 @@
       text-transform: uppercase; color: var(--muted);
     }
     .panel-body { padding: 20px; }
+    .panel-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    /* Auto-traffic toggle */
+    .traffic-toggle {
+      display: flex; align-items: center; gap: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(10,17,32,.8);
+      border: 1px solid rgba(94,234,212,.14);
+      border-radius: 20px; padding: 5px 10px 5px 6px;
+      cursor: none;
+      transition: border-color .2s, color .2s;
+    }
+    .traffic-toggle:hover { border-color: rgba(94,234,212,.3); color: var(--ink); }
+    .traffic-switch {
+      width: 22px; height: 12px; border-radius: 20px;
+      background: rgba(107,125,160,.3);
+      position: relative;
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+    .traffic-switch::after {
+      content: '';
+      position: absolute; top: 1.5px; left: 1.5px;
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--muted); transition: transform .25s, background .25s;
+    }
+    .traffic-toggle.on .traffic-switch { background: rgba(52,211,153,.22); }
+    .traffic-toggle.on .traffic-switch::after { transform: translateX(10px); background: var(--green); box-shadow: 0 0 6px var(--green); }
 
     /* ── ANALYTICS STRIP (top) ── */
     .analytics-strip {
@@ -277,6 +316,7 @@
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 800; font-size: 38px;
       letter-spacing: -.04em; line-height: 1;
+      transition: color .2s;
     }
     .stat-card.green-card .stat-value { color: var(--green); }
     .stat-card.red-card .stat-value { color: var(--red); }
@@ -313,6 +353,12 @@
       font-size: 8px; font-weight: 600;
       letter-spacing: .14em; text-transform: uppercase;
       color: var(--amber);
+      transition: background .3s, border-color .3s, color .3s;
+    }
+    .drag-hint.full {
+      background: rgba(248,113,113,.07);
+      border-color: rgba(248,113,113,.22);
+      color: var(--red);
     }
     .drag-hint-icon { font-size: 13px; }
 
@@ -333,12 +379,6 @@
       height: 72px;
       background: #0B1826;
       border-top: 2px solid rgba(94,234,212,.12);
-    }
-    .road-stripe {
-      position: absolute;
-      top: 50%; transform: translateY(-50%);
-      height: 4px; border-radius: 2px;
-      background: rgba(245,158,11,.35);
     }
     .road-center-line {
       position: absolute; top: 50%; transform: translateY(-50%);
@@ -378,7 +418,7 @@
       align-items: center;
       padding: 10px 8px 8px;
       position: relative;
-      transition: border-color .3s, box-shadow .3s, background .3s;
+      transition: border-color .3s, box-shadow .3s, background .3s, transform .15s;
       cursor: default;
     }
     .slot.available { border-color: rgba(52,211,153,.25); }
@@ -386,11 +426,19 @@
       border-color: rgba(248,113,113,.4);
       background: rgba(15,6,6,.9);
       box-shadow: 0 0 20px rgba(248,113,113,.08), inset 0 0 30px rgba(248,113,113,.04);
+      cursor: none;
     }
+    .slot.occupied:hover { transform: translateY(-2px); box-shadow: 0 0 26px rgba(248,113,113,.16), inset 0 0 30px rgba(248,113,113,.05); }
     .slot.drag-over {
       border-color: rgba(245,158,11,.6) !important;
       box-shadow: 0 0 24px rgba(245,158,11,.2) !important;
       background: rgba(245,158,11,.04) !important;
+    }
+    .slot.leaving { animation: slotLeave .45s ease forwards; }
+    @keyframes slotLeave {
+      0% { opacity: 1; }
+      60% { opacity: .4; }
+      100% { opacity: 1; }
     }
 
     .slot-num {
@@ -398,6 +446,13 @@
       font-size: 8px; font-weight: 600; letter-spacing: .16em;
       color: var(--muted); text-transform: uppercase;
       margin-bottom: 6px;
+    }
+    .slot-plate {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6.5px; font-weight: 600; letter-spacing: .06em;
+      color: var(--red); opacity: .75;
+      margin-top: -3px; margin-bottom: 5px;
+      min-height: 8px;
     }
 
     /* Parking bay (the drawn rectangle) */
@@ -436,8 +491,8 @@
     .slot.occupied .ir-dot {
       background: var(--red);
       box-shadow: 0 0 8px var(--red), 0 0 16px rgba(248,113,113,.4);
-      animation: irFlash .8s ease-in-out;
     }
+    .slot.just-occupied .ir-dot { animation: irFlash .8s ease-in-out; }
     @keyframes irFlash {
       0% { transform: scale(1.6); }
       100% { transform: scale(1); }
@@ -484,6 +539,18 @@
       color: var(--amber); background: rgba(245,158,11,.08);
       border: 1px solid rgba(245,158,11,.2);
     }
+    .slot-exit-hint {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(6,10,19,.72);
+      border-radius: 8px;
+      opacity: 0; transition: opacity .2s;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--amber);
+      text-align: center; padding: 8px;
+    }
+    .slot.occupied:hover .slot-exit-hint { opacity: 1; }
 
     /* Parked car inside bay */
     .parked-car {
@@ -497,6 +564,7 @@
     .vehicle-zone {
       display: flex; align-items: center; gap: 16px;
       margin-top: 20px;
+      min-height: 106px;
     }
     .vehicle-label {
       font-family: 'JetBrains Mono', monospace;
@@ -509,14 +577,29 @@
       position: relative;
       width: 64px; height: 106px;
       cursor: grab;
-      transition: filter .2s, transform .2s;
+      transition: filter .2s, transform .2s, opacity .3s;
       flex-shrink: 0;
+      touch-action: none;
       z-index: 10;
     }
     #draggable-car:hover { filter: brightness(1.15); transform: translateY(-2px); }
-    #draggable-car.is-dragging { cursor: grabbing; opacity: 0; }
-    #draggable-car.parked { opacity: .35; cursor: not-allowed; }
-    #draggable-car.parked:hover { transform: none; filter: none; }
+    #draggable-car.is-dragging { opacity: 0; }
+    #draggable-car.disabled { opacity: .3; cursor: not-allowed; filter: grayscale(.6); }
+    #draggable-car.disabled:hover { transform: none; filter: grayscale(.6); }
+    #draggable-car.spawning { animation: carSpawn .4s ease; }
+    @keyframes carSpawn {
+      0% { opacity: 0; transform: translateX(-14px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
+    .vehicle-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; color: var(--muted); letter-spacing: .08em;
+      line-height: 1.6;
+    }
+    .vehicle-meta .plate { color: var(--ink); font-weight: 600; }
+    .vehicle-meta .ready-dot { color: var(--green); font-size: 7px; }
+    .vehicle-meta .full-dot { color: var(--red); font-size: 7px; }
 
     /* Ghost car that follows cursor */
     #car-ghost {
@@ -541,6 +624,7 @@
       border-radius: 8px; padding: 8px 14px;
       cursor: none;
       transition: color .2s, border-color .2s, background .2s;
+      flex-shrink: 0;
     }
     .btn-reset:hover {
       color: var(--cyan); border-color: rgba(94,234,212,.3);
@@ -568,7 +652,7 @@
     .feed-icon.red { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); }
     .feed-icon.blue { background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.18); }
     .feed-icon.amber { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.2); }
-    .feed-text { flex: 1; }
+    .feed-text { flex: 1; min-width: 0; }
     .feed-event {
       font-family: 'Inter', sans-serif;
       font-size: 12px; font-weight: 600;
@@ -579,16 +663,6 @@
       font-size: 7.5px; color: var(--muted);
       letter-spacing: .06em; margin-top: 2px;
     }
-
-    /* IR signal badge */
-    .ir-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 7px; font-weight: 600; letter-spacing: .1em;
-      text-transform: uppercase; padding: 1px 7px; border-radius: 100px;
-    }
-    .ir-badge.on { color: var(--red); background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); }
-    .ir-badge.off { color: var(--green); background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.18); }
 
     /* ── INFO SECTIONS ── */
     .info-grid {
@@ -738,6 +812,7 @@
       opacity: 0; transition: opacity .3s, transform .3s;
       backdrop-filter: blur(12px);
       pointer-events: none;
+      max-width: 90vw; text-align: center;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -754,6 +829,7 @@
       .slot { width: 74px; }
       .slot-bay { width: 54px; height: 90px; }
       .analytics-strip { grid-template-columns: repeat(3,1fr); gap: 8px; }
+      .panel-header { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -811,7 +887,7 @@
       IoT Simulation · Parking Intelligence
     </div>
     <h1 class="hero-headline">Parking <span class="accent">Control</span> Center</h1>
-    <p class="hero-sub">Drag the vehicle into any slot. Watch IR sensors activate, occupancy update in real-time, and the smart city dashboard respond.</p>
+    <p class="hero-sub">Drag the vehicle into any slot to park it, or hover an occupied slot and tap it to let that vehicle leave. IR sensors, occupancy, and the dashboard update live.</p>
   </div>
 
   <div class="main-layout">
@@ -864,13 +940,19 @@
               <div class="panel-sub">Zone — 01 · 6 Bay Facility</div>
             </div>
           </div>
-          <button class="btn-reset" id="btnReset" onclick="resetSimulation()">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
-            Reset
-          </button>
+          <div class="panel-actions">
+            <div class="traffic-toggle" id="trafficToggle">
+              <div class="traffic-switch"></div>
+              Auto Traffic
+            </div>
+            <button class="btn-reset" id="btnReset" onclick="resetSimulation()">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+              Reset
+            </button>
+          </div>
         </div>
         <div class="lot-body">
-          <div class="drag-hint">
+          <div class="drag-hint" id="dragHint">
             <span class="drag-hint-icon">↕</span>
             Drag the vehicle below into any green slot to park it
           </div>
@@ -918,9 +1000,9 @@
               <rect x="6" y="64" width="6" height="12" rx="3" fill="rgba(6,10,19,.9)" stroke="rgba(94,234,212,.12)" stroke-width="1"/>
               <rect x="52" y="64" width="6" height="12" rx="3" fill="rgba(6,10,19,.9)" stroke="rgba(94,234,212,.12)" stroke-width="1"/>
             </svg>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;">
-              VH-7742<br>
-              <span style="color:var(--green);font-size:7px;">● Ready</span>
+            <div class="vehicle-meta">
+              <span class="plate" id="vehiclePlate">VH-7742</span><br>
+              <span id="vehicleReadyState"><span class="ready-dot">●</span> Ready</span>
             </div>
           </div>
 
@@ -1068,21 +1150,28 @@ const TOTAL = 6;
 const slots = Array.from({length: TOTAL}, (_, i) => ({
   id: i + 1,
   occupied: false,
+  plate: null,
 }));
 let totalVehicles = 0;
-let currentSlot = null; // slot index currently occupied
+let currentPlate = generatePlate();
+
+function generatePlate() {
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return 'VH-' + num;
+}
 
 // ── RENDER SLOTS ──
-function renderSlots() {
+function renderSlots(justChangedIdx = null) {
   const area = document.getElementById('slotsArea');
   area.innerHTML = '';
   slots.forEach((slot, i) => {
     const el = document.createElement('div');
-    el.className = 'slot ' + (slot.occupied ? 'occupied' : 'available');
+    el.className = 'slot ' + (slot.occupied ? 'occupied' : 'available') + (i === justChangedIdx ? ' just-occupied' : '');
     el.id = `slot-${slot.id}`;
     el.dataset.index = i;
     el.innerHTML = `
       <div class="slot-num">P${slot.id}</div>
+      <div class="slot-plate">${slot.occupied ? slot.plate : ''}</div>
       <div class="slot-bay">
         <div class="ir-sensors">
           <div class="ir-dot"></div>
@@ -1090,13 +1179,13 @@ function renderSlots() {
         </div>
         <div class="ir-beam"></div>
         ${slot.occupied ? renderParkedCar() : ''}
+        ${slot.occupied ? '<div class="slot-exit-hint">Tap to<br>vacate</div>' : ''}
       </div>
       <div class="slot-status">${slot.occupied ? 'Occupied' : 'Free'}</div>
     `;
-    // Drop events
-    el.addEventListener('dragover', onDragOver);
-    el.addEventListener('dragleave', onDragLeave);
-    el.addEventListener('drop', e => onDrop(e, i));
+    if (slot.occupied) {
+      el.addEventListener('click', () => vacateSlot(i));
+    }
     area.appendChild(el);
   });
   renderSlotStatusList();
@@ -1121,7 +1210,7 @@ function renderParkedCar() {
 function renderSlotStatusList() {
   const list = document.getElementById('slotStatusList');
   list.innerHTML = '';
-  slots.forEach((slot, i) => {
+  slots.forEach((slot) => {
     const row = document.createElement('div');
     row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:7px;background:rgba(6,10,19,.6);border:1px solid ${slot.occupied ? 'rgba(248,113,113,.18)' : 'rgba(52,211,153,.14)'};`;
     row.innerHTML = `
@@ -1153,6 +1242,15 @@ function updateStats() {
   document.getElementById('statVehicles').textContent = totalVehicles;
   document.getElementById('occPct').textContent = pct + '%';
   document.getElementById('occFill').style.width = pct + '%';
+
+  const hint = document.getElementById('dragHint');
+  if (available === 0) {
+    hint.classList.add('full');
+    hint.innerHTML = '<span class="drag-hint-icon">⛔</span> Lot full — tap an occupied slot to free it up';
+  } else {
+    hint.classList.remove('full');
+    hint.innerHTML = '<span class="drag-hint-icon">↕</span> Drag the vehicle below into any green slot to park it';
+  }
 }
 
 // ── FEED ──
@@ -1181,47 +1279,69 @@ function addFeedEvent(icon, iconClass, title, detail) {
   while (list.children.length > 8) list.removeChild(list.lastChild);
 }
 
-// ── DRAG & DROP ──
+// ── VEHICLE / DRAG STATE ──
 const carEl = document.getElementById('draggable-car');
 const ghost = document.getElementById('car-ghost');
 const ring = document.getElementById('curRing');
+const plateLabel = document.getElementById('vehiclePlate');
+const readyState = document.getElementById('vehicleReadyState');
 let isDragging = false;
+let activePointerId = null;
 
-carEl.addEventListener('mousedown', startDrag);
-document.addEventListener('mousemove', onMouseMove);
-document.addEventListener('mouseup', onMouseUp);
+function refreshVehicleUI() {
+  const freeSlots = slots.some(s => !s.occupied);
+  plateLabel.textContent = currentPlate;
+  if (!freeSlots) {
+    carEl.classList.add('disabled');
+    readyState.innerHTML = '<span class="full-dot">●</span> Lot full';
+  } else {
+    carEl.classList.remove('disabled');
+    readyState.innerHTML = '<span class="ready-dot">●</span> Ready';
+  }
+}
+
+// Pointer Events unify mouse + touch/stylus in a single implementation
+// (this replaces the old mouse-only drag, which meant the sim never worked on touch devices).
+carEl.addEventListener('pointerdown', startDrag);
 
 function startDrag(e) {
-  if (carEl.classList.contains('parked')) return;
+  if (carEl.classList.contains('disabled')) return;
   isDragging = true;
+  activePointerId = e.pointerId;
+  try { carEl.setPointerCapture(e.pointerId); } catch (err) {}
   carEl.classList.add('is-dragging');
   ring.classList.add('dragging');
   ghost.style.display = 'block';
   ghost.style.left = e.clientX + 'px';
   ghost.style.top = e.clientY + 'px';
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup', onDragEnd);
+  document.addEventListener('pointercancel', onDragEnd);
   e.preventDefault();
 }
 
-function onMouseMove(e) {
-  if (!isDragging) return;
+function onDragMove(e) {
+  if (!isDragging || e.pointerId !== activePointerId) return;
   ghost.style.left = e.clientX + 'px';
   ghost.style.top = e.clientY + 'px';
 
-  // Highlight slot under cursor
   document.querySelectorAll('.slot').forEach(slot => slot.classList.remove('drag-over'));
   const target = getSlotUnder(e.clientX, e.clientY);
-  if (target !== null) {
-    const el = document.getElementById(`slot-${slots[target].id}`);
-    if (el && !slots[target].occupied) el.classList.add('drag-over');
+  if (target !== null && !slots[target].occupied) {
+    document.getElementById(`slot-${slots[target].id}`).classList.add('drag-over');
   }
 }
 
-function onMouseUp(e) {
-  if (!isDragging) return;
+function onDragEnd(e) {
+  if (!isDragging || e.pointerId !== activePointerId) return;
   isDragging = false;
+  activePointerId = null;
   carEl.classList.remove('is-dragging');
   ring.classList.remove('dragging');
   ghost.style.display = 'none';
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragEnd);
+  document.removeEventListener('pointercancel', onDragEnd);
 
   document.querySelectorAll('.slot').forEach(s => s.classList.remove('drag-over'));
 
@@ -1242,57 +1362,121 @@ function getSlotUnder(x, y) {
   return null;
 }
 
-// Also support HTML5 drag as fallback
-carEl.setAttribute('draggable', 'true');
-carEl.addEventListener('dragstart', e => {
-  e.dataTransfer.setData('text/plain', 'car');
-  e.dataTransfer.effectAllowed = 'move';
-  // hide default ghost
-  const blank = document.createElement('canvas');
-  blank.width = blank.height = 1;
-  e.dataTransfer.setDragImage(blank, 0, 0);
-});
-
-function onDragOver(e) {
-  e.preventDefault();
-  const slotEl = e.currentTarget;
-  const idx = parseInt(slotEl.dataset.index);
-  if (!slots[idx].occupied) slotEl.classList.add('drag-over');
-}
-function onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
-function onDrop(e, idx) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  if (!slots[idx].occupied && !carEl.classList.contains('parked')) {
-    parkVehicle(idx);
-  }
-}
-
 // ── PARK VEHICLE ──
 function parkVehicle(idx) {
   slots[idx].occupied = true;
-  currentSlot = idx;
+  slots[idx].plate = currentPlate;
   totalVehicles++;
 
-  carEl.classList.add('parked');
-  renderSlots();
+  renderSlots(idx);
   updateStats();
 
-  addFeedEvent('🔴', 'red', `Slot P${slots[idx].id} — Occupied`, `IR sensor triggered · Vehicle detected`);
-  setTimeout(() => addFeedEvent('📊', 'blue', 'Dashboard Updated', `Available: ${TOTAL - slots.filter(s=>s.occupied).length} · Occupied: ${slots.filter(s=>s.occupied).length}`), 600);
+  addFeedEvent('🔴', 'red', `Slot P${slots[idx].id} — Occupied`, `${currentPlate} detected by IR sensor`);
+  setTimeout(() => addFeedEvent('📊', 'blue', 'Dashboard Updated', `Available: ${TOTAL - slots.filter(s=>s.occupied).length} · Occupied: ${slots.filter(s=>s.occupied).length}`), 500);
 
-  showToast(`🅿️  Slot P${slots[idx].id} occupied — IR triggered`);
+  showToast(`🅿️  Slot P${slots[idx].id} occupied — ${currentPlate}`);
+
+  // A new vehicle pulls up to the entry after a short pause, so the lot
+  // keeps taking arrivals instead of locking up after a single car.
+  carEl.classList.add('disabled');
+  readyState.innerHTML = '<span class="full-dot">●</span> Next vehicle arriving…';
+  setTimeout(() => {
+    currentPlate = generatePlate();
+    carEl.classList.remove('is-dragging');
+    carEl.classList.add('spawning');
+    refreshVehicleUI();
+    setTimeout(() => carEl.classList.remove('spawning'), 400);
+  }, 900);
+}
+
+// ── VACATE SLOT (click an occupied slot to simulate the car leaving) ──
+function vacateSlot(idx) {
+  if (isDragging || !slots[idx].occupied) return;
+  const plate = slots[idx].plate;
+  const slotId = slots[idx].id;
+  const el = document.getElementById(`slot-${slotId}`);
+  if (el) el.classList.add('leaving');
+
+  setTimeout(() => {
+    slots[idx].occupied = false;
+    slots[idx].plate = null;
+    renderSlots();
+    updateStats();
+    refreshVehicleUI();
+    addFeedEvent('🟢', 'green', `Slot P${slotId} — Vacated`, `${plate} exited · IR sensor cleared`);
+    showToast(`✅  Slot P${slotId} vacated — ${plate} departed`);
+  }, 200);
+}
+
+// ── AUTO TRAFFIC SIMULATION ──
+let autoTraffic = false;
+let autoTimer = null;
+const trafficToggle = document.getElementById('trafficToggle');
+
+trafficToggle.addEventListener('click', () => {
+  autoTraffic = !autoTraffic;
+  trafficToggle.classList.toggle('on', autoTraffic);
+  if (autoTraffic) {
+    addFeedEvent('🔧', 'amber', 'Auto Traffic Enabled', 'Simulating live arrivals & departures');
+    scheduleAutoTraffic();
+  } else {
+    addFeedEvent('🔧', 'amber', 'Auto Traffic Disabled', 'Manual control only');
+    clearTimeout(autoTimer);
+  }
+});
+
+function scheduleAutoTraffic() {
+  clearTimeout(autoTimer);
+  if (!autoTraffic) return;
+  const delay = 4000 + Math.random() * 4000;
+  autoTimer = setTimeout(() => {
+    if (!autoTraffic) return;
+    runAutoTrafficTick();
+    scheduleAutoTraffic();
+  }, delay);
+}
+
+function runAutoTrafficTick() {
+  if (isDragging) return; // don't interfere mid-drag
+  const freeIdxs = slots.map((s, i) => s.occupied ? -1 : i).filter(i => i !== -1);
+  const occIdxs = slots.map((s, i) => s.occupied ? i : -1).filter(i => i !== -1);
+
+  // Weighted choice: prefer arrivals when the lot is emptier, departures when fuller.
+  const occRate = occIdxs.length / TOTAL;
+  const wantArrival = freeIdxs.length > 0 && (occIdxs.length === 0 || Math.random() > occRate);
+
+  if (wantArrival && freeIdxs.length > 0) {
+    const idx = freeIdxs[Math.floor(Math.random() * freeIdxs.length)];
+    const plate = generatePlate();
+    slots[idx].occupied = true;
+    slots[idx].plate = plate;
+    totalVehicles++;
+    renderSlots(idx);
+    updateStats();
+    refreshVehicleUI();
+    addFeedEvent('🔴', 'red', `Slot P${slots[idx].id} — Occupied`, `${plate} detected by IR sensor`);
+  } else if (occIdxs.length > 0) {
+    const idx = occIdxs[Math.floor(Math.random() * occIdxs.length)];
+    const plate = slots[idx].plate;
+    const slotId = slots[idx].id;
+    slots[idx].occupied = false;
+    slots[idx].plate = null;
+    renderSlots();
+    updateStats();
+    refreshVehicleUI();
+    addFeedEvent('🟢', 'green', `Slot P${slotId} — Vacated`, `${plate} exited · IR sensor cleared`);
+  }
 }
 
 // ── RESET ──
 function resetSimulation() {
-  slots.forEach(s => s.occupied = false);
-  currentSlot = null;
-  carEl.classList.remove('parked', 'is-dragging');
+  slots.forEach(s => { s.occupied = false; s.plate = null; });
+  totalVehicles = 0;
+  currentPlate = generatePlate();
+  carEl.classList.remove('is-dragging');
   renderSlots();
   updateStats();
+  refreshVehicleUI();
   addFeedEvent('🔄', 'amber', 'System Reset', 'All slots cleared · Ready for vehicles');
   showToast('✅  Parking lot reset — all slots available');
 }
@@ -1307,26 +1491,43 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
-// ── CURSOR ──
+// ── CURSOR (mouse/fine-pointer only) ──
+const isCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+if (isCoarsePointer) document.body.classList.add('coarse-pointer');
+
 const dot = document.getElementById('curDot');
 let mx = 0, my = 0, rx = 0, ry = 0;
-document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+document.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse') { mx = e.clientX; my = e.clientY; }
+});
 (function animCursor() {
-  rx += (mx - rx) * 0.12;
-  ry += (my - ry) * 0.12;
-  dot.style.left = mx + 'px'; dot.style.top = my + 'px';
-  if (!isDragging) {
-    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
-  } else {
-    ring.style.left = mx + 'px'; ring.style.top = my + 'px';
+  if (!isCoarsePointer) {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+    if (!isDragging) {
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+    } else {
+      ring.style.left = mx + 'px'; ring.style.top = my + 'px';
+    }
   }
   requestAnimationFrame(animCursor);
 })();
 
-document.querySelectorAll('a, button, .slot').forEach(el => {
-  el.addEventListener('mouseenter', () => { if (!isDragging) ring.classList.add('expand'); });
-  el.addEventListener('mouseleave', () => { if (!isDragging) ring.classList.remove('expand'); });
-});
+if (!isCoarsePointer) {
+  document.querySelectorAll('a, button, .traffic-toggle').forEach(el => {
+    el.addEventListener('mouseenter', () => { if (!isDragging) ring.classList.add('expand'); });
+    el.addEventListener('mouseleave', () => { if (!isDragging) ring.classList.remove('expand'); });
+  });
+  // Slots are re-rendered dynamically, so delegate hover highlighting instead of
+  // binding listeners to elements that get replaced by renderSlots().
+  document.getElementById('slotsArea').addEventListener('mouseover', e => {
+    if (e.target.closest('.slot.occupied') && !isDragging) ring.classList.add('expand');
+  });
+  document.getElementById('slotsArea').addEventListener('mouseout', e => {
+    if (e.target.closest('.slot.occupied') && !isDragging) ring.classList.remove('expand');
+  });
+}
 
 // ── PARTICLES ──
 const canvas = document.getElementById('particleCanvas');
@@ -1355,6 +1556,7 @@ for (let i = 0; i < 50; i++) particles.push({
 // ── INIT ──
 renderSlots();
 updateStats();
+refreshVehicleUI();
 </script>
 </body>
 </html>
