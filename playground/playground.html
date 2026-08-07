@@ -149,6 +149,27 @@
     .nav-back svg { transition: transform .2s; }
     .nav-back:hover svg { transform: translateX(-2px); }
 
+    /* ── THEME TOGGLE ── */
+    .theme-toggle {
+      width: 30px; height: 30px; flex-shrink: 0;
+      border-radius: 50%;
+      background: rgba(10,17,32,.85);
+      border: 1px solid rgba(94,234,212,.22);
+      display: flex; align-items: center; justify-content: center;
+      cursor: none;
+      transition: transform .2s, background .3s, border-color .2s;
+    }
+    .theme-toggle:hover { transform: scale(1.1); }
+    .theme-toggle svg { transition: opacity .2s; }
+    .theme-toggle .icon-moon { display: block; }
+    .theme-toggle .icon-sun { display: none; }
+    body.light .theme-toggle .icon-moon { display: none; }
+    body.light .theme-toggle .icon-sun { display: block; }
+    body.light .theme-toggle {
+      background: rgba(255,255,255,.92);
+      border-color: rgba(14,40,60,.18);
+    }
+
     /* ── MAIN SCROLL CONTAINER ── */
     .page {
       position: relative; z-index: 1;
@@ -516,6 +537,74 @@
       color: var(--muted2);
     }
 
+    /* ── LIGHT MODE ──
+       Swapping the CSS custom properties handles every element that already
+       reads from var(--ink)/var(--muted)/var(--cyan) etc automatically.
+       The rules below only patch the spots that used hardcoded rgba/hex
+       values instead of a variable (topbar, cards, backgrounds, glows). */
+    body.light {
+      --bg: #F2F5FC; --bg2: #E7EDF8; --bg3: #DCE5F4; --bg4: #EEF2FA;
+      --blue: #2563EB; --blue-deep: #1D4ED8;
+      --cyan: #0E7C8C; --cyan2: #0A77B5;
+      --ink: #10182B; --muted: #51607E; --muted2: #7387A8;
+      --border: rgba(14,40,60,.14); --border-blue: rgba(10,119,181,.22);
+      --green: #0E8F62; --green2: #0B7A53; --amber: #B6790A; --red: #C2453F;
+      --panel-bg: rgba(255,255,255,.9); --panel-border: rgba(14,40,60,.12);
+    }
+    body.light .bg-grid {
+      background-image:
+        linear-gradient(rgba(10,119,181,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(10,119,181,.05) 1px, transparent 1px);
+    }
+    body.light .bg-atmos {
+      background:
+        radial-gradient(ellipse 70% 45% at 50% -5%, rgba(10,119,181,.07) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 15% 50%, rgba(14,124,140,.05) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 85% 60%, rgba(10,119,181,.05) 0%, transparent 60%);
+    }
+    body.light .topbar {
+      background: rgba(255,255,255,.92);
+      border-bottom: 1px solid rgba(14,40,60,.1);
+    }
+    body.light .topbar-sep { background: rgba(14,40,60,.14); }
+    body.light .nav-back { border-color: rgba(14,40,60,.16); }
+    body.light .hero-label {
+      background: rgba(10,119,181,.07);
+      border-color: rgba(10,119,181,.22);
+    }
+    body.light .hero-stat + .hero-stat::before { background: rgba(14,40,60,.14); }
+    body.light .sim-card {
+      background: rgba(255,255,255,.9);
+      border-color: rgba(14,40,60,.14);
+    }
+    body.light .sim-card:hover {
+      border-color: rgba(10,119,181,.35);
+      box-shadow:
+        0 24px 64px rgba(30,50,90,.16),
+        0 0 0 1px rgba(10,119,181,.12),
+        0 0 40px rgba(10,119,181,.08);
+    }
+    body.light .sim-img { background: rgba(230,237,250,.8); border-bottom-color: rgba(14,40,60,.08); }
+    body.light .sim-img-overlay {
+      background: linear-gradient(to bottom, rgba(240,244,255,0) 40%, rgba(240,244,255,.55) 100%);
+    }
+    body.light .sim-img-placeholder {
+      background: linear-gradient(135deg, rgba(235,241,252,.95), rgba(225,233,248,.98));
+    }
+    body.light .sim-num { background: rgba(10,119,181,.07); border-color: rgba(10,119,181,.2); }
+    body.light .sim-footer { border-top-color: rgba(14,40,60,.09); }
+    body.light .why-card {
+      background: rgba(255,255,255,.88);
+      border-color: rgba(14,40,60,.12);
+    }
+    body.light .why-card:hover {
+      border-color: rgba(10,119,181,.3);
+      box-shadow: 0 20px 50px rgba(30,50,90,.12), 0 0 30px rgba(10,119,181,.06);
+    }
+    body.light .why-card-icon { background: rgba(10,119,181,.08); border-color: rgba(10,119,181,.22); }
+    body.light .why-card-accent { background: linear-gradient(90deg, transparent, rgba(14,40,60,.2), transparent); }
+    body.light .scroll-cue span { color: var(--muted2); }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
       .showcase-stage {
@@ -547,7 +636,7 @@
     }
   </style>
 </head>
-<body>
+<body class="light">
 
 <!-- CURSOR -->
 <div class="cur-dot" id="curDot"></div>
@@ -592,6 +681,22 @@
       <span class="topbar-title">Playground</span>
     </div>
   </div>
+  <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+    <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  </button>
   <a href="../dashboard.html" class="nav-back">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
       <polyline points="15,18 9,12 15,6"/>
@@ -901,7 +1006,7 @@
     requestAnimationFrame(animCursor);
   })();
 
-  document.querySelectorAll('a, .sim-card, .why-card').forEach(el => {
+  document.querySelectorAll('a, .sim-card, .why-card, .theme-toggle').forEach(el => {
     el.addEventListener('mouseenter', () => {
       ring.classList.add('expand');
       label.classList.add('show');
@@ -937,18 +1042,32 @@
 
   function drawParticles() {
     ctx.clearRect(0, 0, W, H);
+    const isLight = document.body.classList.contains('light');
     particles.forEach(p => {
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(94,234,212,${p.a})`;
+      ctx.fillStyle = isLight ? `rgba(10,119,181,${p.a})` : `rgba(94,234,212,${p.a})`;
       ctx.fill();
     });
     requestAnimationFrame(drawParticles);
   }
   drawParticles();
+
+  // ── THEME TOGGLE
+  const themeBtn = document.getElementById('themeToggle');
+  const savedTheme = localStorage.getItem('arcio-theme');
+  if (savedTheme === 'dark') {
+    document.body.classList.remove('light');
+  } else {
+    document.body.classList.add('light');
+  }
+  themeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('light');
+    localStorage.setItem('arcio-theme', document.body.classList.contains('light') ? 'light' : 'dark');
+  });
 
   // ── MOUSE PARALLAX ON CARDS
   const stage = document.getElementById('stage');

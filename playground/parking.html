@@ -9,6 +9,7 @@
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
     :root {
+      --bg-rgb:6,10,19;--bg2-rgb:10,17,32;
       --bg: #060A13;
       --bg2: #0A1120;
       --bg3: #0D1526;
@@ -26,7 +27,7 @@
       --green2: #10B981;
       --amber: #F59E0B;
       --red: #F87171;
-      --panel-bg: rgba(10,17,32,0.92);
+      --panel-bg: rgba(var(--bg2-rgb),0.92);
       --radius: 12px;
       --radius-sm: 8px;
     }
@@ -87,7 +88,7 @@
     .topbar {
       position: fixed; top: 0; left: 0; right: 0;
       z-index: 200; height: 54px;
-      background: rgba(6,10,19,.92);
+      background: rgba(var(--bg-rgb),.92);
       border-bottom: 1px solid rgba(94,234,212,.08);
       backdrop-filter: blur(20px);
       display: flex; align-items: center;
@@ -209,7 +210,7 @@
 
     /* ── PANEL SHARED ── */
     .panel {
-      background: rgba(10,17,32,.88);
+      background: rgba(var(--bg2-rgb),.88);
       border: 1px solid rgba(94,234,212,.1);
       border-radius: 14px;
       overflow: hidden;
@@ -254,7 +255,7 @@
       font-size: 7.5px; font-weight: 600;
       letter-spacing: .1em; text-transform: uppercase;
       color: var(--muted);
-      background: rgba(10,17,32,.8);
+      background: rgba(var(--bg2-rgb),.8);
       border: 1px solid rgba(94,234,212,.14);
       border-radius: 20px; padding: 5px 10px 5px 6px;
       cursor: none;
@@ -285,7 +286,7 @@
       margin-bottom: 20px;
     }
     .stat-card {
-      background: rgba(10,17,32,.88);
+      background: rgba(var(--bg2-rgb),.88);
       border: 1px solid rgba(94,234,212,.1);
       border-radius: 12px;
       padding: 16px 18px;
@@ -411,7 +412,7 @@
     /* Individual slot */
     .slot {
       width: 92px;
-      background: rgba(6,10,19,.9);
+      background: rgba(var(--bg-rgb),.9);
       border: 1.5px solid rgba(94,234,212,.16);
       border-radius: 8px;
       display: flex; flex-direction: column;
@@ -542,7 +543,7 @@
     .slot-exit-hint {
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(6,10,19,.72);
+      background: rgba(var(--bg-rgb),.72);
       border-radius: 8px;
       opacity: 0; transition: opacity .2s;
       font-family: 'JetBrains Mono', monospace;
@@ -619,7 +620,7 @@
       font-size: 8px; font-weight: 600;
       letter-spacing: .12em; text-transform: uppercase;
       color: var(--muted);
-      background: rgba(10,17,32,.8);
+      background: rgba(var(--bg2-rgb),.8);
       border: 1px solid rgba(94,234,212,.14);
       border-radius: 8px; padding: 8px 14px;
       cursor: none;
@@ -673,7 +674,7 @@
     }
 
     .info-card {
-      background: rgba(10,17,32,.88);
+      background: rgba(var(--bg2-rgb),.88);
       border: 1px solid rgba(94,234,212,.1);
       border-radius: 12px;
       padding: 20px;
@@ -730,7 +731,7 @@
     .arch-item {
       display: flex; align-items: center; gap: 9px;
       padding: 8px 10px; border-radius: 7px;
-      background: rgba(6,10,19,.6);
+      background: rgba(var(--bg-rgb),.6);
       border: 1px solid rgba(94,234,212,.07);
       font-size: 12px; color: var(--ink);
       font-weight: 500;
@@ -754,7 +755,7 @@
       display: flex; align-items: center; gap: 6px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 8px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
-      color: var(--muted); background: rgba(6,10,19,.7);
+      color: var(--muted); background: rgba(var(--bg-rgb),.7);
       border: 1px solid rgba(94,234,212,.1); border-radius: 6px;
       padding: 5px 10px;
     }
@@ -803,7 +804,7 @@
     /* ── TOAST ── */
     #toast {
       position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: rgba(10,17,32,.95); border: 1px solid rgba(94,234,212,.2);
+      background: rgba(var(--bg2-rgb),.95); border: 1px solid rgba(94,234,212,.2);
       border-radius: 10px; padding: 10px 18px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 9px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
@@ -831,9 +832,41 @@
       .analytics-strip { grid-template-columns: repeat(3,1fr); gap: 8px; }
       .panel-header { flex-wrap: wrap; }
     }
+
+    /* ── THEME TOGGLE ── */
+    .theme-toggle{width:30px;height:30px;flex-shrink:0;border-radius:50%;background:rgba(10,17,32,.85);border:1px solid rgba(94,234,212,.22);display:flex;align-items:center;justify-content:center;cursor:none;transition:transform .2s,background .3s,border-color .2s;margin-right:2px;}
+    .theme-toggle:hover{transform:scale(1.1);}
+    .theme-toggle svg{transition:opacity .2s;}
+    .theme-toggle .icon-moon{display:block;}
+    .theme-toggle .icon-sun{display:none;}
+    body.light .theme-toggle .icon-moon{display:none;}
+    body.light .theme-toggle .icon-sun{display:block;}
+    body.light .theme-toggle{background:rgba(255,255,255,.92);border-color:rgba(14,40,60,.18);}
+
+    /* ── LIGHT MODE ── */
+    body.light{
+      --bg:#F2F5FC;--bg2:#E7EDF8;--bg3:#DCE5F4;--bg4:#EEF2FA;
+      --bg-rgb:255,255,255;--bg2-rgb:255,255,255;
+      --blue:#2563EB;--blue-deep:#1D4ED8;
+      --cyan:#0E7C8C;--cyan2:#0A77B5;
+      --ink:#10182B;--muted:#51607E;--muted2:#7387A8;
+      --border:rgba(14,40,60,.14);--border-blue:rgba(10,119,181,.22);
+      --green:#0E8F62;--green2:#0B7A53;--amber:#B6790A;--red:#C2453F;
+      --panel-bg:rgba(255,255,255,.9);--panel-border:rgba(14,40,60,.12);
+    }
+    body.light .bg-grid{background-image:linear-gradient(rgba(10,119,181,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(10,119,181,.05) 1px,transparent 1px);}
+    body.light .bg-atmos{background:radial-gradient(ellipse 70% 45% at 50% -5%,rgba(10,119,181,.07) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 15% 50%,rgba(14,124,140,.05) 0%,transparent 60%),radial-gradient(ellipse 40% 30% at 85% 60%,rgba(10,119,181,.05) 0%,transparent 60%);}
+    body.light .topbar{background:rgba(255,255,255,.92);border-bottom-color:rgba(14,40,60,.1);}
+    body.light .topbar-sep{background:rgba(14,40,60,.14);}
+    body.light .topbar-expnum{background:rgba(10,119,181,.07);border-color:rgba(10,119,181,.2);}
+    body.light .nav-back{border-color:rgba(14,40,60,.16);}
+    body.light .nav-back:hover{border-color:rgba(10,119,181,.3);}
+    body.light .hero-badge{background:rgba(10,119,181,.07);border-color:rgba(10,119,181,.2);}
+    body.light .section-divider{background:linear-gradient(90deg,transparent,rgba(14,40,60,.14),transparent);}
+
   </style>
 </head>
-<body>
+<body class="light">
 
 <div class="cur-dot" id="curDot"></div>
 <div class="cur-ring" id="curRing"></div>
@@ -872,6 +905,23 @@
     Live
   </div>
   <div class="topbar-sep"></div>
+  <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+    <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  </button>
+
   <a href="playground.html" class="nav-back">
     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,5 5,12 12,19"/></svg>
     Back
@@ -1557,6 +1607,23 @@ for (let i = 0; i < 50; i++) particles.push({
 renderSlots();
 updateStats();
 refreshVehicleUI();
+
+// ── THEME TOGGLE
+(function(){
+  const themeBtn = document.getElementById('themeToggle');
+  const savedTheme = localStorage.getItem('arcio-theme');
+  if (savedTheme === 'dark') {
+    document.body.classList.remove('light');
+  } else {
+    document.body.classList.add('light');
+  }
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light');
+      localStorage.setItem('arcio-theme', document.body.classList.contains('light') ? 'light' : 'dark');
+    });
+  }
+})();
 </script>
 </body>
 </html>
