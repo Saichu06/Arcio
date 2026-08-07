@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>ARCIO Agri — Smart Farm Mission Simulator</title>
-<link rel="icon" type="image/png" href="../assets/logo.png">
+<link rel="icon" type="image/png" href="../../assets/logo.png">
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -87,13 +87,13 @@
     [data-theme="light"] .topbar { background: rgba(240,244,255,.86); }
     .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .brand-mark {
-        width: 30px; height: 30px; border-radius: 8px;
-        background: linear-gradient(135deg, var(--green), var(--cyan2));
+        width: 32px; height: 32px;
         display: flex; align-items: center; justify-content: center;
-        font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 13px; color: #041019;
-        flex-shrink: 0; overflow: hidden;
+        font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 16px;
+        background: linear-gradient(135deg, var(--green), var(--cyan2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+        flex-shrink: 0; overflow: visible;
     }
-    .brand-mark img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; display: block; background: none; }
     .brand-txt { display: flex; flex-direction: column; line-height: 1.15; }
     .brand-txt b { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: -.01em; }
     .brand-txt span { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
@@ -125,22 +125,57 @@
     .btn-blue { background: transparent; border-color: rgba(59,130,246,.35); color: var(--cyan2); }
     .btn-blue:hover { background: rgba(59,130,246,.08); }
     .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-    .theme-toggle { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .theme-toggle:hover { color: var(--ink); border-color: rgba(94,234,212,.32); }
+    .btn:active:not(:disabled) { transform: scale(.95); }
+    .theme-toggle:active { transform: scale(.9); }
+    .theme-toggle { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .18s ease; }
+    .theme-toggle:hover { color: var(--ink); border-color: rgba(94,234,212,.32); transform: translateY(-1px); }
 
     /* ════════════ LAYOUT ════════════ */
-    main { position: relative; z-index: 1; max-width: 1560px; margin: 0 auto; padding: 20px 22px 60px; }
+    main { position: relative; z-index: 1; max-width: 1640px; margin: 0 auto; padding: 20px 22px 60px; }
 
     .mission-hero { padding: 4px 2px 20px; }
+    .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: wrap; }
+    .hero-text { flex: 1; min-width: 280px; }
     .eyebrow { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
     .eyebrow::before { content: ''; width: 16px; height: 1px; background: var(--green); }
     .mission-hero h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 27px; letter-spacing: -.02em; }
     .mission-hero p { font-family: 'Inter'; font-size: 13.5px; color: var(--muted); margin-top: 6px; max-width: 720px; line-height: 1.55; }
 
-    .sim-grid { display: grid; grid-template-columns: 280px 1fr 320px; gap: 16px; align-items: start; }
+    .hero-meta {
+        display: flex; align-items: center; gap: 20px; padding: 13px 20px 13px 16px;
+        background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px;
+        backdrop-filter: blur(12px); box-shadow: 0 18px 40px -20px rgba(0,0,0,.5); flex-shrink: 0;
+    }
+    .hero-gauge { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .hero-gauge svg { display: block; }
+    #heroGaugeRing { transition: stroke-dashoffset .7s cubic-bezier(.2,.8,.3,1); }
+    .hero-gauge-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+    .hero-meta-list { display: flex; flex-direction: column; gap: 8px; }
+    .hmi { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .hmi .k { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .hmi .v { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 11.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+    .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.5s ease-in-out infinite; display: inline-block; flex-shrink: 0; }
+    .dot-live.off { background: var(--red); box-shadow: 0 0 6px 1px rgba(248,113,113,.5); animation: none; }
+    .dot-live.pending { background: var(--amber); box-shadow: 0 0 6px 1px rgba(245,158,11,.5); }
+    @media (max-width: 720px) { .hero-row { flex-direction: column; align-items: flex-start; } .hero-meta { width: 100%; justify-content: space-between; } }
+    .topbar-clock { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: .04em; padding: 0 2px; }
+
+    .sim-grid { display: grid; grid-template-columns: 264px minmax(0,1fr) 304px; gap: 18px; align-items: start; }
     @media (max-width: 1180px) { .sim-grid { grid-template-columns: 1fr; } }
 
-    .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius); backdrop-filter: blur(10px); overflow: hidden; }
+    .panel {
+        background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius);
+        backdrop-filter: blur(14px); overflow: hidden; position: relative;
+        box-shadow: 0 22px 46px -22px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.02) inset;
+        transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease, border-color .3s ease;
+    }
+    .panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; z-index: 1;
+        background: linear-gradient(90deg, transparent, rgba(94,234,212,.4), transparent);
+        opacity: .7;
+    }
+    .panel:hover { transform: translateY(-2px); box-shadow: 0 28px 56px -20px rgba(0,0,0,.6); border-color: rgba(94,234,212,.22); }
+    .twin-panel:hover { transform: none; }
     .panel-pad { padding: 16px; }
     .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border); }
     .panel-head h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .01em; display: flex; align-items: center; gap: 8px; }
@@ -156,7 +191,8 @@
     .mission-obj { padding: 6px 16px 14px; font-size: 12px; color: var(--muted); line-height: 1.55; border-bottom: 1px solid var(--border); }
     .mission-obj b { color: var(--ink); }
 
-    .stat-block { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .stat-block { padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background .25s ease; }
+    .stat-block:hover { background: rgba(94,234,212,.035); }
     .stat-block:last-child { border-bottom: none; }
     .stat-block-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 9px; }
     .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 12px; }
@@ -180,6 +216,7 @@
         background: linear-gradient(180deg, var(--bg3) 0%, var(--bg3) 55%, #0d2417 100%);
         transition: background 1.2s ease;
     }
+    @media (min-width: 1181px) { .farm-scene { height: 540px; } }
     [data-theme="light"] .farm-scene { background: linear-gradient(180deg, var(--bg3) 0%, var(--bg3) 55%, #d9ecdc 100%); }
     .farm-scene.cond-sunny { background: linear-gradient(180deg, rgba(245,158,11,.16) 0%, var(--bg3) 55%, #0d2417 100%); }
     .farm-scene.cond-cloudy { background: linear-gradient(180deg, rgba(107,125,160,.16) 0%, var(--bg3) 55%, #0d2417 100%); }
@@ -244,6 +281,13 @@
     .sensor-dot.fault { border-color: var(--red); }
 
     .signal-particle { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px 1px var(--cyan); pointer-events: none; z-index: 5; }
+    .signal-particle.blue { background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); }
+    .signal-particle.green { background: var(--green); box-shadow: 0 0 6px 1px var(--green); }
+    .signal-particle.orange { background: var(--amber); box-shadow: 0 0 6px 1px var(--amber); }
+    .signal-particle.red { background: var(--red); box-shadow: 0 0 6px 1px var(--red); }
+
+    .mountain-layer { position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .4; transition: opacity 1s ease; }
+    .cond-night .mountain-layer { opacity: .22; }
 
     .farm-readout {
         position: absolute; left: 12px; bottom: 12px; display: flex; gap: 12px; padding: 7px 12px;
@@ -267,7 +311,8 @@
     .board-power i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.6s ease-in-out infinite; }
 
     .comp-list { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 8px; }
-    .comp-card { border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px; display: flex; align-items: center; gap: 9px; transition: border-color .2s ease, background .2s ease; }
+    .comp-card { border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px; display: flex; align-items: center; gap: 9px; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+    .comp-card:hover { transform: translateX(2px); border-color: rgba(94,234,212,.24); }
     .comp-card.wired { border-color: rgba(52,211,153,.35); background: rgba(52,211,153,.05); }
     .comp-card.locked { opacity: .85; }
     .comp-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--bg3); color: var(--muted); flex-shrink: 0; }
@@ -382,10 +427,50 @@
     .pump-icon .blade { transform-origin: center; animation: spinCups 1s linear infinite paused; }
     .pump-icon.active .blade { animation-play-state: running; }
 
-    /* ════════════ TELEMETRY / LIVE GRAPHS ════════════ */
+    /* ════════════ MANUAL / HOW-TO GUIDE ════════════ */
+    .manual-panel { margin-top: 16px; }
+    .manual-panel .panel-head { cursor: pointer; user-select: none; }
+    .manual-panel .panel-head:hover { background: rgba(94,234,212,.03); }
+    .manual-toggle-btn {
+        width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: transparent;
+        color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer;
+        transition: transform .3s cubic-bezier(.2,.8,.3,1), color .2s ease, border-color .2s ease; flex-shrink: 0;
+    }
+    .manual-toggle-btn:hover { color: var(--ink); border-color: rgba(94,234,212,.32); }
+    .manual-panel.collapsed .manual-toggle-btn { transform: rotate(-90deg); }
+    .manual-head-right { display: flex; align-items: center; gap: 10px; }
+    .manual-body {
+        display: grid; grid-template-rows: 1fr; opacity: 1;
+        transition: grid-template-rows .35s cubic-bezier(.2,.8,.3,1), opacity .3s ease;
+    }
+    .manual-body > .manual-body-inner { overflow: hidden; min-height: 0; }
+    .manual-panel.collapsed .manual-body { grid-template-rows: 0fr; opacity: 0; }
+    .manual-intro { padding: 14px 18px 4px; font-size: 12.5px; color: var(--muted); line-height: 1.6; max-width: 820px; }
+    .manual-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--border); margin-top: 10px; }
+    .manual-step { background: var(--panel-bg); padding: 16px 16px 18px; position: relative; transition: background .25s ease; }
+    .manual-step:hover { background: rgba(94,234,212,.035); }
+    .manual-step-num {
+        width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; margin-bottom: 10px;
+        background: linear-gradient(135deg, rgba(52,211,153,.16), rgba(56,189,248,.16)); color: var(--cyan2); border: 1px solid var(--border);
+    }
+    .manual-step h4 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+    .manual-step p { font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+    .manual-step p b { color: var(--ink); }
+    .manual-step kbd { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--cyan2); }
+
+    .manual-tips { padding: 16px 18px 18px; border-top: 1px solid var(--border); }
+    .manual-tips-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 10px; }
+    .manual-tip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .manual-tip { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; }
+    .manual-tip .ic { width: 26px; height: 26px; border-radius: 7px; background: var(--bg3); color: var(--green); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .manual-tip .tx { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+    .manual-tip .tx b { color: var(--ink); display: block; margin-bottom: 2px; font-size: 12px; }
+
     .telemetry-panel { margin-top: 16px; }
     .telemetry-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); }
-    .telemetry-cell { background: var(--panel-bg); padding: 10px 12px 12px; min-width: 0; }
+    .telemetry-cell { background: var(--panel-bg); padding: 10px 12px 12px; min-width: 0; transition: background .25s ease; }
+    .telemetry-cell:hover { background: rgba(94,234,212,.04); }
     .telemetry-cell .tc-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
     .telemetry-cell .tc-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
     .telemetry-cell .tc-val { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 13px; }
@@ -458,6 +543,7 @@
         <div class="brand-txt"><b>ARCIO Agri</b><span>Farm Mission Simulator</span></div>
     </a>
     <div class="topbar-right">
+        <div class="topbar-clock" id="topbarClock">--:--:--</div>
         <div class="deploy-badge" id="deployBadge"><i></i><span>Live · Deployed</span></div>
         <a href="../agricultureai.html" class="btn btn-ghost">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -475,9 +561,29 @@
 
 <main>
     <div class="mission-hero fade-up">
-        <div class="eyebrow">Advanced Simulator · 02</div>
-        <h1>Smart Farm Mission Simulator</h1>
-        <p>You're the farm engineer now. Wire the automation, set the irrigation logic, then run the mission — real live weather, a living digital twin, and an Arduino that only does what you tell it to.</p>
+        <div class="hero-row">
+            <div class="hero-text">
+                <div class="eyebrow">Advanced Simulator · 02</div>
+                <h1>Smart Farm Mission Simulator</h1>
+                <p>You're the farm engineer now. Wire the automation, set the irrigation logic, then run the mission — real live weather, a living digital twin, and an Arduino that only does what you tell it to.</p>
+            </div>
+            <div class="hero-meta">
+                <div class="hero-gauge">
+                    <svg viewBox="0 0 80 80" width="68" height="68">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="7"/>
+                        <circle id="heroGaugeRing" cx="40" cy="40" r="34" fill="none" stroke="url(#gaugeGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" transform="rotate(-90 40 40)"/>
+                        <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--green)"/><stop offset="100%" stop-color="var(--cyan2)"/></linearGradient></defs>
+                        <text id="heroGaugeText" x="40" y="46" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="800" font-size="17" fill="var(--ink)">0%</text>
+                    </svg>
+                    <span class="hero-gauge-label">Progress</span>
+                </div>
+                <div class="hero-meta-list">
+                    <div class="hmi"><span class="k">Mode</span><span class="v" id="heroModeTag">Standby</span></div>
+                    <div class="hmi"><span class="k">Clock</span><span class="v" id="heroClock">--:--:--</span></div>
+                    <div class="hmi"><span class="k">Connection</span><span class="v" id="heroConn"><span class="dot-live pending"></span>Connecting</span></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="sim-grid">
@@ -528,6 +634,10 @@
                 <div class="panel-tag" id="twinTag">Standby</div>
             </div>
             <div class="farm-scene cond-sunny" id="farmScene">
+                <svg class="mountain-layer" viewBox="0 0 900 460" preserveAspectRatio="none">
+                    <polygon points="0,300 120,180 220,260 340,140 460,280 600,170 760,270 900,200 900,460 0,460" fill="var(--muted2)" opacity=".28"/>
+                    <polygon points="0,340 150,240 300,320 480,220 650,330 900,250 900,460 0,460" fill="var(--muted2)" opacity=".16"/>
+                </svg>
                 <div class="health-flag" id="healthFlag">Standing By</div>
                 <div class="event-toast" id="eventToast"></div>
                 <div class="cloud c1"><svg width="100" height="36" viewBox="0 0 110 40"><ellipse cx="26" cy="26" rx="22" ry="14"/><ellipse cx="52" cy="18" rx="26" ry="17"/><ellipse cx="82" cy="26" rx="20" ry="13"/></svg></div>
@@ -734,6 +844,95 @@
                 <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkHealthFill" fill="var(--green)"/><path class="spark-line" id="sparkHealth" stroke="var(--green)"/></svg>
             </div>
         </div>
+    </div>
+
+    <!-- ═══════ MANUAL / HOW TO USE ═══════ -->
+    <div class="panel manual-panel" id="manualPanel">
+        <div class="panel-head" id="manualHead">
+            <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>How To Run This Mission</h3>
+            <div class="manual-head-right">
+                <div class="panel-tag">Manual</div>
+                <button class="manual-toggle-btn" id="manualToggleBtn" title="Collapse / expand manual" aria-expanded="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="manual-body" id="manualBody"><div class="manual-body-inner">
+        <p class="manual-intro">A quick walkthrough of the simulator — from wiring the automation to deploying the finished smart farm. Everything below maps directly to the panels on this page.</p>
+
+        <div class="manual-steps">
+            <div class="manual-step">
+                <div class="manual-step-num">01</div>
+                <h4>Read the objective</h4>
+                <p>Check the <b>Mission Control</b> panel on the left. Your goal is to keep <b>crop health above 70%</b> while using the <b>least water possible</b> — everything you do is judged against that.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">02</div>
+                <h4>Wire the hardware</h4>
+                <p>In the <b>Arduino Workbench</b> on the right, flip the switches to wire the <b>Relay</b> and either the <b>Pump</b> or <b>Servo</b> — these are required. LCD, LED and Buzzer are optional but add safety feedback.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">03</div>
+                <h4>Set the irrigation rule</h4>
+                <p>Drag the <b>moisture threshold</b> slider to decide when the pump should turn on, and leave <b>Rain-safe cutoff</b> checked so it won't irrigate right before a storm.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">04</div>
+                <h4>Press Run Simulation</h4>
+                <p>Click <b>Run Simulation</b> in the console bar. The mission clock starts, live weather drives the farm, and the Arduino begins making its own irrigation decisions each tick.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">05</div>
+                <h4>Watch the digital twin</h4>
+                <p>The center farm scene reacts in real time — pipes glow, sprinklers run, crops change color and clouds/rain track live weather. <b>Click any sensor dot</b> to inspect its reading, pin and status.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">06</div>
+                <h4>Inspect the hardware</h4>
+                <p><b>Hover</b> the farmhouse, greenhouse, solar panel, weather station, tank, trees or crops for live engineering data. <b>Double-click the Arduino board</b> to open the fullscreen GPIO visualizer.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">07</div>
+                <h4>Stress-test with events</h4>
+                <p>Use the event buttons (Heatwave, Rain, Nightfall, Sensor Failure, etc.) in the console to throw curveballs and see whether your wiring and thresholds hold up.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">08</div>
+                <h4>Review &amp; deploy</h4>
+                <p>When the mission ends, a summary shows your score, water used and AI rating. Click <b>Explain</b> in the console for reasoning, then <b>Deploy Smart Farm</b> to keep it running live.</p>
+            </div>
+        </div>
+
+        <div class="manual-tips">
+            <div class="manual-tips-title">Good To Know</div>
+            <div class="manual-tip-grid">
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                    <div class="tx"><b>Live Telemetry panel</b>Five sparkline graphs below the console track temperature, humidity, soil moisture, tank level and crop health tick-by-tick.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><path d="M6 4v5M18 4v5M6 15v5M18 15v5"/></svg></div>
+                    <div class="tx"><b>IoT Cloud Status widget</b>The floating card bottom-right shows Arduino connectivity, packet count, MQTT and latency — click its header to collapse it.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+                    <div class="tx"><b>Ambient sound</b>The speaker icon in the top bar turns on wind, rain, pump hum and relay clicks — off by default, tap to enable.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                    <div class="tx"><b>Mission progress gauge</b>The ring next to the title tracks overall mission completion — same number as the progress bar in Mission Control.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                    <div class="tx"><b>Data-flow particles</b>Blue dots are routine sensor readings, orange is a pump-on command from the Arduino, red means a sensor fault is active.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
+                    <div class="tx"><b>Reset anytime</b>Use Reset in the console to rewire from scratch and try a different threshold or strategy without reloading the page.</div>
+                </div>
+            </div>
+        </div>
+        </div></div>
     </div>
 
     <div class="footer">ARCIO Agri · Farm Mission Simulator · Environmental data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> · Simulated irrigation physics, no hardware connected · No API keys · No login required</div>
@@ -976,7 +1175,7 @@ function estimateSoilMoisture(temp, rainProb, wind, humidity){
 /* ═══════════════════════ WEATHER FETCH ═══════════════════════ */
 async function loadWeather(lat, lon){
     currentLat = lat; currentLon = lon;
-    $('topStatusTag').textContent = 'Fetching…';
+    setConnStatus('Fetching…', null);
     try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
             `&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,cloud_cover,is_day,uv_index` +
@@ -997,11 +1196,11 @@ async function loadWeather(lat, lon){
         state.rainProb = Math.round(rainProb ?? 15);
         state.uv = Math.round((cur.uv_index ?? 5) * 10) / 10;
         state.moisture = estimateSoilMoisture(state.temp, state.rainProb, state.wind, state.humidity);
-        $('topStatusTag').textContent = 'Live';
+        setConnStatus('Live', true);
         log('system', `Live weather loaded — ${state.temp}°C, ${state.humidity}% humidity, ${state.rainProb}% rain chance.`);
         renderAll();
     } catch(e){
-        $('topStatusTag').textContent = 'Offline data';
+        setConnStatus('Offline data', false);
         log('system', 'Could not reach Open-Meteo — using baseline farm conditions.');
         renderAll();
     }
@@ -1017,6 +1216,45 @@ function initGeolocation(){
 }
 initGeolocation();
 
+/* ═══════════════════════ ANIMATED NUMBERS + HERO META ═══════════════════════ */
+const _statAnimCache = {};
+function animateStat(id, target, suffix){
+    suffix = suffix || '';
+    const el = $(id); if (!el) return;
+    const prev = _statAnimCache[id] != null ? _statAnimCache[id] : target;
+    _statAnimCache[id] = target;
+    if (Math.abs(target - prev) < 0.6){ el.textContent = target + suffix; return; }
+    const start = performance.now();
+    const dur = 420;
+    function step(now){
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(prev + (target - prev) * eased) + suffix;
+        if (t < 1) requestAnimationFrame(step);
+        else el.textContent = target + suffix;
+    }
+    requestAnimationFrame(step);
+}
+function updateHeroGauge(pct){
+    const circ = 213.6;
+    const ring = $('heroGaugeRing');
+    if (ring) ring.style.strokeDashoffset = (circ - (circ * pct / 100)).toFixed(1);
+    const txt = $('heroGaugeText');
+    if (txt) txt.textContent = pct + '%';
+}
+function setConnStatus(label, ok){
+    const tag = $('topStatusTag'); if (tag) tag.textContent = label;
+    const dotCls = 'dot-live' + (ok === true ? '' : ok === false ? ' off' : ' pending');
+    const hc = $('heroConn'); if (hc) hc.innerHTML = `<span class="${dotCls}"></span>${label}`;
+}
+function tickClock(){
+    const s = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const a = $('topbarClock'); if (a) a.textContent = s;
+    const b = $('heroClock'); if (b) b.textContent = s;
+}
+tickClock();
+setInterval(tickClock, 1000);
+
 /* ═══════════════════════ RENDER ═══════════════════════ */
 function renderAll(){
     const rTemp = Math.round(state.temp);
@@ -1027,19 +1265,19 @@ function renderAll(){
     const rTank = Math.round(state.tank);
     const rHealth = Math.round(state.cropHealth);
 
-    $('stTemp').textContent = rTemp + '°C';
-    $('stHum').textContent = rHum + '%';
-    $('stRain').textContent = rRain + '%';
-    $('stWind').textContent = rWind + ' km/h';
+    animateStat('stTemp', rTemp, '°C');
+    animateStat('stHum', rHum, '%');
+    animateStat('stRain', rRain, '%');
+    animateStat('stWind', rWind, ' km/h');
     $('stUv').textContent = state.uv;
 
-    $('stMoist').textContent = rMoist + '%';
+    animateStat('stMoist', rMoist, '%');
     $('barMoist').style.width = rMoist + '%';
-    $('stHealth').textContent = rHealth + '%';
+    animateStat('stHealth', rHealth, '%');
     $('barHealth').style.width = rHealth + '%';
     const healthColorClass = state.cropHealth >= 70 ? 'good' : state.cropHealth >= 40 ? 'warn' : 'bad';
     $('stHealth').className = 'v ' + healthColorClass;
-    $('stTank').textContent = rTank + '%';
+    animateStat('stTank', rTank, '%');
     $('barTank').style.width = rTank + '%';
     $('tankPctScene').textContent = rTank + '%';
     $('tankFillScene').setAttribute('y', 6 + (62 * (1 - state.tank/100)));
@@ -1070,10 +1308,12 @@ function renderAll(){
     $('barProgress').style.width = pct + '%';
     $('miniProgressBar').style.width = pct + '%';
     $('miniProgressLabel').textContent = `Tick ${state.tick} / ${MAX_TICKS}`;
-    $('stProgressPct').textContent = pct + '%';
+    animateStat('stProgressPct', pct, '%');
     $('stProgressLabel').textContent = state.deployed ? 'Deployed — running live' : state.over ? 'Mission complete' : state.running ? 'In progress' : 'Not started';
+    updateHeroGauge(pct);
 
     $('twinTag').textContent = state.deployed ? 'Deployed' : state.running ? 'Running' : state.over ? 'Complete' : 'Standby';
+    $('heroModeTag').textContent = $('twinTag').textContent;
 
     // pipes
     const flowing = state.pumpOn;
@@ -1138,12 +1378,12 @@ $('thresholdSlider').addEventListener('input', e => {
 $('rainSafe').addEventListener('change', e => { state.rainSafe = e.target.checked; });
 
 /* ═══════════════════════ SIGNAL PARTICLE FX ═══════════════════════ */
-function fireParticle(fromEl){
+function fireParticle(fromEl, colorClass){
     const scene = $('farmScene');
     const sceneBox = scene.getBoundingClientRect();
     const fromBox = fromEl.getBoundingClientRect();
     const p = document.createElement('div');
-    p.className = 'signal-particle';
+    p.className = 'signal-particle' + (colorClass ? ' ' + colorClass : '');
     const startX = fromBox.left - sceneBox.left + fromBox.width/2;
     const startY = fromBox.top - sceneBox.top + fromBox.height/2;
     p.style.left = startX + 'px';
@@ -1161,8 +1401,16 @@ function fireParticle(fromEl){
 }
 function pulseSensors(){
     ['sensorMoist','sensorTemp','sensorHum','sensorRain','sensorWater','sensorLdr'].forEach((id,i) => {
-        setTimeout(() => { if($(id)) fireParticle($(id)); }, i*90);
+        setTimeout(() => { if($(id)) fireParticle($(id), 'blue'); }, i*90);
     });
+}
+function fireCommandParticle(){
+    const board = $('boardMini'); if (board) fireParticle(board, 'orange');
+}
+function fireFaultParticle(){
+    const ids = ['sensorMoist','sensorTemp','sensorHum','sensorRain','sensorWater','sensorLdr'];
+    const id = ids[Math.floor(Math.random() * ids.length)];
+    if ($(id)) fireParticle($(id), 'red');
 }
 
 /* ═══════════════════════ EVENT TOAST ═══════════════════════ */
@@ -1201,6 +1449,7 @@ document.querySelectorAll('.ev-btn').forEach(btn => {
 /* ═══════════════════════ SIMULATION TICK ═══════════════════════ */
 function tick(){
     state.tick++;
+    const wasPumpOn = state.pumpOn;
 
     // weather drift + event decay
     if (state.eventTimer > 0){
@@ -1251,6 +1500,8 @@ function tick(){
         }
     }
     state.pumpOn = decidePump;
+    if (state.pumpOn && !wasPumpOn) fireCommandParticle();
+    if (state.sensorFaultTicks > 0 && state.tick % 3 === 0) fireFaultParticle();
 
     // pump effects
     if (state.pumpOn && state.tank > 0){
@@ -1703,6 +1954,13 @@ function updateAudio(){
     prevPumpOnAudio = state.pumpOn;
     if (state.sensorFaultTicks > 0 && state.wiring.buzzer && state.tick % 3 === 0) playBuzzer();
 }
+
+/* ═══════════════════════ MANUAL COLLAPSE ═══════════════════════ */
+$('manualHead').addEventListener('click', () => {
+    const panel = $('manualPanel');
+    const collapsed = panel.classList.toggle('collapsed');
+    $('manualToggleBtn').setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+});
 
 /* ═══════════════════════ INIT ═══════════════════════ */
 log('system', 'Mission 01 loaded — wire the automation, then press Run Simulation.');
