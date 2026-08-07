@@ -187,6 +187,10 @@
 
     /* ════════════ LEFT — MISSION CONTROL ════════════ */
     .mission-badge-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 16px 4px; }
+    .mchip { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: .04em; padding: 5px 9px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all .15s ease; background: transparent; }
+    .mchip:hover { border-color: rgba(56,189,248,.4); color: var(--ink); }
+    .mchip.active { color: #04081a; background: linear-gradient(135deg, var(--cyan2), var(--blue)); border-color: transparent; font-weight: 700; }
+    .mission-tags { display: flex; gap: 8px; padding: 2px 16px 4px; flex-wrap: wrap; }
     .mission-chip { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .06em; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted); }
     .mission-chip.diff { color: var(--amber); border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.07); }
     .mission-chip.time { color: var(--cyan2); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.07); }
@@ -656,13 +660,14 @@
                 <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Mission Control</h3>
                 <div class="panel-tag" id="topStatusTag">Loading…</div>
             </div>
-            <div class="mission-badge-row">
-                <span class="mission-chip diff">Field Engineer</span>
-                <span class="mission-chip time">~2 min</span>
-                <span class="mission-chip">Climate Response</span>
+            <div class="mission-badge-row" id="missionChipRow"></div>
+            <div class="mission-tags">
+                <span class="mission-chip diff" id="missionDiffChip">Field Engineer</span>
+                <span class="mission-chip time" id="missionTimeChip">~2 min</span>
+                <span class="mission-chip" id="missionFocusChip">Climate Response</span>
             </div>
-            <div class="mission-name">Mission 01 · Heatwave Response</div>
-            <div class="mission-obj">Objective — <b>Keep City Comfort Index above 70%</b> while running the mission, using the <b>least amount of grid power</b> possible. Wire the automation on the right, set your threshold, then hit Run.</div>
+            <div class="mission-name" id="missionNameEl">Mission 01 · Heatwave Response</div>
+            <div class="mission-obj" id="missionObjEl">Objective — <b>Keep City Comfort Index above 70%</b> while running the mission, using the <b>least amount of grid power</b> possible. Wire the automation on the right, set your threshold, then hit Run.</div>
 
             <div class="stat-block">
                 <div class="stat-block-title">Live Weather · Open-Meteo</div>
@@ -1032,8 +1037,8 @@
         <div class="manual-steps">
             <div class="manual-step">
                 <div class="manual-step-num">01</div>
-                <h4>Read the objective</h4>
-                <p>Check the <b>Mission Control</b> panel on the left. Your goal is to keep <b>City Comfort Index above 70%</b> while using the <b>least grid power possible</b> — everything you do is judged against that.</p>
+                <h4>Pick a mission &amp; read the objective</h4>
+                <p>Choose one of the 8 mission chips (M01–M08) at the top of <b>Mission Control</b> — each targets a different city-scale challenge: heatwaves, floods, storms, air quality, power failures, high wind and flood emergencies. Read the objective for the one you pick; everything you do is judged against it.</p>
             </div>
             <div class="manual-step">
                 <div class="manual-step-num">02</div>
@@ -1174,7 +1179,7 @@
 <div class="arduino-fs-overlay" id="arduinoFsOverlay">
     <div class="arduino-fs-card">
         <div class="afs-head">
-            <h3>Arduino UNO — Live GPIO Visualizer<span class="panel-tag">Mission 01</span></h3>
+            <h3>Arduino UNO — Live GPIO Visualizer<span class="panel-tag" id="gpioMissionTag">Mission 01</span></h3>
             <button class="insp-close" id="afsClose">✕</button>
         </div>
         <div class="afs-body">
@@ -1276,6 +1281,36 @@ let state = {
 let intervalRef = null;
 let currentLat = null, currentLon = null;
 
+/* ═══════════════════════ MISSIONS ═══════════════════════ */
+const MISSIONS = [
+    { id:1, name:'Mission 01 · Heatwave Response', focus:'Climate Response', diff:'Field Engineer', time:'~2 min',
+      obj:'Objective — <b>Keep City Comfort Index above 70%</b> while running the mission, using the <b>least amount of grid power</b> possible. Wire the automation on the right, set your threshold, then hit Run.',
+      ev:null },
+    { id:2, name:'Mission 02 · Extreme Heatwave', focus:'Climate Response', diff:'Field Engineer', time:'~2 min',
+      obj:'Objective — Keep <b>City Comfort above 65%</b> through an intense heatwave spike without leaving the cooling fans on once the grid recovers.',
+      ev:'heatwave' },
+    { id:3, name:'Mission 03 · Flood Watch', focus:'Safety', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Enable <b>flood-safe lockdown</b> before heavy rain pushes flood levels critical, cutting non-essential power in time.',
+      ev:'rain' },
+    { id:4, name:'Mission 04 · Storm Warning', focus:'Safety', diff:'Advanced', time:'~2 min',
+      obj:'Objective — Ride out a full <b>storm warning</b> (high wind + heavy rain + flooding) while keeping City Comfort above 55%.',
+      ev:'storm' },
+    { id:5, name:'Mission 05 · Air Quality Alert', focus:'Environment', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Air quality spikes to hazardous levels mid-mission — keep <b>City Comfort above 60%</b> despite the poor AQI.',
+      ev:'pooraqi' },
+    { id:6, name:'Mission 06 · Power Failure Response', focus:'Resource Mgmt', diff:'Advanced', time:'~2 min',
+      obj:'Objective — A <b>power failure</b> drains the grid reserve mid-mission — ration remaining power while keeping comfort as high as possible.',
+      ev:'powerfailure' },
+    { id:7, name:'Mission 07 · High Wind Ops', focus:'Automation', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Keep systems stable through a <b>high wind</b> event, holding City Comfort above 65%.',
+      ev:'highwind' },
+    { id:8, name:'Mission 08 · Flood Emergency', focus:'Safety', diff:'Advanced', time:'~2 min',
+      obj:'Objective — A sudden <b>flood warning</b> pushes water levels critical — trigger flood-safe lockdown fast enough to protect the grid.',
+      ev:'floodwarning' },
+];
+let missionIdx = 0;
+
+
 /* ═══════════════════════ LOG ═══════════════════════ */
 function log(tag, msg){
     const el = $('consoleLog');
@@ -1288,6 +1323,31 @@ function log(tag, msg){
     el.appendChild(line);
     while (el.children.length > 220) el.removeChild(el.firstChild);
     el.scrollTop = el.scrollHeight;
+}
+
+/* ═══════════════════════ MISSION CHIPS ═══════════════════════ */
+function buildMissionChips(){
+    const row = $('missionChipRow');
+    row.innerHTML = '';
+    MISSIONS.forEach((m,i) => {
+        const b = document.createElement('button');
+        b.className = 'mchip' + (i===missionIdx ? ' active' : '');
+        b.textContent = 'M' + String(m.id).padStart(2,'0');
+        b.title = m.name;
+        b.addEventListener('click', () => { if(!state.running && !state.deployed){ missionIdx = i; applyMission(); } });
+        row.appendChild(b);
+    });
+}
+function applyMission(){
+    const m = MISSIONS[missionIdx];
+    $('missionNameEl').textContent = m.name;
+    $('missionObjEl').innerHTML = m.obj;
+    $('missionDiffChip').textContent = m.diff;
+    $('missionTimeChip').textContent = m.time;
+    $('missionFocusChip').textContent = m.focus;
+    $('gpioMissionTag').textContent = 'Mission 0' + m.id;
+    buildMissionChips();
+    log('system', `${m.name} loaded — wire the automation, then press Run Simulation.`);
 }
 
 /* ═══════════════════════ TIMELINE ═══════════════════════ */
@@ -1731,9 +1791,23 @@ function tick(){
 $('btnRun').addEventListener('click', () => {
     if (state.running || state.deployed) return;
     state.running = true; state.paused = false;
+    const m = MISSIONS[missionIdx];
     log('system', 'Simulation started — mission clock running.');
     log('arduino', `Automation rule set: activate cooling above ${state.threshold}°C${state.floodSafe ? ', flood-safe lockdown active' : ''}.`);
     pushTimeline('Mission started — automation online.', 'good');
+    if (m.ev && EVENTS[m.ev]){
+        setTimeout(() => {
+            if (!state.running || state.over || state.paused) return;
+            const ev = EVENTS[m.ev];
+            ev.apply(state);
+            state.eventName = ev.label;
+            state.eventTimer = ev.duration;
+            toast(`Mission Event: ${ev.label}`);
+            log('alert', `${ev.label} triggered by mission scenario.`);
+            pushTimeline(`${ev.label} triggered by mission scenario.`, 'alert');
+            renderAll();
+        }, TICK_MS*3);
+    }
     renderAll();
     intervalRef = setInterval(tick, TICK_MS);
 });
@@ -2143,7 +2217,7 @@ $('manualHead').addEventListener('click', () => {
 });
 
 /* ═══════════════════════ INIT ═══════════════════════ */
-log('system', 'Mission 01 loaded — wire the automation, then press Run Simulation.');
+applyMission();
 pushTimeline('Environmental Control Center initialized.', null);
 updateIotWidget();
 renderAll();

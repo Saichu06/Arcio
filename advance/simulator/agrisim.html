@@ -184,6 +184,10 @@
 
     /* ════════════ LEFT — MISSION CONTROL ════════════ */
     .mission-badge-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 16px 4px; }
+    .mchip { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: .04em; padding: 5px 9px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all .15s ease; background: transparent; }
+    .mchip:hover { border-color: rgba(52,211,153,.4); color: var(--ink); }
+    .mchip.active { color: #04081a; background: linear-gradient(135deg, var(--green), var(--cyan2)); border-color: transparent; font-weight: 700; }
+    .mission-tags { display: flex; gap: 8px; padding: 2px 16px 4px; flex-wrap: wrap; }
     .mission-chip { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .06em; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted); }
     .mission-chip.diff { color: var(--amber); border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.07); }
     .mission-chip.time { color: var(--cyan2); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.07); }
@@ -593,13 +597,14 @@
                 <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Mission Control</h3>
                 <div class="panel-tag" id="topStatusTag">Loading…</div>
             </div>
-            <div class="mission-badge-row">
-                <span class="mission-chip diff">Rookie</span>
-                <span class="mission-chip time">~2 min</span>
-                <span class="mission-chip">Irrigation</span>
+            <div class="mission-badge-row" id="missionChipRow"></div>
+            <div class="mission-tags">
+                <span class="mission-chip diff" id="missionDiffChip">Rookie</span>
+                <span class="mission-chip time" id="missionTimeChip">~2 min</span>
+                <span class="mission-chip" id="missionFocusChip">Irrigation</span>
             </div>
-            <div class="mission-name">Mission 01 · Water Management</div>
-            <div class="mission-obj">Objective — <b>Keep crop health above 70%</b> while running the mission, using the <b>least amount of water</b> possible. Wire the automation on the right, set your threshold, then hit Run.</div>
+            <div class="mission-name" id="missionNameEl">Mission 01 · Water Management</div>
+            <div class="mission-obj" id="missionObjEl">Objective — <b>Keep crop health above 70%</b> while running the mission, using the <b>least amount of water</b> possible. Wire the automation on the right, set your threshold, then hit Run.</div>
 
             <div class="stat-block">
                 <div class="stat-block-title">Live Weather · Open-Meteo</div>
@@ -863,8 +868,8 @@
         <div class="manual-steps">
             <div class="manual-step">
                 <div class="manual-step-num">01</div>
-                <h4>Read the objective</h4>
-                <p>Check the <b>Mission Control</b> panel on the left. Your goal is to keep <b>crop health above 70%</b> while using the <b>least water possible</b> — everything you do is judged against that.</p>
+                <h4>Pick a mission &amp; read the objective</h4>
+                <p>Choose one of the 8 mission chips (M01–M08) at the top of <b>Mission Control</b> — each targets a different farming challenge: irrigation basics, heatwaves, storms, night cycles, cloud cover, dry patches, overwatering and tank management. Read the objective for the one you pick; everything you do is judged against it.</p>
             </div>
             <div class="manual-step">
                 <div class="manual-step-num">02</div>
@@ -1005,7 +1010,7 @@
 <div class="arduino-fs-overlay" id="arduinoFsOverlay">
     <div class="arduino-fs-card">
         <div class="afs-head">
-            <h3>Arduino UNO — Live GPIO Visualizer<span class="panel-tag">Mission 01</span></h3>
+            <h3>Arduino UNO — Live GPIO Visualizer<span class="panel-tag" id="gpioMissionTag">Mission 01</span></h3>
             <button class="insp-close" id="afsClose">✕</button>
         </div>
         <div class="afs-body">
@@ -1110,6 +1115,35 @@ let state = {
 let intervalRef = null;
 let currentLat = null, currentLon = null;
 
+/* ═══════════════════════ MISSIONS ═══════════════════════ */
+const MISSIONS = [
+    { id:1, name:'Mission 01 · Water Management', focus:'Irrigation', diff:'Rookie', time:'~2 min',
+      obj:'Objective — <b>Keep crop health above 70%</b> while running the mission, using the <b>least amount of water</b> possible. Wire the automation on the right, set your threshold, then hit Run.',
+      ev:null },
+    { id:2, name:'Mission 02 · Heatwave Response', focus:'Irrigation', diff:'Rookie', time:'~2 min',
+      obj:'Objective — Keep <b>crop health above 65%</b> through a sudden heatwave without letting the pump waste water once temperatures fall again.',
+      ev:'heatwave' },
+    { id:3, name:'Mission 03 · Storm Watch', focus:'Safety', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Enable <b>rain-safe cutoff</b> so the pump halts before an unexpected downpour arrives, protecting the roots from waterlogging.',
+      ev:'rain' },
+    { id:4, name:'Mission 04 · Night Cycle Ops', focus:'Automation', diff:'Rookie', time:'~2 min',
+      obj:'Objective — Keep the irrigation loop stable as <b>night falls</b> and temperatures drop, holding crop health above 70%.',
+      ev:'night' },
+    { id:5, name:'Mission 05 · Cloud Cover Efficiency', focus:'Efficiency', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Under heavy <b>cloud cover</b> (lower evaporation), avoid over-irrigating — keep water usage low while crop health stays above 70%.',
+      ev:'cloudy' },
+    { id:6, name:'Mission 06 · Dry Patch Recovery', focus:'Irrigation', diff:'Advanced', time:'~2 min',
+      obj:'Objective — React fast to a sudden <b>dry soil patch</b> — the pump must engage before crops wilt.',
+      ev:'drysoil' },
+    { id:7, name:'Mission 07 · Overwatering Prevention', focus:'Safety', diff:'Advanced', time:'~2 min',
+      obj:'Objective — A <b>wet soil patch</b> hits mid-mission — keep the pump OFF and avoid root damage from excess moisture.',
+      ev:'wetsoil' },
+    { id:8, name:'Mission 08 · Tank Crisis Management', focus:'Resource Mgmt', diff:'Advanced', time:'~2 min',
+      obj:'Objective — The <b>water tank runs critically low</b> mid-mission — ration remaining water while keeping crop health as high as possible.',
+      ev:'tankempty' },
+];
+let missionIdx = 0;
+
 /* ═══════════════════════ LOG ═══════════════════════ */
 function log(tag, msg){
     const el = $('consoleLog');
@@ -1122,6 +1156,31 @@ function log(tag, msg){
     el.appendChild(line);
     while (el.children.length > 220) el.removeChild(el.firstChild);
     el.scrollTop = el.scrollHeight;
+}
+
+/* ═══════════════════════ MISSION CHIPS ═══════════════════════ */
+function buildMissionChips(){
+    const row = $('missionChipRow');
+    row.innerHTML = '';
+    MISSIONS.forEach((m,i) => {
+        const b = document.createElement('button');
+        b.className = 'mchip' + (i===missionIdx ? ' active' : '');
+        b.textContent = 'M' + String(m.id).padStart(2,'0');
+        b.title = m.name;
+        b.addEventListener('click', () => { if(!state.running && !state.deployed){ missionIdx = i; applyMission(); } });
+        row.appendChild(b);
+    });
+}
+function applyMission(){
+    const m = MISSIONS[missionIdx];
+    $('missionNameEl').textContent = m.name;
+    $('missionObjEl').innerHTML = m.obj;
+    $('missionDiffChip').textContent = m.diff;
+    $('missionTimeChip').textContent = m.time;
+    $('missionFocusChip').textContent = m.focus;
+    $('gpioMissionTag').textContent = 'Mission 0' + m.id;
+    buildMissionChips();
+    log('system', `${m.name} loaded — wire the automation, then press Run Simulation.`);
 }
 
 /* ═══════════════════════ CROP FIELD BUILD ═══════════════════════ */
@@ -1559,8 +1618,21 @@ function tick(){
 $('btnRun').addEventListener('click', () => {
     if (state.running || state.deployed) return;
     state.running = true;
+    const m = MISSIONS[missionIdx];
     log('system', 'Simulation started — mission clock running.');
     log('arduino', `Automation rule set: irrigate below ${state.threshold}% soil moisture${state.rainSafe ? ', rain-safe cutoff active' : ''}.`);
+    if (m.ev && EVENTS[m.ev]){
+        setTimeout(() => {
+            if (!state.running || state.over) return;
+            const ev = EVENTS[m.ev];
+            ev.apply(state);
+            state.eventName = ev.label;
+            state.eventTimer = ev.duration;
+            toast(`Mission Event: ${ev.label}`);
+            log('alert', `${ev.label} triggered by mission scenario.`);
+            renderAll();
+        }, TICK_MS*3);
+    }
     renderAll();
     intervalRef = setInterval(tick, TICK_MS);
 });
@@ -1963,7 +2035,7 @@ $('manualHead').addEventListener('click', () => {
 });
 
 /* ═══════════════════════ INIT ═══════════════════════ */
-log('system', 'Mission 01 loaded — wire the automation, then press Run Simulation.');
+applyMission();
 updateIotWidget();
 renderAll();
 
