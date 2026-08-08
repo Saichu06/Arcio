@@ -93,7 +93,7 @@
       "difficulty": "Beginner",
       "duration": "25 Minutes",
       "xp": 25,
-      "status": "beta",
+      "status": "ready",
       "objective": "Interface an LDR with the ESP32 to automatically detect ambient light levels and trigger an LED based on a threshold.",
       "components": ["ESP32", "Breadboard", "LDR Sensor", "LED", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"],
       "concepts": ["LDR", "Analog Sensor", "Threshold Logic", "ADC", "Auto Trigger", "Light Sensing"],
@@ -122,7 +122,7 @@
       "difficulty": "Intermediate",
       "duration": "35 Minutes",
       "xp": 30,
-      "status": "beta",
+      "status": "ready",
       "objective": "Read temperature and humidity data using a DHT22 sensor. Display real-time values over Serial Monitor and trigger alerts on threshold breach.",
       "components": ["ESP32", "Breadboard", "DHT22 Sensor", "10kΩ Resistor", "Jumper Wires"],
       "concepts": ["DHT22", "Temperature", "Humidity", "Serial Monitor", "Threshold Alert", "Sensor Library"],
@@ -151,7 +151,7 @@
       "difficulty": "Beginner",
       "duration": "20 Minutes",
       "xp": 20,
-      "status": "beta",
+      "status": "ready",
       "objective": "Drive a passive buzzer with the ESP32 using PWM signals. Generate different tones by varying frequency and create simple alarm patterns.",
       "components": ["ESP32", "Breadboard", "Passive Buzzer", "Jumper Wires"],
       "concepts": ["PWM", "Tone Generation", "Frequency", "Alarm Pattern", "ledcWrite", "Active vs Passive Buzzer"],
@@ -174,86 +174,120 @@
     {
       "id": "exp-007",
       "num": "07",
-      "category": "Communication",
-      "title": "WiFi Connection",
-      "difficulty": "Intermediate",
-      "duration": "30 Minutes",
-      "xp": 35,
-      "status": "beta",
-      "objective": "Connect ESP32 to WiFi network and display connection status. Learn about WiFi libraries and network debugging.",
-      "components": ["ESP32", "USB Cable"],
-      "concepts": ["WiFi", "Network Connection", "SSID", "Password", "Connection Status", "Serial Debugging"],
-      "arduino": {
-        "board": "ESP32",
-        "pins": {},
-        "libraries": ["WiFi.h"],
-        "code": "#include <WiFi.h>\n\nconst char* ssid = \"YOUR_SSID\";\nconst char* password = \"YOUR_PASSWORD\";\n\nvoid setup() {\n  Serial.begin(115200);\n  WiFi.begin(ssid, password);\n  \n  while (WiFi.status() != WL_CONNECTED) {\n    delay(500);\n    Serial.print(\".\");\n  }\n  Serial.println(\"\\nWiFi connected!\");\n  Serial.println(WiFi.localIP());\n}\n\nvoid loop() {\n  Serial.print(\"Signal strength: \");\n  Serial.println(WiFi.RSSI());\n  delay(5000);\n}"
-      },
-      "procedureSteps": [
-        "Replace YOUR_SSID and YOUR_PASSWORD with actual WiFi credentials",
-        "Upload code to ESP32",
-        "Open Serial Monitor at 115200 baud",
-        "Watch connection progress and obtain IP address"
-      ],
-      "expectedOutput": "Serial Monitor shows connection dots, then displays local IP address and signal strength updates"
-    },
-    {
-      "id": "exp-008",
-      "num": "08",
-      "category": "Advanced",
-      "title": "Motion Detection",
-      "difficulty": "Intermediate",
-      "duration": "30 Minutes",
-      "xp": 35,
-      "status": "beta",
-      "objective": "Interface a PIR (Passive Infrared) motion sensor with ESP32. Detect motion and trigger alerts or notifications.",
-      "components": ["ESP32", "Breadboard", "PIR Sensor", "LED", "220Ω Resistor", "Jumper Wires"],
-      "concepts": ["PIR Sensor", "Motion Detection", "Interrupt Handling", "Debouncing", "Alert Logic"],
-      "arduino": {
-        "board": "ESP32",
-        "pins": {
-          "PIR": "GPIO 13",
-          "LED": "GPIO 5"
-        },
-        "libraries": [],
-        "code": "const int pirPin = 13;\nconst int ledPin = 5;\nint motionDetected = 0;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(pirPin, INPUT);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  motionDetected = digitalRead(pirPin);\n  \n  if (motionDetected == HIGH) {\n    digitalWrite(ledPin, HIGH);\n    Serial.println(\"Motion detected!\");\n  } else {\n    digitalWrite(ledPin, LOW);\n    Serial.println(\"No motion\");\n  }\n  delay(100);\n}"
-      },
-      "procedureSteps": [
-        "Connect PIR sensor output to GPIO 13",
-        "Connect LED to GPIO 5",
-        "Upload code and wait 30-60 seconds for sensor warm-up",
-        "Move in front of sensor to trigger detection"
-      ],
-      "expectedOutput": "LED lights up and serial prints 'Motion detected!' when movement is detected"
-    },
-    {
-      "id": "exp-009",
-      "num": "09",
-      "category": "Advanced",
+      "category": "Actuators",
       "title": "Servo Motor Control",
       "difficulty": "Intermediate",
       "duration": "35 Minutes",
-      "xp": 40,
-      "status": "beta",
-      "objective": "Control servo motor angle using PWM signals. Learn servo protocols and precision angle positioning.",
-      "components": ["ESP32", "Breadboard", "Servo Motor", "Jumper Wires"],
-      "concepts": ["Servo Motor", "PWM Pulse Width", "Angle Control", "180-degree sweep"],
+      "xp": 30,
+      "status": "ready",
+      "objective": "Control the angular position of a servo motor using the ESP32 and PWM signals, triggered by a push-button input.",
+      "components": ["ESP32", "Breadboard", "Servo Motor (SG90)", "Push Button", "Jumper Wires"],
+      "concepts": ["Servo Motor", "PWM Control", "Angle Control", "ESP32Servo Library", "Digital Input", "Actuator Control"],
+      "arduino": {
+        "board": "ESP32",
+        "pins": { "BUTTON": "GPIO 2", "SERVO": "GPIO 13" },
+        "libraries": ["ESP32Servo"],
+        "code": "#include <ESP32Servo.h>\n\nServo myServo;\nconst int buttonPin = 2;\nconst int servoPin = 13;\n\nvoid setup() {\n  pinMode(buttonPin, INPUT_PULLUP);\n  myServo.attach(servoPin);\n  myServo.write(0);\n}\n\nvoid loop() {\n  if (digitalRead(buttonPin) == LOW) {\n    myServo.write(90);\n  } else {\n    myServo.write(0);\n  }\n  delay(20);\n}"
+      },
+      "procedureSteps": [
+        "Connect Push Button output to GPIO 2",
+        "Connect Servo signal wire to GPIO 13, power from external 5V supply",
+        "Upload code to ESP32",
+        "Press and hold the button to rotate the servo to 90°, release to return to 0°"
+      ],
+      "expectedOutput": "Servo arm rotates to 90° while the button is held down, and returns smoothly to 0° when released"
+    },
+        {
+      "id": "exp-008",
+      "num": "08",
+      "category": "Sensors",
+      "title": "Ultrasonic Sensor Distance Measurement",
+      "difficulty": "Intermediate",
+      "duration": "30 Minutes",
+      "xp": 35,
+      "status": "ready",
+      "objective": "Measure the distance of an object using an HC-SR04 sensor and trigger an alert LED when it comes within a defined proximity threshold.",
+      "components": [
+        "ESP32",
+        "Breadboard",
+        "HC-SR04 Ultrasonic Sensor",
+        "LED",
+        "220Ω Resistor",
+        "Jumper Wires"
+      ],
+      "concepts": [
+        "Ultrasonic Sensing",
+        "Time of Flight",
+        "pulseIn()",
+        "Trig/Echo Timing",
+        "Threshold Logic"
+      ],
       "arduino": {
         "board": "ESP32",
         "pins": {
-          "SERVO": "GPIO 15"
+          "TRIG": "GPIO 5",
+          "ECHO": "GPIO 18",
+          "LED": "GPIO 2"
         },
-        "libraries": ["ESP32Servo"],
-        "code": "#include <ESP32Servo.h>\n\nServo myServo;\nconst int servoPin = 15;\n\nvoid setup() {\n  myServo.attach(servoPin);\n}\n\nvoid loop() {\n  for (int angle = 0; angle <= 180; angle += 5) {\n    myServo.write(angle);\n    delay(50);\n  }\n  for (int angle = 180; angle >= 0; angle -= 5) {\n    myServo.write(angle);\n    delay(50);\n  }\n}"
+        "libraries": [],
+        "code": "const int trigPin = 5;\nconst int echoPin = 18;\nconst int ledPin = 2;\nconst int thresholdCm = 20;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(trigPin, OUTPUT);\n  pinMode(echoPin, INPUT);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(trigPin, LOW);\n  delayMicroseconds(2);\n  digitalWrite(trigPin, HIGH);\n  delayMicroseconds(10);\n  digitalWrite(trigPin, LOW);\n\n  long duration = pulseIn(echoPin, HIGH);\n  int distanceCm = duration * 0.034 / 2;\n\n  Serial.print(\"Distance: \");\n  Serial.print(distanceCm);\n  Serial.println(\" cm\");\n\n  digitalWrite(ledPin, distanceCm < thresholdCm ? HIGH : LOW);\n  delay(100);\n}"
       },
       "procedureSteps": [
-        "Connect servo signal to GPIO 15, VCC to 5V, GND to GND",
-        "Install ESP32Servo library",
-        "Upload code to ESP32",
-        "Observe servo sweeping 0-180 degrees"
+        "Connect HC-SR04 Trig pin to ESP32 GPIO 5 and Echo pin to GPIO 18",
+        "Connect LED to GPIO 2 through a 220Ω resistor",
+        "Upload the code and open the Serial Monitor",
+        "Move an object closer to and farther from the sensor to observe the distance reading and LED alert"
       ],
-      "expectedOutput": "Servo motor sweeps from 0° to 180° smoothly and back in continuous cycle"
+      "expectedOutput": "Serial Monitor prints live distance in cm; the LED turns ON when an object is within 20cm and OFF otherwise"
     },
+    {
+  "id": "exp-009",
+  "num": "09",
+  "title": "Relay Module Simulation for Appliance Control",
+
+  "category": "Output Devices",
+
+  "difficulty": "Intermediate",
+
+  "duration": "25 Minutes",
+
+  "status": "ready",
+  "objective": "Learn how ESP32 controls external electrical appliances using a relay module.",
+  "components": [
+    "ESP32",
+    "Relay Module",
+    "Bulb",
+    "Breadboard",
+    "Jumper Wires"
+  ],
+
+  "concepts": [
+    "Relay",
+    "GPIO Output",
+    "Switching",
+    "ESP32",
+    "Output Devices"
+  ],
+
+  "xp": 30,
+  "arduino": {
+  "board": "ESP32",
+  "pins": {
+    "RELAY": "GPIO23"
+  },
+  "libraries": [],
+  "code": "const int relayPin = 23;\n\nvoid setup() {\n pinMode(relayPin, OUTPUT);\n}\n\nvoid loop() {\n digitalWrite(relayPin, HIGH);\n delay(2000);\n digitalWrite(relayPin, LOW);\n delay(2000);\n}"
+},
+  "procedureSteps": [
+  "Connect Relay IN to GPIO23",
+  "Connect Relay VCC to 5V",
+  "Connect Relay GND to GND",
+  "Connect Relay COM to Power",
+  "Connect Relay NO to Bulb",
+  "Run the simulation"
+],
+"expectedOutput": "Relay energizes and the bulb turns ON when GPIO23 becomes HIGH."
+},
     {
       "id": "exp-010",
       "num": "10",
