@@ -296,7 +296,7 @@
       "difficulty": "Advanced",
       "duration": "45 Minutes",
       "xp": 50,
-      "status": "beta",
+      "status": "ready",
       "objective": "Combine multiple sensors and actuators to create an integrated smart home scene with WiFi control.",
       "components": ["ESP32", "Breadboard", "LED", "Button", "LDR", "Buzzer", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"],
       "concepts": ["Integration", "State Management", "WiFi Control", "Multi-sensor Logic", "Real-world Application"],
