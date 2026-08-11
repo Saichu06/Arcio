@@ -391,14 +391,20 @@
 
     @media print {
 
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+
       html,
       body {
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden !important;
-        background: #060A13 !important;
+        overflow: visible !important;
+        background: #FFFFFF !important;
+        color: #000000 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -408,21 +414,18 @@
       }
 
       #certModal {
-        display: flex !important;
+        display: block !important;
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        background: #060A13 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: #FFFFFF !important;
         padding: 0 !important;
         margin: 0 !important;
         border: none !important;
-        align-items: center !important;
-        justify-content: center !important;
         box-shadow: none !important;
-        page-break-after: avoid !important;
-        page-break-inside: avoid !important;
+        backdrop-filter: none !important;
       }
 
       #certModal>div {
@@ -431,29 +434,28 @@
         max-width: none !important;
         border: none !important;
         border-radius: 0 !important;
-        padding: 24px !important;
+        padding: 0 !important;
         box-shadow: none !important;
-        background: #060A13 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
+        background: #FFFFFF !important;
+        display: block !important;
         box-sizing: border-box !important;
       }
 
       #certCloseBtn,
       #certPrintBtn,
       #certDownloadBtn,
-      .modal-btn {
+      .modal-btn,
+      #certNameModal {
         display: none !important;
       }
 
       #printableCertificate {
         width: 100% !important;
-        height: 100% !important;
-        border: 4px double #D97706 !important;
+        height: 100vh !important;
+        border: 6px double #D97706 !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 40px 60px !important;
+        padding: 30px 50px !important;
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
@@ -466,11 +468,6 @@
 
       #printableCertificate img {
         filter: none !important;
-      }
-
-      @page {
-        size: landscape;
-        margin: 0;
       }
     }
 
@@ -2023,7 +2020,7 @@
       content: '';
       flex: 1;
       height: 1px;
-      background: rgba(94, 234, 212, .07);
+      background: var(--border);
     }
 
     .modal-obj {
@@ -2055,7 +2052,8 @@
       display: flex;
       gap: 10px;
       align-items: center;
-      border-top: 1px solid rgba(94, 234, 212, .09);
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border);
     }
 
     .btn-yt {
@@ -2536,6 +2534,132 @@
 
     body.light .esp32-float {
       filter: drop-shadow(0 0 10px rgba(14, 40, 60, .18));
+    }
+
+    /* ─── Light mode: Notes textarea ─── */
+    .notes-textarea {
+      width: 100%;
+      min-height: 60px;
+      background: rgba(6, 10, 19, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      padding: 8px;
+      resize: vertical;
+      outline: none;
+      transition: background .2s, border-color .2s;
+    }
+
+    body.light .notes-textarea {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(14, 40, 60, .18);
+      color: var(--ink);
+    }
+
+    body.light .notes-textarea:focus {
+      border-color: var(--cyan2);
+      background: #fff;
+    }
+
+    /* ─── Light mode: Notes section separator ─── */
+    .modal-notes-section {
+      margin-top: 14px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    /* ─── Light mode: Cert modal inner box ─── */
+    .cert-modal-inner {
+      background: #060A13;
+      border: 2px solid #F59E0B;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 760px;
+      padding: 32px;
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.2);
+      position: relative;
+      color: #FFFFFF;
+    }
+
+    body.light .cert-modal-inner {
+      background: #FFFFFF;
+      color: #0F172A;
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.15), 0 8px 40px rgba(14, 40, 60, 0.12);
+    }
+
+    /* ─── Light mode: Cert name modal inner box ─── */
+    .cert-name-modal-inner {
+      background: #060A13;
+      border: 2px solid var(--cyan2);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      padding: 28px;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+      color: #FFFFFF;
+      position: relative;
+    }
+
+    body.light .cert-name-modal-inner {
+      background: #FFFFFF;
+      color: var(--ink);
+      box-shadow: 0 0 30px rgba(10, 119, 181, 0.15), 0 8px 40px rgba(14, 40, 60, 0.12);
+    }
+
+    /* ─── Light mode: Cert name input ─── */
+    .cert-name-input {
+      width: 100%;
+      background: rgba(10, 17, 32, 0.8);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 10px 14px;
+      outline: none;
+      margin-bottom: 16px;
+      transition: background .2s, border-color .2s;
+    }
+
+    body.light .cert-name-input {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(14, 40, 60, .2);
+      color: var(--ink);
+    }
+
+    body.light .cert-name-input:focus {
+      border-color: var(--cyan2);
+    }
+
+    /* ─── Light mode: Modal box border ─── */
+    body.light .modal-box {
+      border-color: rgba(10, 119, 181, .2);
+      box-shadow: 0 0 0 1px rgba(10, 119, 181, .06), 0 0 60px rgba(10, 119, 181, .08), 0 40px 100px var(--shadow-col);
+    }
+
+    body.light .modal-box::before {
+      background: linear-gradient(90deg, transparent, rgba(10, 119, 181, .4) 30%, rgba(14, 124, 140, .3) 70%, transparent);
+    }
+
+    body.light .modal-header {
+      border-bottom-color: rgba(14, 40, 60, .1);
+    }
+
+    body.light .modal-notes-section {
+      border-top-color: rgba(14, 40, 60, .1);
+    }
+
+    /* ─── Light mode: Modal section title divider color ─── */
+    body.light .modal-section-title::after {
+      background: rgba(14, 40, 60, .1);
+    }
+
+    /* ─── Light mode: cert modals backdrop ─── */
+    body.light #certModal,
+    body.light #certNameModal {
+      background: rgba(200, 210, 230, 0.85) !important;
     }
 
 
@@ -3420,13 +3544,44 @@
     }
   </style>
   <script>
-    // Load experiment data from JSON
+    // ── Experiment data — loaded from the Express backend API ─────────────────
+    // The server exposes GET /api/experiments which reads experiments.json.
+    // This async loader runs immediately; all UI that depends on experimentsData
+    // must be called (or deferred) from inside initDashboard().
     let experimentsData = {};
 
-    // Embedded directly so this works even when the file is opened
-    // straight from disk (file://), where fetch() of local JSON is blocked.
-    experimentsData = { "experiments": [{ "id": "exp-001", "num": "01", "category": "Basic I/O", "title": "LED Blink", "difficulty": "Beginner", "duration": "15 Minutes", "xp": 15, "status": "ready", "objective": "Master basic digital output by blinking an LED at different intervals. Understand GPIO pins, digitalWrite, and timing using delay().", "components": ["ESP32", "Breadboard", "LED", "220Ω Resistor", "Jumper Wires"], "concepts": ["Digital Output", "GPIO", "digitalWrite", "delay()", "Blink Pattern", "LED"], "arduino": { "board": "ESP32", "pins": { "LED": "GPIO 5" }, "libraries": [], "code": "void setup() {\n  pinMode(5, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(5, HIGH);\n  delay(1000);\n  digitalWrite(5, LOW);\n  delay(1000);\n}" }, "procedureSteps": ["Connect LED positive leg to GPIO 5 through 220Ω resistor", "Connect LED negative leg to GND", "Upload the code to ESP32", "Observe LED blinking pattern"], "expectedOutput": "LED blinks on and off at 1-second intervals" }, { "id": "exp-002", "num": "02", "category": "Basic I/O", "title": "Button Input", "difficulty": "Beginner", "duration": "20 Minutes", "xp": 20, "status": "ready", "objective": "Read digital input from a button and control an LED based on button state. Learn about digitalRead and debouncing.", "components": ["ESP32", "Breadboard", "Button", "LED", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["Digital Input", "Button State", "digitalRead", "Debouncing", "Conditional Logic", "Simultaneous Input/Output"], "arduino": { "board": "ESP32", "pins": { "BUTTON": "GPIO 4", "LED": "GPIO 5" }, "libraries": [], "code": "void setup() {\n  pinMode(4, INPUT_PULLUP);\n  pinMode(5, OUTPUT);\n}\n\nvoid loop() {\n  if (digitalRead(4) == LOW) {\n    digitalWrite(5, HIGH);\n  } else {\n    digitalWrite(5, LOW);\n  }\n  delay(20);\n}" }, "procedureSteps": ["Connect button to GPIO 4 with 10kΩ pull-up resistor", "Connect LED to GPIO 5 through 220Ω resistor", "Upload code and press the button", "LED should turn on when button is pressed"], "expectedOutput": "LED lights up when button is pressed, turns off when released" }, { "id": "exp-003", "num": "03", "category": "Analog I/O", "title": "PWM LED Dimming", "difficulty": "Intermediate", "duration": "30 Minutes", "xp": 30, "status": "ready", "objective": "Control LED brightness using PWM (Pulse Width Modulation). Learn about analog output and brightness control.", "components": ["ESP32", "Breadboard", "LED", "220Ω Resistor", "Jumper Wires"], "concepts": ["PWM", "Analog Output", "Duty Cycle", "ledcSetup", "ledcWrite", "Brightness Control"], "arduino": { "board": "ESP32", "pins": { "LED": "GPIO 5" }, "libraries": [], "code": "const int ledPin = 5;\nconst int ledChannel = 0;\nconst int frequency = 1000;\nconst int resolution = 8;\n\nvoid setup() {\n  ledcSetup(ledChannel, frequency, resolution);\n  ledcAttachPin(ledPin, ledChannel);\n}\n\nvoid loop() {\n  for (int brightness = 0; brightness <= 255; brightness++) {\n    ledcWrite(ledChannel, brightness);\n    delay(10);\n  }\n  for (int brightness = 255; brightness >= 0; brightness--) {\n    ledcWrite(ledChannel, brightness);\n    delay(10);\n  }\n}" }, "procedureSteps": ["Connect LED to GPIO 5 through 220Ω resistor", "Upload the PWM control code", "Observe LED brightness changing smoothly", "Try adjusting delay values to change fade speed"], "expectedOutput": "LED fades in and out smoothly in a continuous loop" }, { "id": "exp-004", "num": "04", "category": "Sensors", "title": "Automatic Light Detection", "difficulty": "Beginner", "duration": "25 Minutes", "xp": 25, "status": "ready", "objective": "Interface an LDR with the ESP32 to automatically detect ambient light levels and trigger an LED based on a threshold.", "components": ["ESP32", "Breadboard", "LDR Sensor", "LED", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["LDR", "Analog Sensor", "Threshold Logic", "ADC", "Auto Trigger", "Light Sensing"], "arduino": { "board": "ESP32", "pins": { "LDR": "GPIO 34 (ADC)", "LED": "GPIO 5" }, "libraries": [], "code": "const int ldrPin = 34;\nconst int ledPin = 5;\nconst int threshold = 2048;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  int ldrValue = analogRead(ldrPin);\n  Serial.println(ldrValue);\n  \n  if (ldrValue < threshold) {\n    digitalWrite(ledPin, HIGH);\n  } else {\n    digitalWrite(ledPin, LOW);\n  }\n  delay(100);\n}" }, "procedureSteps": ["Connect LDR with 10kΩ resistor as voltage divider to GPIO 34", "Connect LED to GPIO 5", "Upload code and observe Serial Monitor", "Cover LDR to trigger LED"], "expectedOutput": "LED turns on when light level drops below threshold value" }, { "id": "exp-005", "num": "05", "category": "Sensors", "title": "Temperature Monitoring", "difficulty": "Intermediate", "duration": "35 Minutes", "xp": 30, "status": "ready", "objective": "Read temperature and humidity data using a DHT22 sensor. Display real-time values over Serial Monitor and trigger alerts on threshold breach.", "components": ["ESP32", "Breadboard", "DHT22 Sensor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["DHT22", "Temperature", "Humidity", "Serial Monitor", "Threshold Alert", "Sensor Library"], "arduino": { "board": "ESP32", "pins": { "DHT22": "GPIO 17" }, "libraries": ["DHT sensor library", "Adafruit Unified Sensor"], "code": "#include \"DHT.h\"\n\nconst int dhtPin = 17;\nconst int dhtType = DHT22;\nDHT dht(dhtPin, dhtType);\n\nvoid setup() {\n  Serial.begin(115200);\n  dht.begin();\n}\n\nvoid loop() {\n  float humidity = dht.readHumidity();\n  float temperature = dht.readTemperature();\n  \n  if (!isnan(humidity) && !isnan(temperature)) {\n    Serial.print(\"Temp: \");\n    Serial.print(temperature);\n    Serial.print(\"°C, Humidity: \");\n    Serial.println(humidity);\n  }\n  delay(2000);\n}" }, "procedureSteps": ["Connect DHT22 data pin to GPIO 17", "Add pull-up resistor (10kΩ) between data and VCC", "Install DHT library through Arduino IDE", "Upload code and open Serial Monitor", "Observe temperature and humidity readings"], "expectedOutput": "Serial Monitor displays temperature and humidity values updating every 2 seconds" }, { "id": "exp-006", "num": "06", "category": "Actuators", "title": "Buzzer Control", "difficulty": "Beginner", "duration": "20 Minutes", "xp": 20, "status": "ready", "objective": "Drive a passive buzzer with the ESP32 using PWM signals. Generate different tones by varying frequency and create simple alarm patterns.", "components": ["ESP32", "Breadboard", "Passive Buzzer", "Jumper Wires"], "concepts": ["PWM", "Tone Generation", "Frequency", "Alarm Pattern", "ledcWrite", "Active vs Passive Buzzer"], "arduino": { "board": "ESP32", "pins": { "BUZZER": "GPIO 12" }, "libraries": [], "code": "const int buzzerPin = 12;\nconst int ledChannel = 0;\nconst int frequency = 1000;\nconst int resolution = 8;\n\nvoid setup() {\n  ledcSetup(ledChannel, frequency, resolution);\n  ledcAttachPin(buzzerPin, ledChannel);\n}\n\nvoid playTone(int freq, int duration) {\n  ledcChangeFrequency(ledChannel, freq, resolution);\n  ledcWrite(ledChannel, 128);\n  delay(duration);\n  ledcWrite(ledChannel, 0);\n  delay(100);\n}\n\nvoid loop() {\n  playTone(1000, 500);\n  playTone(1500, 500);\n  delay(1000);\n}" }, "procedureSteps": ["Connect buzzer positive to GPIO 12, negative to GND", "Upload code to ESP32", "Buzzer should play alternating tones", "Try changing frequency values for different pitches"], "expectedOutput": "Buzzer produces alternating tones (1000Hz and 1500Hz) with 500ms duration each" }, { "id": "exp-007", "num": "07", "category": "Actuators", "title": "Servo Motor Control", "difficulty": "Intermediate", "duration": "35 Minutes", "xp": 30, "status": "ready", "objective": "Control the angular position of a servo motor using the ESP32 and PWM signals, triggered by a push-button input.", "components": ["ESP32", "Breadboard", "Servo Motor (SG90)", "Push Button", "Jumper Wires"], "concepts": ["Servo Motor", "PWM Control", "Angle Control", "ESP32Servo Library", "Digital Input", "Actuator Control"], "arduino": { "board": "ESP32", "pins": {"BUTTON": "GPIO 2", "SERVO": "GPIO 13"}, "libraries": ["ESP32Servo"], "code": "#include <WiFi.h>\n\nconst char* ssid = \"YOUR_SSID\";\nconst char* password = \"YOUR_PASSWORD\";\n\nvoid setup() {\n  Serial.begin(115200);\n  WiFi.begin(ssid, password);\n  \n  while (WiFi.status() != WL_CONNECTED) {\n    delay(500);\n    Serial.print(\".\");\n  }\n  Serial.println(\"\\nWiFi connected!\");\n  Serial.println(WiFi.localIP());\n}\n\nvoid loop() {\n  Serial.print(\"Signal strength: \");\n  Serial.println(WiFi.RSSI());\n  delay(5000);\n}" }, "procedureSteps": ["Connect Push Button output to GPIO 2", "Connect Servo signal wire to GPIO 13, power from external 5V supply", "Upload code to ESP32", "Press and hold the button to rotate the servo to 90°, release to return to 0°"], "expectedOutput": "Servo arm rotates to 90° while the button is held down, and returns smoothly to 0° when released" }, { "id": "exp-008", "num": "08", "category": "Sensors", "title": "Ultrasonic Sensor Distance Measurement", "difficulty": "Intermediate", "duration": "30 Minutes", "xp": 35, "status": "ready", "objective": "Measure the distance of an object using an HC-SR04 sensor and trigger an alert LED when it comes within a defined proximity threshold.", "components": ["ESP32", "Breadboard", "HC-SR04 Ultrasonic Sensor", "LED", "220Ω Resistor", "Jumper Wires"], "concepts": ["Ultrasonic Sensing", "Time of Flight", "pulseIn()", "Trig/Echo Timing", "Threshold Logic"], "arduino": { "board": "ESP32", "pins": { "TRIG": "GPIO 5", "ECHO": "GPIO 18", "LED": "GPIO 2" }, "libraries": [], "code": "const int trigPin = 5;\nconst int echoPin = 18;\nconst int ledPin = 2;\nconst int thresholdCm = 20;\n\nvoid setup() {\n  Serial.begin(115200);\n  pinMode(trigPin, OUTPUT);\n  pinMode(echoPin, INPUT);\n  pinMode(ledPin, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(trigPin, LOW);\n  delayMicroseconds(2);\n  digitalWrite(trigPin, HIGH);\n  delayMicroseconds(10);\n  digitalWrite(trigPin, LOW);\n\n  long duration = pulseIn(echoPin, HIGH);\n  int distanceCm = duration * 0.034 / 2;\n\n  Serial.print(\"Distance: \");\n  Serial.print(distanceCm);\n  Serial.println(\" cm\");\n\n  digitalWrite(ledPin, distanceCm < thresholdCm ? HIGH : LOW);\n  delay(100);\n}" }, "procedureSteps": ["Connect HC-SR04 Trig pin to ESP32 GPIO 5 and Echo pin to GPIO 18", "Connect LED to GPIO 2 through a 220Ω resistor", "Upload the code and open the Serial Monitor", "Move an object closer to and farther from the sensor to observe the distance reading and LED alert"], "expectedOutput": "Serial Monitor prints live distance in cm; the LED turns ON when an object is within 20cm and OFF otherwise" }, { "id": "exp-009", "num": "09", "title": "Relay Module Simulation for Appliance Control", "category": "Output Devices", "difficulty": "Intermediate", "duration": "25 Minutes", "status": "ready", "objective": "Learn how ESP32 controls external electrical appliances using a relay module.", "components": ["ESP32","Relay Module","Bulb","Breadboard","Jumper Wires"], "concepts": ["Relay","GPIO Output","Switching","ESP32","Output Devices"], "xp": 30, "arduino": { "board": "ESP32", "pins": { "RELAY": "GPIO23" }, "libraries": [], "code": "const int relayPin = 23;\n\nvoid setup() {\n pinMode(relayPin, OUTPUT);\n}\n\nvoid loop() {\n digitalWrite(relayPin, HIGH);\n delay(2000);\n digitalWrite(relayPin, LOW);\n delay(2000);\n}" }, "procedureSteps": ["Connect Relay IN to GPIO23","Connect Relay VCC to 5V","Connect Relay GND to GND","Connect Relay COM to Power","Connect Relay NO to Bulb","Run the simulation"], "expectedOutput": "Relay energizes and the bulb turns ON when GPIO23 becomes HIGH." }, { "id": "exp-010", "num": "10", "category": "Integration", "title": "Smart Home Scene", "difficulty": "Advanced", "duration": "45 Minutes", "xp": 50, "status": "ready", "objective": "Combine multiple sensors and actuators to create an integrated smart home scene with WiFi control.", "components": ["ESP32", "Breadboard", "LED", "Button", "LDR", "Buzzer", "220Ω Resistor", "10kΩ Resistor", "Jumper Wires"], "concepts": ["Integration", "State Management", "WiFi Control", "Multi-sensor Logic", "Real-world Application"], "arduino": { "board": "ESP32", "pins": { "BUTTON": "GPIO 4", "LED": "GPIO 5", "LDR": "GPIO 34", "BUZZER": "GPIO 12" }, "libraries": ["WiFi.h"], "code": "// Multi-component integration example\nconst int buttonPin = 4;\nconst int ledPin = 5;\nconst int ldrPin = 34;\nconst int buzzerPin = 12;\n\nvoid setup() {\n  pinMode(buttonPin, INPUT_PULLUP);\n  pinMode(ledPin, OUTPUT);\n  pinMode(buzzerPin, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  int buttonState = digitalRead(buttonPin);\n  int lightLevel = analogRead(ldrPin);\n  \n  if (buttonState == LOW) {\n    digitalWrite(ledPin, HIGH);\n    digitalWrite(buzzerPin, HIGH);\n  } else if (lightLevel < 2048) {\n    digitalWrite(ledPin, HIGH);\n    digitalWrite(buzzerPin, LOW);\n  } else {\n    digitalWrite(ledPin, LOW);\n    digitalWrite(buzzerPin, LOW);\n  }\n  delay(100);\n}" }, "procedureSteps": ["Connect all components as per pin assignments", "Upload integrated control code", "Test button control - should activate LED and buzzer", "Test light sensor - should activate LED when dark", "Experiment with combining different sensor inputs"], "expectedOutput": "System responds to button and light level independently and in combination" }] };
-    console.log('✓ Experiments loaded:', experimentsData.experiments.length, 'labs');
+    async function loadExperimentsFromAPI() {
+      try {
+        const res = await fetch('/api/experiments', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
+        experimentsData = await res.json();
+        console.log('✓ Experiments loaded via API:', experimentsData.experiments.length, 'labs');
+      } catch (err) {
+        console.error('✗ Could not load experiments from API:', err.message);
+        console.warn('  Make sure the ARCIO server is running: npm run dev');
+        // Surface a user-visible banner instead of silently breaking
+        const banner = document.createElement('div');
+        banner.id = 'api-error-banner';
+        banner.style.cssText = [
+          'position:fixed;top:0;left:0;right:0;z-index:99999',
+          'background:rgba(248,113,113,0.95);backdrop-filter:blur(8px)',
+          'color:#fff;font-family:Inter,sans-serif;font-size:13px',
+          'padding:10px 20px;display:flex;align-items:center;gap:10px',
+          'border-bottom:1px solid rgba(255,255,255,0.2)',
+        ].join(';');
+        banner.innerHTML = `
+          <span style="font-size:16px">⚠️</span>
+          <span><strong>ARCIO server not reachable.</strong>
+          Run <code style="background:rgba(0,0,0,.25);padding:2px 6px;border-radius:4px">npm run dev</code>
+          in the project folder, then reload this page.</span>
+          <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:4px;padding:2px 10px;cursor:pointer">✕</button>
+        `;
+        document.body.prepend(banner);
+      }
+    }
     // Component visual styles keyed by pin name — used to build the wiring diagram
     const WIRING_COMPONENT_STYLES = {
       LED: { icon: '💡', label: 'LED', color: '#34D399', power: false },
@@ -3544,7 +3699,7 @@
 
       // Find experiment in loaded data
       if (!experimentsData.experiments) {
-        alert('Experiment data has not loaded yet. Make sure dashboard.html is opened via a local server (http://localhost:8000/...) and experiments.json is in the same folder, then reload.');
+        alert('Experiment data has not loaded yet. Make sure the ARCIO Express server is running (npm run dev) and visit http://localhost:3000, then reload.');
         return;
       }
       const experiment = experimentsData.experiments.find(exp => exp.num === labNum);
@@ -5224,15 +5379,14 @@
           <div class="modal-section-title">Concepts Covered</div>
           <div class="modal-chips" id="mConcepts"></div>
         </div>
-        <div class="modal-section"
-          style="margin-top:14px; border-top:1px solid rgba(94,234,212,0.1); padding-top:12px;">
+        <div class="modal-section modal-notes-section">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <div class="modal-section-title" style="margin-bottom:0;">My Notes</div>
             <span id="mNotesUpdated"
               style="font-family:'JetBrains Mono',monospace; font-size:7.5px; color:var(--muted);"></span>
           </div>
           <textarea id="mNotesTextarea" placeholder="Write personal notes for this experiment..."
-            style="width:100%; min-height:60px; background:rgba(6,10,19,0.7); border:1px solid var(--border); border-radius:6px; color:var(--ink); font-family:'Inter',sans-serif; font-size:11px; padding:8px; resize:vertical; outline:none;"></textarea>
+            class="notes-textarea"></textarea>
           <div style="display:flex; gap:8px; margin-top:6px; justify-content:flex-end;">
             <button id="mClearNotesBtn"
               style="background:transparent; border:1px solid var(--border); color:var(--muted); font-size:9px; padding:3px 8px; border-radius:4px; cursor:pointer;">Clear
@@ -5252,6 +5406,24 @@
               d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
             <polygon points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02" fill="#060A13" />
           </svg>YouTube</button>
+        <button class="btn-yt" id="mArticleBtn" style="border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.08); color:var(--cyan2); display:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>Article</button>
+        <button class="btn-yt" id="mYtBtn2" style="border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.07); color:#F87171; display:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
+            <polygon points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02" fill="#060A13" />
+          </svg>YouTube 2</button>
+        <button class="btn-yt" id="mArticleBtn2" style="border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.08); color:var(--cyan2); display:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>Article 2</button>
         <button class="btn-launch" id="mLaunchBtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5,3 19,12 5,21" />
           </svg>Launch Lab<span class="arr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"
@@ -5281,12 +5453,29 @@
     const LEVEL_THRESHOLDS = [0, 50, 120, 220, 350, 500, 700, 950, 1250, 1600, 2000];
     const LEVEL_NAMES = ['Newcomer', 'Tinkerer', 'Builder', 'Maker', 'Explorer', 'Engineer', 'Specialist', 'Expert', 'Master', 'Architect', 'Legend'];
     const YT_LINKS = {
-      '01': 'https://techexplorations.com/guides/esp32/begin/digitalout/',   // not a YouTube, but your link
-      '02': 'https://www.youtube.com/watch?v=IRAXPR1i2Mg&pp=ygUjRVNQMzIgcHVzaCBidXR0b24gZHJvbmVib3Qgd29ya3Nob3A%3D',
-      '03': 'https://www.youtube.com/watch?v=Qu72uaeWSpA&pp=ygUcRVNQMzIgcG90ZW50aW9tZXRlciB0dXRvcmlhbA%3D%3D',
-      '04': 'https://www.youtube.com/watch?v=3ciAcyets-E&pp=ygUSRVNQMzIgTERSIHR1dG9yaWFs',
-      '05': 'https://youtu.be/Ls00xud3bbg',
-      // add others if needed
+      '01': 'https://www.youtube.com/watch?v=ZNf9SfIiQUM',
+      '02': 'https://www.youtube.com/results?search_query=ESP32+push+button+digital+input+Arduino',
+      '03': 'https://www.youtube.com/watch?v=FtexiPpa_EA',
+      '04': 'https://www.youtube.com/results?search_query=ESP32+LDR+photoresistor+Arduino+tutorial',
+      '05': 'https://www.youtube.com/results?search_query=ESP32+DHT11+temperature+humidity+Arduino+tutorial',
+      '06': 'https://www.youtube.com/watch?v=TcH8Bx9yC7Q',
+      '07': 'https://www.youtube.com/watch?v=qGcOaNlyV0Y',
+      '08': 'https://www.youtube.com/watch?v=FS8bsHBiL6Y',
+      '09': 'https://www.youtube.com/watch?v=ln3x6fYB0wQ',
+      '10': ['https://www.youtube.com/watch?v=FS8bsHBiL6Y', 'https://www.youtube.com/watch?v=r-uLfILKqyY'],
+    };
+
+    const ARTICLE_LINKS = {
+      '01': 'https://docs.espressif.com/projects/arduino-esp32/en/latest/tutorials/blink.html',
+      '02': 'https://randomnerdtutorials.com/esp32-digital-inputs-outputs-arduino/',
+      '03': 'https://esp32io.com/tutorials/esp32-potentiometer',
+      '04': 'https://www.tmvtech.com/esp32-tutorial-photoresistor-ldr/',
+      '05': 'https://www.esp32cube.com/post/esp32-sensor-dht11-temperature-and-humidity-sensor',
+      '06': 'https://esp32io.com/tutorials/esp32-buzzer',
+      '07': 'https://randomnerdtutorials.com/esp32-servo-motor-web-server-arduino-ide/',
+      '08': 'https://esp32tutorials.com/hc-sr04-ultrasonic-sensor-esp32-esp-idf/',
+      '09': 'https://randomnerdtutorials.com/esp32-relay-module-ac-web-server/',
+      '10': ['https://esp32tutorials.com/hc-sr04-ultrasonic-sensor-esp32-esp-idf/', 'https://randomnerdtutorials.com/esp32-servo-motor-web-server-arduino-ide/'],
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -5536,6 +5725,15 @@
         showFinalCertificate(val);
       }
     });
+
+    function printCertificate() {
+      const certModal = document.getElementById('certModal');
+      if (!certModal || certModal.style.display === 'none') {
+        alert('Please open the certificate first before printing.');
+        return;
+      }
+      window.print();
+    }
 
     // ═══════════════════════════════════════════════════════════
     // LEARNING PATH
@@ -5797,13 +5995,36 @@
         launchBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Launch Lab <span class="arr"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>`;
       }
 
-      const ytLink = YT_LINKS[num];
+      // YouTube button(s)
+      const ytData = YT_LINKS[num];
       const ytBtn = document.getElementById('mYtBtn');
-      if (ytLink) {
-        ytBtn.style.display = '';                     // make sure it's visible
-        ytBtn.onclick = () => window.open(ytLink, '_blank');
+      const ytBtn2 = document.getElementById('mYtBtn2');
+      if (Array.isArray(ytData)) {
+        ytBtn.style.display = '';  ytBtn.innerHTML = ytBtn.innerHTML.replace(/YouTube.*$/, 'YouTube 1'); ytBtn.onclick = () => window.open(ytData[0], '_blank');
+        ytBtn2.style.display = ''; ytBtn2.onclick = () => window.open(ytData[1], '_blank');
+      } else if (ytData) {
+        ytBtn.style.display = '';  ytBtn.onclick = () => window.open(ytData, '_blank');
+        ytBtn2.style.display = 'none';
       } else {
-        ytBtn.style.display = 'none';                 // hide if no link
+        ytBtn.style.display = 'none';
+        ytBtn2.style.display = 'none';
+      }
+
+      // Article button(s)
+      const artData = ARTICLE_LINKS[num];
+      const articleBtn = document.getElementById('mArticleBtn');
+      const articleBtn2 = document.getElementById('mArticleBtn2');
+      if (articleBtn) {
+        if (Array.isArray(artData)) {
+          articleBtn.style.display = '';  articleBtn.onclick = () => window.open(artData[0], '_blank');
+          if (articleBtn2) { articleBtn2.style.display = ''; articleBtn2.onclick = () => window.open(artData[1], '_blank'); }
+        } else if (artData) {
+          articleBtn.style.display = '';  articleBtn.onclick = () => window.open(artData, '_blank');
+          if (articleBtn2) articleBtn2.style.display = 'none';
+        } else {
+          articleBtn.style.display = 'none';
+          if (articleBtn2) articleBtn2.style.display = 'none';
+        }
       }
       overlay.classList.add('open'); document.body.style.overflow = 'hidden';
     }
@@ -5963,6 +6184,11 @@
     // ═══════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════
+    // Fetch experiment data from the Express backend API on page load.
+    // All UI that depends on experimentsData (showArduinoExpanded) waits
+    // for this to resolve — synchronous UI initialisation below is safe.
+    loadExperimentsFromAPI();
+
     updateProgressUI();
     updateRecentUI();
     updateFavUI();
@@ -6057,8 +6283,7 @@
   <!-- CERTIFICATE MODAL (FEATURE 6) -->
   <div class="modal-backdrop" id="certModal"
     style="display:none; position:fixed; inset:0; z-index:999; background:rgba(4,7,13,0.92); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
-    <div
-      style="background:#060A13; border:2px solid #F59E0B; border-radius:16px; width:100%; max-width:760px; padding:32px; box-shadow:0 0 40px rgba(245,158,11,0.2); position:relative; color:#FFFFFF;">
+    <div class="cert-modal-inner">
       <button id="certCloseBtn"
         style="position:absolute; top:16px; right:16px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px;">✕</button>
 
@@ -6140,18 +6365,17 @@
       <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px;">
         <button id="certPrintBtn"
           style="background:rgba(94,234,212,0.1); border:1px solid rgba(94,234,212,0.3); color:var(--cyan); padding:8px 18px; border-radius:6px; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; cursor:pointer;"
-          onclick="window.print()">🖨️ Print Certificate</button>
+          onclick="printCertificate()">🖨️ Print Certificate</button>
         <button id="certDownloadBtn"
           style="background:linear-gradient(135deg, #38BDF8, #1D4ED8); border:none; color:#FFFFFF; padding:8px 18px; border-radius:6px; font-family:'Inter',sans-serif; font-size:11px; font-weight:700; cursor:pointer;"
-          onclick="window.print()">📥 Download PDF</button>
+          onclick="printCertificate()">📥 Download PDF</button>
       </div>
     </div>
   </div>
   <!-- CERTIFICATE NAME INPUT MODAL -->
   <div class="modal-backdrop" id="certNameModal"
     style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(4,7,13,0.92); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
-    <div
-      style="background:#060A13; border:2px solid var(--cyan2); border-radius:16px; width:100%; max-width:480px; padding:28px; box-shadow:0 0 30px rgba(56,189,248,0.2); color:#FFFFFF; position:relative;">
+    <div class="cert-name-modal-inner">
       <button id="certNameCloseBtn"
         style="position:absolute; top:16px; right:16px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px;">✕</button>
       <div
@@ -6163,7 +6387,7 @@
         locked onto your certificate and <strong>cannot be edited or changed later</strong>.
       </div>
       <input type="text" id="certNameInput" placeholder="Full Student Name (e.g. John Doe)"
-        style="width:100%; background:rgba(10,17,32,0.8); border:1px solid var(--border); border-radius:8px; color:var(--ink); font-family:'Inter',sans-serif; font-size:13px; padding:10px 14px; outline:none; margin-bottom:16px;">
+        class="cert-name-input">
       <div style="display:flex; justify-content:flex-end; gap:10px;">
         <button id="certNameSubmitBtn" class="modal-btn modal-btn-pri"
           style="background:var(--cyan2); color:#060A13; border:none; font-weight:700; padding:8px 18px; border-radius:6px; cursor:pointer;">Generate
