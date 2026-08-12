@@ -912,6 +912,8 @@ if(savedTheme==='light')document.body.classList.add('light');
 themeBtn.addEventListener('click',()=>{
   document.body.classList.toggle('light');
   localStorage.setItem('arcio-theme',document.body.classList.contains('light')?'light':'dark');
+});
+
 document.querySelectorAll('img.pz-photo').forEach(img => {
   img.addEventListener('error', () => {
     img.style.display = 'none';
