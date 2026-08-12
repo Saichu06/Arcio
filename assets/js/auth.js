@@ -19,7 +19,7 @@ import {
   runTransaction
 } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
 
-import { auth, db, googleProvider } from './firebase-config.js';
+import { auth, db, googleProvider, firebaseConfig } from './firebase-config.js';
 
 // Global state
 window.ARCIO_USER = null;
@@ -86,7 +86,20 @@ export async function registerUser({ name, registerNo, email, password, confirmP
     // 1. Create Firebase Auth account first
     userCredential = await createUserWithEmailAndPassword(auth, normEmail, password);
     const user = userCredential.user;
+
+    console.log('[AUTH REQUEST]', {
+      hasUser: !!user,
+      uid: user?.uid,
+      email: user?.email,
+      projectId: firebaseConfig.projectId
+    });
+
     const idToken = await user.getIdToken(true);
+
+    console.log('[AUTH REQUEST] Fresh ID token obtained', {
+      uid: user.uid,
+      tokenLength: idToken?.length
+    });
 
     // 2. Perform atomic profile registration & registration number claim via Admin SDK backend
     const response = await fetch('/api/auth/register-profile', {
@@ -234,7 +247,20 @@ export async function completeGoogleProfile(user, { name, registerNo }) {
   if (!registerNo || !registerNo.trim()) throw new Error('Please enter your registration number.');
 
   const normReg = normalizeRegNo(registerNo);
+
+  console.log('[AUTH REQUEST]', {
+    hasUser: !!user,
+    uid: user?.uid,
+    email: user?.email,
+    projectId: firebaseConfig.projectId
+  });
+
   const idToken = await user.getIdToken(true);
+
+  console.log('[AUTH REQUEST] Fresh ID token obtained', {
+    uid: user.uid,
+    tokenLength: idToken?.length
+  });
 
   const response = await fetch('/api/auth/register-profile', {
     method: 'POST',
@@ -273,11 +299,28 @@ export async function fetchUserProfile(uid) {
     if (snapshot.exists()) {
       return snapshot.data();
     }
-    return null;
   } catch (err) {
-    console.error('[FIRESTORE] Failed to fetch user profile:', err.message);
-    return null;
+    console.warn('[FIRESTORE] Direct client profile read blocked/failed, trying token API:', err.message);
   }
+
+  // Fallback to backend Admin API using Firebase ID token
+  try {
+    const user = auth.currentUser;
+    if (user) {
+      const idToken = await user.getIdToken();
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.profile;
+      }
+    }
+  } catch (apiErr) {
+    console.error('[AUTH API] Failed to fetch profile via backend API:', apiErr.message);
+  }
+
+  return null;
 }
 
 /**

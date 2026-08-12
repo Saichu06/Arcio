@@ -48,7 +48,11 @@ const db = getFirestore();
  */
 async function verifyFirebaseToken(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const hasAuthHeader = !!authHeader;
+  const hasBearer = authHeader ? authHeader.startsWith('Bearer ') : false;
+
+  if (!hasAuthHeader || !hasBearer) {
+    console.warn('[AUTH VERIFY] Missing or invalid Authorization header format.', { hasAuthHeader, hasBearer });
     return res.status(401).json({ status: 401, error: 'Unauthorized: Missing or invalid token format.' });
   }
 
@@ -58,14 +62,40 @@ async function verifyFirebaseToken(req, res, next) {
     const decodedToken = await auth.verifyIdToken(idToken);
     
     // Diagnostic logging (safe, no tokens/secrets exposed)
-    const tokenProjectId = decodedToken.firebase ? decodedToken.firebase.tenant || decodedToken.aud : decodedToken.aud;
-    console.log(`[AUTH DIAGNOSTIC] Token verified — UID: ${decodedToken.uid} | Token Project: ${tokenProjectId} | Admin Project: ${TARGET_PROJECT_ID}`);
+    const tokenProjectId = decodedToken.aud;
+    const issuer = decodedToken.iss;
+    const authTime = decodedToken.auth_time;
+    const exp = decodedToken.exp;
+    const currentServerTime = Math.floor(Date.now() / 1000);
+
+    console.log('[AUTH DIAGNOSTIC]', {
+      uid: decodedToken.uid,
+      aud: tokenProjectId,
+      iss: issuer,
+      auth_time: authTime,
+      exp: exp,
+      server_time: currentServerTime,
+      token_valid: true
+    });
 
     req.user = decodedToken; // decodedToken contains { uid, email, ... }
     next();
   } catch (err) {
-    console.error('[AUTH ERROR] Token verification failed:', err.message);
-    return res.status(401).json({ status: 401, error: 'Unauthorized: Invalid or expired token.' });
+    // Log exact Firebase Admin error details server-side while keeping client response clean
+    console.error('[AUTH VERIFY ERROR]', {
+      code: err.code || 'unknown',
+      message: err.message,
+      stack: err.stack ? err.stack.split('\n')[1] : null
+    });
+
+    let clientMsg = 'Unauthorized: Invalid or expired token.';
+    if (err.code === 'auth/id-token-expired') {
+      clientMsg = 'Unauthorized: Token expired. Please sign in again.';
+    } else if (err.code === 'auth/id-token-revoked') {
+      clientMsg = 'Unauthorized: Token revoked. Please sign in again.';
+    }
+
+    return res.status(401).json({ status: 401, error: clientMsg });
   }
 }
 
@@ -128,10 +158,24 @@ async function registerStudentAccount({ uid, name, registerNo, email }) {
   return userProfile;
 }
 
+/**
+ * Fetches user profile from Firestore using Admin SDK.
+ */
+async function getUserProfile(uid) {
+  if (!uid) return null;
+  const docRef = db.collection('users').doc(uid);
+  const snap = await docRef.get();
+  if (snap.exists) {
+    return snap.data();
+  }
+  return null;
+}
+
 module.exports = {
   auth,
   db,
   verifyFirebaseToken,
   resolveRegNoToEmail,
   registerStudentAccount,
+  getUserProfile,
 };

@@ -7,7 +7,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebas
 import { getAuth, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js';
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
 
-// Firebase project configuration (using project composite-watch-505307-g5)
+// Firebase project configuration (using project arcio-srm)
 const firebaseConfig = {
   apiKey: "AIzaSyAERBBfEHv_cgf5D9mFYqHmu_e8uB6rExE",
   authDomain: "arcio-srm.firebaseapp.com",

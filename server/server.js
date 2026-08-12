@@ -17,7 +17,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 
-const { verifyFirebaseToken, resolveRegNoToEmail, registerStudentAccount } = require('./services/firebaseAdminService');
+const { verifyFirebaseToken, resolveRegNoToEmail, registerStudentAccount, getUserProfile } = require('./services/firebaseAdminService');
 const googleSheetsService = require('./services/googleSheetsService');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -244,12 +244,12 @@ api.get('/health', (_req, res) => {
 // GET /api/firebase-config
 api.get('/firebase-config', (_req, res) => {
   res.json({
-    apiKey: process.env.FIREBASE_WEB_API_KEY || process.env.FIREBASE_API_KEY || "AIzaSy_ARCIO_FIREBASE_WEB_KEY",
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || "composite-watch-505307-g5.firebaseapp.com",
-    projectId: process.env.FIREBASE_PROJECT_ID || "composite-watch-505307-g5",
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "composite-watch-505307-g5.firebasestorage.app",
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "116393887516872314695",
-    appId: process.env.FIREBASE_APP_ID || "1:116393887516872314695:web:arcio"
+    apiKey: process.env.FIREBASE_WEB_API_KEY || process.env.FIREBASE_API_KEY || "AIzaSyAERBBfEHv_cgf5D9mFYqHmu_e8uB6rExE",
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || "arcio-srm.firebaseapp.com",
+    projectId: process.env.FIREBASE_PROJECT_ID || "arcio-srm",
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "arcio-srm.firebasestorage.app",
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "109155134449",
+    appId: process.env.FIREBASE_APP_ID || "1:109155134449:web:0784770662930dd70b3250"
   });
 });
 
@@ -315,6 +315,20 @@ api.post('/auth/register-profile', verifyFirebaseToken, async (req, res) => {
   } catch (err) {
     console.error('[API ERROR] register-profile:', err.message);
     res.status(400).json({ status: 400, error: err.message || 'Failed to register student profile.' });
+  }
+});
+
+// GET /api/auth/me (Protected with Firebase ID Token Verification)
+api.get('/auth/me', verifyFirebaseToken, async (req, res) => {
+  try {
+    const profile = await getUserProfile(req.user.uid);
+    if (!profile) {
+      return res.status(404).json({ status: 404, error: 'User profile not found.' });
+    }
+    res.json({ status: 200, profile });
+  } catch (err) {
+    console.error('[API ERROR] auth/me:', err.message);
+    res.status(500).json({ status: 500, error: 'Failed to fetch user profile.' });
   }
 });
 
