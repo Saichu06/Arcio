@@ -78,6 +78,8 @@ app.use(
           'https://unpkg.com',
         ],
 
+        scriptSrcAttr: ["'self'", "'unsafe-inline'"],
+
         styleSrc: [
           "'self'",
           "'unsafe-inline'",
@@ -368,6 +370,9 @@ app.get('/advance/:module', (req, res) => {
 //
 // Keep this AFTER the clean routes so Express handles pretty URLs first.
 // ─────────────────────────────────────────────────────────────────────────────
+
+app.use('/assets', express.static(path.join(STATIC_ROOT, 'assets')));
+app.use('/playground/assets', express.static(path.join(STATIC_ROOT, 'playground', 'assets')));
 
 app.use(
   express.static(STATIC_ROOT, {
