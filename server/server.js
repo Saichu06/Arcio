@@ -17,6 +17,9 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 
+const { verifyFirebaseToken, resolveRegNoToEmail, registerStudentAccount } = require('./services/firebaseAdminService');
+const googleSheetsService = require('./services/googleSheetsService');
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -76,6 +79,8 @@ app.use(
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://unpkg.com',
+          'https://www.gstatic.com',
+          'https://apis.google.com',
         ],
 
         scriptSrcAttr: ["'self'", "'unsafe-inline'"],
@@ -102,9 +107,17 @@ app.use(
           'https://nominatim.openstreetmap.org',
           'https://api.open-meteo.com',
           'https://air-quality-api.open-meteo.com',
+          'https://*.firebaseio.com',
+          'https://*.googleapis.com',
+          'https://identitytoolkit.googleapis.com',
+          'https://securetoken.googleapis.com',
         ],
 
-        frameSrc: ["'none'"],
+        frameSrc: [
+          "'self'",
+          'https://*.firebaseapp.com',
+          'https://accounts.google.com',
+        ],
 
         objectSrc: ["'none'"],
 
@@ -228,6 +241,18 @@ api.get('/health', (_req, res) => {
   });
 });
 
+// GET /api/firebase-config
+api.get('/firebase-config', (_req, res) => {
+  res.json({
+    apiKey: process.env.FIREBASE_WEB_API_KEY || process.env.FIREBASE_API_KEY || "AIzaSy_ARCIO_FIREBASE_WEB_KEY",
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || "composite-watch-505307-g5.firebaseapp.com",
+    projectId: process.env.FIREBASE_PROJECT_ID || "composite-watch-505307-g5",
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "composite-watch-505307-g5.firebasestorage.app",
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "116393887516872314695",
+    appId: process.env.FIREBASE_APP_ID || "1:116393887516872314695:web:arcio"
+  });
+});
+
 // GET /api/experiments
 api.get('/experiments', (_req, res) => {
   res.json(EXPERIMENTS_DATA);
@@ -247,6 +272,66 @@ api.get('/experiments/:id', (req, res) => {
   }
 
   res.json(experiment);
+});
+
+// POST /api/auth/resolve-reg
+api.post('/auth/resolve-reg', async (req, res) => {
+  try {
+    const { regNo } = req.body || {};
+    if (!regNo) {
+      return res.status(400).json({ status: 400, error: 'Registration number is required.' });
+    }
+
+    const email = await resolveRegNoToEmail(regNo);
+    if (!email) {
+      return res.status(404).json({ status: 404, error: 'Registration number not found.' });
+    }
+
+    res.json({ status: 200, email });
+  } catch (err) {
+    console.error('[API ERROR] resolve-reg:', err.message);
+    res.status(500).json({ status: 500, error: 'Failed to resolve registration number.' });
+  }
+});
+
+// POST /api/auth/register-profile (Protected with Firebase ID Token Verification)
+api.post('/auth/register-profile', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { name, registerNo, email } = req.body || {};
+    const uid = req.user.uid;
+
+    if (!name || !registerNo) {
+      return res.status(400).json({ status: 400, error: 'Name and Registration Number are required.' });
+    }
+
+    const profile = await registerStudentAccount({
+      uid,
+      name,
+      registerNo,
+      email: email || req.user.email
+    });
+
+    res.json({ status: 200, message: 'Profile registered successfully.', profile });
+  } catch (err) {
+    console.error('[API ERROR] register-profile:', err.message);
+    res.status(400).json({ status: 400, error: err.message || 'Failed to register student profile.' });
+  }
+});
+
+// POST /api/sync-student (Protected with Firebase ID token verification)
+api.post('/sync-student', verifyFirebaseToken, async (req, res) => {
+  try {
+    const studentData = req.body || {};
+    if (!studentData.email && req.user) {
+      studentData.email = req.user.email;
+    }
+
+    const result = await googleSheetsService.syncStudentToSheet(studentData);
+    res.json({ status: 200, message: 'Student synchronized successfully.', result });
+  } catch (err) {
+    console.error('[API ERROR] sync-student:', err.message);
+    res.status(500).json({ status: 500, error: err.message || 'Failed to sync student data.' });
+  }
 });
 
 // Mount API router

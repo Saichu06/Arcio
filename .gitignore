@@ -21,3 +21,8 @@ Desktop.ini
 # ── Build outputs ─────────────────────────────────────────────────────────────
 dist/
 build/
+
+
+server/credentials/
+*.json
+.env

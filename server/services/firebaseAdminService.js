@@ -1,0 +1,137 @@
+'use strict';
+
+/**
+ * ARCIO — Firebase Admin Service
+ * Handles server-side ID token verification, Firestore Admin access,
+ * and secure registration-number lookup.
+ */
+
+const path = require('path');
+const fs = require('fs');
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore } = require('firebase-admin/firestore');
+
+const CRED_REL_PATH = process.env.FIREBASE_ADMIN_CREDENTIALS || path.join('server', 'credentials', 'firebase-admin.json');
+const CREDENTIALS_PATH = path.isAbsolute(CRED_REL_PATH) ? CRED_REL_PATH : path.join(__dirname, '..', '..', CRED_REL_PATH);
+
+let serviceAccount = null;
+
+try {
+  if (fs.existsSync(CREDENTIALS_PATH)) {
+    serviceAccount = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
+  }
+} catch (err) {
+  console.warn('[FIREBASE ADMIN] Could not load service account JSON file:', err.message);
+}
+
+if (!getApps().length) {
+  if (serviceAccount) {
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+    console.log(`✓ Firebase Admin initialized for project: ${serviceAccount.project_id || 'arcio-srm'} using service account.`);
+  } else {
+    initializeApp({
+      projectId: process.env.FIREBASE_PROJECT_ID || 'arcio-srm',
+    });
+    console.log(`✓ Firebase Admin initialized for project: ${process.env.FIREBASE_PROJECT_ID || 'arcio-srm'}`);
+  }
+}
+
+const auth = getAuth();
+const db = getFirestore();
+
+/**
+ * Express middleware to verify Firebase ID token in Authorization header.
+ * Header format: Authorization: Bearer <ID_TOKEN>
+ */
+async function verifyFirebaseToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 401, error: 'Unauthorized: Missing or invalid token format.' });
+  }
+
+  const idToken = authHeader.split('Bearer ')[1].trim();
+
+  try {
+    const decodedToken = await auth.verifyIdToken(idToken);
+    
+    // Diagnostic logging (safe, no tokens/secrets exposed)
+    const tokenProjectId = decodedToken.firebase ? decodedToken.firebase.tenant || decodedToken.aud : decodedToken.aud;
+    console.log(`[AUTH DIAGNOSTIC] Token verified — UID: ${decodedToken.uid} | Token Project: ${tokenProjectId} | Admin Project: ${TARGET_PROJECT_ID}`);
+
+    req.user = decodedToken; // decodedToken contains { uid, email, ... }
+    next();
+  } catch (err) {
+    console.error('[AUTH ERROR] Token verification failed:', err.message);
+    return res.status(401).json({ status: 401, error: 'Unauthorized: Invalid or expired token.' });
+  }
+}
+
+/**
+ * Safely resolves a normalized registration number to the user's registered email.
+ */
+async function resolveRegNoToEmail(regNo) {
+  if (!regNo || typeof regNo !== 'string') return null;
+  const normalized = regNo.trim().toUpperCase();
+  const docRef = db.collection('reg_numbers').doc(normalized);
+  const snapshot = await docRef.get();
+  if (!snapshot.exists) {
+    return null;
+  }
+  return snapshot.data().email || null;
+}
+
+/**
+ * Server-side Registration Transaction:
+ * Atomically checks & claims normalized registration number, creates users/{uid} profile document,
+ * and sets reg_numbers/{regNo} mapping using Admin SDK privileges.
+ */
+async function registerStudentAccount({ uid, name, registerNo, email }) {
+  if (!uid || !name || !registerNo || !email) {
+    throw new Error('Missing required registration parameters.');
+  }
+
+  const normReg = registerNo.trim().toUpperCase();
+  const normEmail = email.trim().toLowerCase();
+
+  const regDocRef = db.collection('reg_numbers').doc(normReg);
+  const userDocRef = db.collection('users').doc(uid);
+
+  const userProfile = {
+    uid,
+    name: name.trim(),
+    registerNo: normReg,
+    email: normEmail,
+    role: 'student',
+    createdAt: new Date().toISOString(),
+    certificate: {
+      issued: false
+    }
+  };
+
+  await db.runTransaction(async (transaction) => {
+    const regSnap = await transaction.get(regDocRef);
+    if (regSnap.exists) {
+      throw new Error(`Registration number "${normReg}" is already registered to another account.`);
+    }
+
+    transaction.set(userDocRef, userProfile);
+    transaction.set(regDocRef, {
+      uid,
+      email: normEmail,
+      createdAt: new Date().toISOString()
+    });
+  });
+
+  return userProfile;
+}
+
+module.exports = {
+  auth,
+  db,
+  verifyFirebaseToken,
+  resolveRegNoToEmail,
+  registerStudentAccount,
+};
