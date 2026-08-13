@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Saichu06/Arcio#readme",
   "dependencies": {
+    "@vercel/node": "^5.9.9",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
