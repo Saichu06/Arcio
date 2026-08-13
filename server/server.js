@@ -17,7 +17,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 
-const { verifyFirebaseToken, resolveRegNoToEmail, registerStudentAccount, getUserProfile } = require('./services/firebaseAdminService');
+const firebaseAdminService = require('./services/firebaseAdminService');
 const googleSheetsService = require('./services/googleSheetsService');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -282,7 +282,7 @@ api.post('/auth/resolve-reg', async (req, res) => {
       return res.status(400).json({ status: 400, error: 'Registration number is required.' });
     }
 
-    const email = await resolveRegNoToEmail(regNo);
+    const email = await firebaseAdminService.resolveRegNoToEmail(regNo);
     if (!email) {
       return res.status(404).json({ status: 404, error: 'Registration number not found.' });
     }
@@ -295,7 +295,7 @@ api.post('/auth/resolve-reg', async (req, res) => {
 });
 
 // POST /api/auth/register-profile (Protected with Firebase ID Token Verification)
-api.post('/auth/register-profile', verifyFirebaseToken, async (req, res) => {
+api.post('/auth/register-profile', (req, res, next) => firebaseAdminService.verifyFirebaseToken(req, res, next), async (req, res) => {
   try {
     const { name, registerNo, email } = req.body || {};
     const uid = req.user.uid;
@@ -304,7 +304,7 @@ api.post('/auth/register-profile', verifyFirebaseToken, async (req, res) => {
       return res.status(400).json({ status: 400, error: 'Name and Registration Number are required.' });
     }
 
-    const profile = await registerStudentAccount({
+    const profile = await firebaseAdminService.registerStudentAccount({
       uid,
       name,
       registerNo,
@@ -319,9 +319,9 @@ api.post('/auth/register-profile', verifyFirebaseToken, async (req, res) => {
 });
 
 // GET /api/auth/me (Protected with Firebase ID Token Verification)
-api.get('/auth/me', verifyFirebaseToken, async (req, res) => {
+api.get('/auth/me', (req, res, next) => firebaseAdminService.verifyFirebaseToken(req, res, next), async (req, res) => {
   try {
-    const profile = await getUserProfile(req.user.uid);
+    const profile = await firebaseAdminService.getUserProfile(req.user.uid);
     if (!profile) {
       return res.status(404).json({ status: 404, error: 'User profile not found.' });
     }
@@ -333,7 +333,7 @@ api.get('/auth/me', verifyFirebaseToken, async (req, res) => {
 });
 
 // POST /api/sync-student (Protected with Firebase ID token verification)
-api.post('/sync-student', verifyFirebaseToken, async (req, res) => {
+api.post('/sync-student', (req, res, next) => firebaseAdminService.verifyFirebaseToken(req, res, next), async (req, res) => {
   try {
     const studentData = req.body || {};
     if (!studentData.email && req.user) {
