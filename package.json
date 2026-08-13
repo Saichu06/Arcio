@@ -2,6 +2,7 @@
   "name": "arcio",
   "version": "1.0.0",
   "description": "ARCIO — Advanced Research & Circuit IoT Operations. A browser-based Virtual IoT Laboratory.",
+  "main": "api/index.js",
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js"
