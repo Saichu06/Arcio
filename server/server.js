@@ -542,32 +542,17 @@ app.use((err, req, res, _next) => {
 // START SERVER
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log('');
-
-  console.log('  ⚡  ARCIO Backend');
-
-  console.log(
-    `  ├── Environment : ${NODE_ENV}`
-  );
-
-  console.log(
-    `  ├── Listening   : http://localhost:${PORT}`
-  );
-
-  console.log(
-    `  ├── Static root : ${STATIC_ROOT}`
-  );
-
-  console.log(
-    `  ├── API base    : http://localhost:${PORT}/api`
-  );
-
-  console.log(
-    `  └── CORS allow  : ${ALLOWED_ORIGINS.join(', ')}`
-  );
-
-  console.log('');
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('');
+    console.log('  ⚡  ARCIO Backend');
+    console.log(`  ├── Environment : ${NODE_ENV}`);
+    console.log(`  ├── Listening   : http://localhost:${PORT}`);
+    console.log(`  ├── Static root : ${STATIC_ROOT}`);
+    console.log(`  ├── API base    : http://localhost:${PORT}/api`);
+    console.log(`  └── CORS allow  : ${ALLOWED_ORIGINS.join(', ')}`);
+    console.log('');
+  });
+}
 
 module.exports = app;
