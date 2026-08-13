@@ -20,6 +20,19 @@ import {
 } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
 
 import { auth, db, googleProvider, firebaseConfig } from './firebase-config.js';
+import {
+  getExperimentStorageKey,
+  getDefaultExperimentState,
+  loadUserExperimentState,
+  saveUserExperimentState
+} from './storage.js';
+
+export {
+  getExperimentStorageKey,
+  getDefaultExperimentState,
+  loadUserExperimentState,
+  saveUserExperimentState
+};
 
 // Global state
 window.ARCIO_USER = null;
@@ -222,6 +235,13 @@ export async function loginWithGoogle() {
     window.ARCIO_PROFILE = profile;
     return { user, profile, isNewUser: false };
   } catch (err) {
+    console.error('[GOOGLE AUTH]', {
+      code: err?.code,
+      message: err?.message,
+      projectId: firebaseConfig?.projectId,
+      authDomain: firebaseConfig?.authDomain
+    });
+
     if (err.code === 'auth/popup-closed-by-user') {
       throw new Error('Sign-In cancelled: Popup was closed before completing.');
     } else if (err.code === 'auth/popup-blocked') {
@@ -232,6 +252,8 @@ export async function loginWithGoogle() {
       throw new Error('Network error: Unable to connect to authentication server. Please check your internet connection.');
     } else if (err.code === 'auth/unauthorized-domain') {
       throw new Error('Domain unauthorized: This domain is not authorized in Firebase Console for OAuth redirect.');
+    } else if (err.code === 'auth/operation-not-allowed') {
+      throw new Error('Google Sign-In is not enabled in Firebase Console. Please enable Google under Authentication > Sign-in method.');
     } else if (err.code === 'auth/api-key-not-valid' || err.code === 'auth/invalid-api-key') {
       throw new Error('Firebase configuration error: Invalid API key. Please check server environment configuration.');
     }

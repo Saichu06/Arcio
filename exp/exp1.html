@@ -3943,23 +3943,50 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         // ═══════════════════════════
-        // STATUS, TIME TRACKING & COMPLETION LOGIC
+        // STATUS, TIME TRACKING & COMPLETION LOGIC (UID Scoped)
         // ═══════════════════════════
         const EXP_ID = 'exp1';
-        let userState = JSON.parse(localStorage.getItem('ARCIO_USER_STATE')) || {
-            xp: 0,
-            completedExps: [],
-            inProgressExps: [],
-            favorites: [],
-            notes: {},
-            expTimes: {},
-            expAttempts: {},
-            completionDates: {},
-            activities: []
-        };
+        function getActiveUid() {
+            return window.ARCIO_USER?.uid || null;
+        }
+        function loadExpUserState() {
+            const uid = getActiveUid();
+            if (uid && window.ARCIO_STORAGE) {
+                const s = window.ARCIO_STORAGE.loadUserExperimentState(uid);
+                if (!s.completedExps) s.completedExps = Object.keys(s.labs || {}).filter(k => s.labs[k] === 'done').map(num => 'exp' + parseInt(num));
+                if (!s.inProgressExps) s.inProgressExps = [];
+                return s;
+            }
+            return {
+                labs: {},
+                playground: {},
+                inProgress: {},
+                xp: 0,
+                completedExps: [],
+                inProgressExps: [],
+                favorites: [],
+                notes: {},
+                expTimes: {},
+                expAttempts: {},
+                completionDates: {},
+                activities: []
+            };
+        }
+
+        let userState = loadExpUserState();
 
         function saveState() {
-            localStorage.setItem('ARCIO_USER_STATE', JSON.stringify(userState));
+            const uid = getActiveUid();
+            if (!uid) return;
+            if (!userState.labs) userState.labs = {};
+            if (userState.completedExps.includes(EXP_ID)) {
+                userState.labs['01'] = 'done';
+            }
+            if (window.ARCIO_STORAGE) {
+                window.ARCIO_STORAGE.saveUserExperimentState(uid, userState);
+            } else {
+                localStorage.setItem(`arcio_user_${uid}_experiments`, JSON.stringify(userState));
+            }
         }
 
         // Mark in progress when opened
@@ -4042,6 +4069,18 @@
                 }
             });
         }
+    </script>
+    <script type="module">
+        import { initAuthObserver } from '/assets/js/auth.js';
+        initAuthObserver((user) => {
+            if (user && typeof loadExpUserState === 'function') {
+                userState = loadExpUserState();
+                const btnComp = document.getElementById('btnMarkCompleted');
+                if (btnComp && userState.completedExps && userState.completedExps.includes('exp1')) {
+                    if (typeof setButtonCompleted === 'function') setButtonCompleted(btnComp);
+                }
+            }
+        });
     </script>
 </body>
 

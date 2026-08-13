@@ -8,7 +8,7 @@ import { getAuth, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
 
 // Firebase project configuration (using project arcio-srm)
-const firebaseConfig = {
+let firebaseConfig = {
   apiKey: "AIzaSyAERBBfEHv_cgf5D9mFYqHmu_e8uB6rExE",
   authDomain: "arcio-srm.firebaseapp.com",
   projectId: "arcio-srm",

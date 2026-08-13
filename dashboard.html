@@ -5483,35 +5483,44 @@
     };
 
     // ═══════════════════════════════════════════════════════════
-    // LOCAL STORAGE
+    // LOCAL STORAGE (Scoped by Firebase UID)
     // ═══════════════════════════════════════════════════════════
-    const STORAGE_KEY = 'arcio_v2';
+    function getActiveUid() {
+      return window.ARCIO_USER?.uid || null;
+    }
     function getState() {
+      const uid = getActiveUid();
+      if (!uid) {
+        return window.ARCIO_STORAGE ? window.ARCIO_STORAGE.getDefaultExperimentState() : { labs: {}, playground: {}, inProgress: {}, xp: 0, recent: [], favs: [], theme: 'light', notes: {}, expTimes: {}, expAttempts: {}, completionDates: {}, activities: [], username: 'Engineering Student', certStudentName: '', certDate: '' };
+      }
+      if (window.ARCIO_STORAGE) {
+        return window.ARCIO_STORAGE.loadUserExperimentState(uid);
+      }
       try {
-        const s = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        return {
-          labs: s.labs || {},
-          playground: s.playground || {},
-          inProgress: s.inProgress || {},
-          xp: s.xp || 0,
-          recent: s.recent || [],
-          favs: s.favs || [],
-          theme: s.theme || 'light',
-          notes: s.notes || {},
-          expTimes: s.expTimes || {},
-          expAttempts: s.expAttempts || {},
-          completionDates: s.completionDates || {},
-          activities: s.activities || [],
-          username: s.username || 'Engineering Student',
-          certStudentName: s.certStudentName || '',
-          certDate: s.certDate || ''
-        };
+        const raw = localStorage.getItem(`arcio_user_${uid}_experiments`);
+        return raw ? JSON.parse(raw) : { labs: {}, playground: {}, inProgress: {}, xp: 0, recent: [], favs: [], theme: 'light', notes: {}, expTimes: {}, expAttempts: {}, completionDates: {}, activities: [], username: 'Engineering Student', certStudentName: '', certDate: '' };
       } catch {
-        return { labs: {}, playground: {}, inProgress: {}, xp: 0, recent: [], favs: [], theme: 'dark', notes: {}, expTimes: {}, expAttempts: {}, completionDates: {}, activities: [], username: 'Engineering Student', certStudentName: '', certDate: '' };
+        return { labs: {}, playground: {}, inProgress: {}, xp: 0, recent: [], favs: [], theme: 'light', notes: {}, expTimes: {}, expAttempts: {}, completionDates: {}, activities: [], username: 'Engineering Student', certStudentName: '', certDate: '' };
       }
     }
-    function setState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+    function setState(s) {
+      const uid = getActiveUid();
+      if (!uid) return;
+      if (window.ARCIO_STORAGE) {
+        window.ARCIO_STORAGE.saveUserExperimentState(uid, s);
+      } else {
+        localStorage.setItem(`arcio_user_${uid}_experiments`, JSON.stringify(s));
+      }
+    }
     let S = getState();
+    window.refreshDashboardState = function() {
+      S = getState();
+      if (typeof updateProgressUI === 'function') updateProgressUI();
+    };
+    window.resetDashboardStateUI = function() {
+      S = window.ARCIO_STORAGE ? window.ARCIO_STORAGE.getDefaultExperimentState() : { labs: {}, playground: {}, inProgress: {}, xp: 0, recent: [], favs: [], theme: 'light', notes: {}, expTimes: {}, expAttempts: {}, completionDates: {}, activities: [], username: 'Engineering Student', certStudentName: '', certDate: '' };
+      if (typeof updateProgressUI === 'function') updateProgressUI();
+    };
 
     // ═══════════════════════════════════════════════════════════
     // SOUND EFFECTS
@@ -6439,7 +6448,14 @@
 
     // ── Enforce Authentication & Populate Dashboard Profile UI
     initAuthObserver((user, profile) => {
-      if (!user) return; // initAuthObserver handles redirect to home page
+      if (!user) {
+        if (typeof window.resetDashboardStateUI === 'function') window.resetDashboardStateUI();
+        return; // initAuthObserver handles redirect to home page
+      }
+
+      if (typeof window.refreshDashboardState === 'function') {
+        window.refreshDashboardState();
+      }
 
       if (profile) {
         document.getElementById('navUserName').textContent = profile.name ? profile.name.split(' ')[0] : 'Student';
