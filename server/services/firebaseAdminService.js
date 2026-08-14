@@ -28,6 +28,11 @@ function initAdmin() {
 
   const credentialsJson = process.env.FIREBASE_ADMIN_CREDENTIALS_JSON;
 
+  console.log('[FIREBASE ADMIN ENV CHECK]', {
+    exists: Boolean(credentialsJson),
+    length: credentialsJson?.length || 0,
+  });
+
   let serviceAccount = null;
 
   // Production / Vercel: credentials from environment variable
