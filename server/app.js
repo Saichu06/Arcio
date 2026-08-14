@@ -83,6 +83,9 @@ loadExperiments();
 
 const app = express();
 
+// Trust Vercel / reverse proxy headers for rate limiting
+app.set('trust proxy', 1);
+
 // ── Security: Helmet ──────────────────────────────────────────────────────────
 
 app.use(
