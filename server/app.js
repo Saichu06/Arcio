@@ -470,7 +470,13 @@ app.get('/advance/:module', (req, res) => {
 // STATIC FILES
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.use('/assets', express.static(path.join(STATIC_ROOT, 'assets')));
+app.use('/assets', express.static(path.join(STATIC_ROOT, 'assets'), {
+  setHeaders: (res, filepath) => {
+    if (filepath.endsWith('.js')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 app.use('/playground/assets', express.static(path.join(STATIC_ROOT, 'playground', 'assets')));
 
 app.use(
@@ -478,6 +484,11 @@ app.use(
     dotfiles: 'deny',
     maxAge: IS_PROD ? '1h' : 0,
     index: 'index.html',
+    setHeaders: (res, filepath) => {
+      if (filepath.endsWith('.js')) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      }
+    }
   })
 );
 
