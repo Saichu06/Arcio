@@ -126,6 +126,7 @@ app.use(
           'https://*.googleapis.com',
           'https://identitytoolkit.googleapis.com',
           'https://securetoken.googleapis.com',
+          'https://www.gstatic.com',
         ],
 
         frameSrc: [
