@@ -22,6 +22,12 @@ function getSheetsClient() {
 
   const credentialsJson = process.env.GOOGLE_SHEETS_CREDENTIALS_JSON;
 
+  console.log('[GOOGLE SHEETS ENV]', {
+    exists: Boolean(credentialsJson),
+    length: credentialsJson?.length || 0,
+    startsWithJson: credentialsJson?.trim().startsWith('{') || false,
+  });
+
   let authOptions;
 
   if (credentialsJson) {
