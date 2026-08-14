@@ -41,8 +41,11 @@ const googleSheetsService = require('./services/googleSheetsService');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PROD = NODE_ENV === 'production';
 
-const STATIC_ROOT = path.join(__dirname, '..');
-const DATA_FILE = path.join(STATIC_ROOT, 'experiments.json');
+const PROJECT_ROOT = path.join(__dirname, '..');
+const STATIC_ROOT = fs.existsSync(path.join(PROJECT_ROOT, 'public'))
+  ? path.join(PROJECT_ROOT, 'public')
+  : PROJECT_ROOT;
+const DATA_FILE = path.join(PROJECT_ROOT, 'experiments.json');
 
 // Allowed CORS origins (comma-separated in .env)
 const ALLOWED_ORIGINS = (

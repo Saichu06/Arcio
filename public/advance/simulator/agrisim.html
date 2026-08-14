@@ -1,0 +1,2045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ARCIO Agri — Smart Farm Mission Simulator</title>
+<link rel="icon" type="image/png" href="../../assets/logo.png">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+        --bg: #060A13;
+        --bg2: #0A1120;
+        --bg3: #0D1526;
+        --bg4: #08101E;
+        --blue: #3B82F6;
+        --blue-deep: #1D4ED8;
+        --cyan: #5EEAD4;
+        --cyan2: #38BDF8;
+        --ink: #EAF1FF;
+        --muted: #6B7DA0;
+        --muted2: #4A5A7A;
+        --border: rgba(94, 234, 212, 0.10);
+        --border-blue: rgba(59, 130, 246, 0.18);
+        --green: #34D399;
+        --green2: #10B981;
+        --amber: #F59E0B;
+        --red: #F87171;
+        --panel-bg: rgba(10, 17, 32, 0.92);
+        --panel-border: rgba(94, 234, 212, 0.10);
+        --radius: 12px;
+        --radius-sm: 8px;
+        --bg-grid-color: rgba(94, 234, 212, .05);
+    }
+
+    [data-theme="light"] {
+        --bg: #F0F4FF;
+        --bg2: #E8EDF8;
+        --bg3: #DDE3F0;
+        --bg4: #EDF1FA;
+        --ink: #0A1020;
+        --muted: #4A5A7A;
+        --muted2: #7A8AAA;
+        --border: rgba(59, 130, 246, 0.15);
+        --panel-bg: rgba(255, 255, 255, 0.92);
+        --panel-border: rgba(59, 130, 246, 0.14);
+        --bg-grid-color: rgba(59, 130, 246, 0.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: 'Inter', sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        min-height: 100vh;
+        transition: background .35s ease, color .35s ease;
+        overflow-x: hidden;
+    }
+    ::selection { background: rgba(94,234,212,.25); color: var(--ink); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(94,234,212,.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(94,234,212,.28); }
+
+    .bg-grid {
+        position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .5;
+        background-image: linear-gradient(var(--bg-grid-color) 1px, transparent 1px),
+                           linear-gradient(90deg, var(--bg-grid-color) 1px, transparent 1px);
+        background-size: 42px 42px;
+    }
+    .bg-atmos {
+        position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(52,211,153,.08) 0%, transparent 65%);
+    }
+
+    a { color: inherit; }
+
+    /* ════════════ TOPBAR ════════════ */
+    .topbar {
+        position: sticky; top: 0; z-index: 60;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 14px; min-height: 56px; padding: 10px 22px;
+        background: rgba(6,10,19,.86); backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--border);
+    }
+    [data-theme="light"] .topbar { background: rgba(240,244,255,.86); }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand-mark {
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 16px;
+        background: linear-gradient(135deg, var(--green), var(--cyan2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+        flex-shrink: 0; overflow: visible;
+    }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; display: block; background: none; }
+    .brand-txt { display: flex; flex-direction: column; line-height: 1.15; }
+    .brand-txt b { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: -.01em; }
+    .brand-txt span { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .deploy-badge {
+        display: none; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace;
+        font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+        color: var(--green); background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.3);
+        padding: 5px 10px; border-radius: 999px;
+    }
+    .deploy-badge.show { display: inline-flex; }
+    .deploy-badge i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulseDot 1.4s ease-in-out infinite; }
+    @keyframes pulseDot { 0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(52,211,153,.5);} 50%{ opacity:.55; box-shadow:0 0 0 5px rgba(52,211,153,0);} }
+
+    .btn {
+        display: inline-flex; align-items: center; gap: 7px; font-family: 'Inter', sans-serif;
+        font-weight: 600; font-size: 12.5px; padding: 8px 14px; border-radius: 8px;
+        border: 1px solid var(--border); cursor: pointer; transition: all .18s ease; white-space: nowrap;
+        background: transparent; color: var(--ink);
+    }
+    .btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+    .btn-ghost:hover { border-color: rgba(94,234,212,.32); color: var(--ink); background: rgba(94,234,212,.05); }
+    .btn-outline { background: transparent; border-color: rgba(52,211,153,.28); color: var(--green); }
+    .btn-outline:hover { background: rgba(52,211,153,.08); border-color: rgba(52,211,153,.45); }
+    .btn-primary { background: linear-gradient(135deg, var(--green), var(--cyan2)); color: #041019; border-color: transparent; box-shadow: 0 6px 18px rgba(52,211,153,.25); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(52,211,153,.35); }
+    .btn-amber { background: transparent; border-color: rgba(245,158,11,.35); color: var(--amber); }
+    .btn-amber:hover { background: rgba(245,158,11,.08); }
+    .btn-blue { background: transparent; border-color: rgba(59,130,246,.35); color: var(--cyan2); }
+    .btn-blue:hover { background: rgba(59,130,246,.08); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn:active:not(:disabled) { transform: scale(.95); }
+    .theme-toggle:active { transform: scale(.9); }
+    .theme-toggle { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .18s ease; }
+    .theme-toggle:hover { color: var(--ink); border-color: rgba(94,234,212,.32); transform: translateY(-1px); }
+
+    /* ════════════ LAYOUT ════════════ */
+    main { position: relative; z-index: 1; max-width: 1640px; margin: 0 auto; padding: 20px 22px 60px; }
+
+    .mission-hero { padding: 4px 2px 20px; }
+    .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: wrap; }
+    .hero-text { flex: 1; min-width: 280px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
+    .eyebrow::before { content: ''; width: 16px; height: 1px; background: var(--green); }
+    .mission-hero h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 27px; letter-spacing: -.02em; }
+    .mission-hero p { font-family: 'Inter'; font-size: 13.5px; color: var(--muted); margin-top: 6px; max-width: 720px; line-height: 1.55; }
+
+    .hero-meta {
+        display: flex; align-items: center; gap: 20px; padding: 13px 20px 13px 16px;
+        background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px;
+        backdrop-filter: blur(12px); box-shadow: 0 18px 40px -20px rgba(0,0,0,.5); flex-shrink: 0;
+    }
+    .hero-gauge { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .hero-gauge svg { display: block; }
+    #heroGaugeRing { transition: stroke-dashoffset .7s cubic-bezier(.2,.8,.3,1); }
+    .hero-gauge-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+    .hero-meta-list { display: flex; flex-direction: column; gap: 8px; }
+    .hmi { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .hmi .k { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .hmi .v { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 11.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+    .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.5s ease-in-out infinite; display: inline-block; flex-shrink: 0; }
+    .dot-live.off { background: var(--red); box-shadow: 0 0 6px 1px rgba(248,113,113,.5); animation: none; }
+    .dot-live.pending { background: var(--amber); box-shadow: 0 0 6px 1px rgba(245,158,11,.5); }
+    @media (max-width: 720px) { .hero-row { flex-direction: column; align-items: flex-start; } .hero-meta { width: 100%; justify-content: space-between; } }
+    .topbar-clock { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: .04em; padding: 0 2px; }
+
+    .sim-grid { display: grid; grid-template-columns: 264px minmax(0,1fr) 304px; gap: 18px; align-items: start; }
+    @media (max-width: 1180px) { .sim-grid { grid-template-columns: 1fr; } }
+
+    .panel {
+        background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius);
+        backdrop-filter: blur(14px); overflow: hidden; position: relative;
+        box-shadow: 0 22px 46px -22px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.02) inset;
+        transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease, border-color .3s ease;
+    }
+    .panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; z-index: 1;
+        background: linear-gradient(90deg, transparent, rgba(94,234,212,.4), transparent);
+        opacity: .7;
+    }
+    .panel:hover { transform: translateY(-2px); box-shadow: 0 28px 56px -20px rgba(0,0,0,.6); border-color: rgba(94,234,212,.22); }
+    .twin-panel:hover { transform: none; }
+    .panel-pad { padding: 16px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+    .panel-head h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .01em; display: flex; align-items: center; gap: 8px; }
+    .panel-head h3 svg { color: var(--green); flex-shrink: 0; }
+    .panel-tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--border); padding: 2px 7px; border-radius: 999px; }
+
+    /* ════════════ LEFT — MISSION CONTROL ════════════ */
+    .mission-badge-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 16px 4px; }
+    .mchip { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: .04em; padding: 5px 9px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all .15s ease; background: transparent; }
+    .mchip:hover { border-color: rgba(52,211,153,.4); color: var(--ink); }
+    .mchip.active { color: #04081a; background: linear-gradient(135deg, var(--green), var(--cyan2)); border-color: transparent; font-weight: 700; }
+    .mission-tags { display: flex; gap: 8px; padding: 2px 16px 4px; flex-wrap: wrap; }
+    .mission-chip { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .06em; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted); }
+    .mission-chip.diff { color: var(--amber); border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.07); }
+    .mission-chip.time { color: var(--cyan2); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.07); }
+    .mission-name { padding: 8px 16px 2px; font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 17px; }
+    .mission-obj { padding: 6px 16px 14px; font-size: 12px; color: var(--muted); line-height: 1.55; border-bottom: 1px solid var(--border); }
+    .mission-obj b { color: var(--ink); }
+
+    .stat-block { padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background .25s ease; }
+    .stat-block:hover { background: rgba(94,234,212,.035); }
+    .stat-block:last-child { border-bottom: none; }
+    .stat-block-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 9px; }
+    .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+    .stat-row .k { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .stat-row .v { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--ink); }
+    .stat-row .v.warn { color: var(--amber); }
+    .stat-row .v.bad { color: var(--red); }
+    .stat-row .v.good { color: var(--green); }
+
+    .meter { height: 6px; border-radius: 4px; background: rgba(120,140,180,.14); overflow: hidden; margin-top: 4px; }
+    .meter-fill { height: 100%; border-radius: 4px; transition: width .6s cubic-bezier(.2,.8,.3,1), background .4s ease; }
+    .meter-fill.health { background: linear-gradient(90deg, var(--green2), var(--green)); }
+    .meter-fill.water { background: linear-gradient(90deg, var(--blue-deep), var(--cyan2)); }
+    .meter-fill.progress { background: linear-gradient(90deg, var(--cyan2), var(--cyan)); }
+    .meter-fill.moisture { background: linear-gradient(90deg, #8a5a2b, var(--cyan2)); }
+
+    /* ════════════ CENTER — DIGITAL TWIN ════════════ */
+    .twin-panel { position: relative; }
+    .farm-scene {
+        position: relative; height: 460px; overflow: hidden;
+        background: linear-gradient(180deg, var(--bg3) 0%, var(--bg3) 55%, #0d2417 100%);
+        transition: background 1.2s ease;
+    }
+    @media (min-width: 1181px) { .farm-scene { height: 540px; } }
+    [data-theme="light"] .farm-scene { background: linear-gradient(180deg, var(--bg3) 0%, var(--bg3) 55%, #d9ecdc 100%); }
+    .farm-scene.cond-sunny { background: linear-gradient(180deg, rgba(245,158,11,.16) 0%, var(--bg3) 55%, #0d2417 100%); }
+    .farm-scene.cond-cloudy { background: linear-gradient(180deg, rgba(107,125,160,.16) 0%, var(--bg3) 55%, #0d2417 100%); }
+    .farm-scene.cond-rain { background: linear-gradient(180deg, rgba(59,130,246,.18) 0%, var(--bg3) 55%, #0d2417 100%); }
+    .farm-scene.cond-night { background: linear-gradient(180deg, #050814 0%, var(--bg4) 55%, #061a10 100%); }
+
+    .farm-orb { position: absolute; top: 26px; right: 46px; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle, #FDE68A 0%, var(--amber) 70%); box-shadow: 0 0 46px 10px rgba(245,158,11,.4); transition: all 1s ease; }
+    .cond-night .farm-orb { background: radial-gradient(circle, #E9EEFC 0%, #A9B8DE 75%); box-shadow: 0 0 30px 6px rgba(160,180,230,.28); top: 20px; right: 60px; width: 30px; height: 30px; }
+    .cond-cloudy .farm-orb, .cond-rain .farm-orb { opacity: .32; filter: blur(1px); }
+
+    .cloud { position: absolute; opacity: 0; transition: opacity .8s ease; }
+    .cloud svg ellipse { fill: var(--muted); }
+    .cond-cloudy .cloud, .cond-rain .cloud { opacity: .92; }
+    .cond-sunny .cloud.c1 { opacity: .28; }
+    .cloud.c1 { top: 18px; left: 8%; width: 100px; animation: driftSlow 32s linear infinite; }
+    .cloud.c2 { top: 40px; left: 38%; width: 84px; animation: driftSlow 24s linear infinite reverse; }
+    .cloud.c3 { top: 12px; left: 64%; width: 118px; animation: driftSlow 38s linear infinite; }
+    @keyframes driftSlow { from { transform: translateX(0); } to { transform: translateX(60px); } }
+
+    .rain-layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s ease; overflow: hidden; }
+    .cond-rain .rain-layer { opacity: 1; }
+    .drop { position: absolute; top: -20px; width: 1.5px; height: 16px; background: linear-gradient(var(--cyan2), transparent); animation: fall linear infinite; }
+    @keyframes fall { to { transform: translateY(500px); } }
+
+    .wind-layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
+    .wind-layer.show { opacity: .7; }
+    .wind-line { position: absolute; height: 1.5px; background: linear-gradient(90deg, transparent, var(--muted), transparent); animation: windBlow linear infinite; }
+    @keyframes windBlow { from { transform: translateX(-40px); opacity:0; } 15% { opacity:.6; } to { transform: translateX(420px); opacity:0; } }
+
+    .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 44%; background: linear-gradient(180deg, transparent, rgba(52,211,153,.06)); }
+
+    .farmhouse { position: absolute; left: 18px; bottom: 14%; width: 74px; }
+    .greenhouse { position: absolute; left: 108px; bottom: 13%; width: 96px; opacity: .92; }
+    .solar-panel { position: absolute; left: 216px; bottom: 15%; width: 52px; }
+    .solar-panel .glint { animation: glint 3.4s ease-in-out infinite; }
+    .cond-sunny .solar-panel .glint { opacity: 1; }
+    @keyframes glint { 0%,100%{ opacity:.15; } 50%{ opacity:.7; } }
+
+    .weather-station { position: absolute; right: 30px; bottom: 15%; width: 30px; }
+    .ws-cups { transform-origin: 15px 8px; animation: spinCups linear infinite; }
+    @keyframes spinCups { to { transform: rotate(360deg); } }
+
+    .tree { position: absolute; bottom: 12%; width: 30px; animation: sway 4.5s ease-in-out infinite; transform-origin: bottom center; }
+    .tree.t1 { left: 262px; animation-duration: 4.2s; }
+    .tree.t2 { left: 292px; width: 24px; animation-duration: 5.1s; }
+    @keyframes sway { 0%,100% { transform: rotate(-2.5deg);} 50% { transform: rotate(2.5deg);} }
+
+    .tank-wrap { position: absolute; right: 78px; bottom: 13%; width: 46px; }
+    .tank-fill { transition: y 1s cubic-bezier(.2,.8,.3,1), height 1s cubic-bezier(.2,.8,.3,1); }
+    .pipe { stroke: var(--muted2); stroke-width: 3; fill: none; }
+    .pipe-flow { stroke-dasharray: 5 7; animation: pipeFlow .9s linear infinite paused; }
+    .pipe-flow.on { animation-play-state: running; stroke: var(--cyan2); }
+    @keyframes pipeFlow { to { stroke-dashoffset: -24; } }
+
+    .crop-row { position: absolute; left: 340px; right: 16px; bottom: 8%; display: flex; justify-content: space-between; align-items: flex-end; height: 70px; }
+    .crop-plant { width: 16px; transition: transform .7s ease, filter .7s ease; transform-origin: bottom center; }
+    .crop-plant svg path, .crop-plant svg ellipse { transition: fill .7s ease; }
+
+    .sensor-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--bg3); border: 2px solid var(--cyan2); box-shadow: 0 0 0 0 rgba(56,189,248,.5); cursor: help; }
+    .sensor-dot.pulsing { animation: sensorPulse 1.8s ease-out infinite; }
+    @keyframes sensorPulse { 0%{ box-shadow: 0 0 0 0 rgba(56,189,248,.5);} 100%{ box-shadow: 0 0 0 10px rgba(56,189,248,0);} }
+    .sensor-dot.fault { border-color: var(--red); }
+
+    .signal-particle { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px 1px var(--cyan); pointer-events: none; z-index: 5; }
+    .signal-particle.blue { background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); }
+    .signal-particle.green { background: var(--green); box-shadow: 0 0 6px 1px var(--green); }
+    .signal-particle.orange { background: var(--amber); box-shadow: 0 0 6px 1px var(--amber); }
+    .signal-particle.red { background: var(--red); box-shadow: 0 0 6px 1px var(--red); }
+
+    .mountain-layer { position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .4; transition: opacity 1s ease; }
+    .cond-night .mountain-layer { opacity: .22; }
+
+    .farm-readout {
+        position: absolute; left: 12px; bottom: 12px; display: flex; gap: 12px; padding: 7px 12px;
+        background: rgba(6,10,19,.72); border: 1px solid var(--border); border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted); backdrop-filter: blur(6px);
+    }
+    .farm-readout b { color: var(--ink); }
+    .farm-cond-label { position: absolute; right: 12px; bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan2); background: rgba(6,10,19,.72); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; backdrop-filter: blur(6px); }
+
+    .health-flag { position: absolute; top: 12px; left: 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 10px; border-radius: 8px; background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); color: var(--green); backdrop-filter: blur(6px); transition: all .4s ease; }
+    .health-flag.warn { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.35); color: var(--amber); }
+    .health-flag.bad { background: rgba(248,113,113,.14); border-color: rgba(248,113,113,.4); color: var(--red); }
+
+    .event-toast { position: absolute; top: 12px; right: 12px; max-width: 220px; padding: 8px 12px; border-radius: 8px; background: rgba(6,10,19,.85); border: 1px solid var(--amber); color: var(--amber); font-size: 11px; font-weight: 600; backdrop-filter: blur(6px); opacity: 0; transform: translateY(-8px); transition: all .35s ease; pointer-events: none; }
+    .event-toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ════════════ RIGHT — WORKBENCH ════════════ */
+    .board-mini { padding: 14px 16px 4px; }
+    .board-mini svg { width: 100%; height: auto; display: block; }
+    .board-power { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--green); padding: 8px 16px 12px; }
+    .board-power i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.6s ease-in-out infinite; }
+
+    .comp-list { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 8px; }
+    .comp-card { border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px; display: flex; align-items: center; gap: 9px; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+    .comp-card:hover { transform: translateX(2px); border-color: rgba(94,234,212,.24); }
+    .comp-card.wired { border-color: rgba(52,211,153,.35); background: rgba(52,211,153,.05); }
+    .comp-card.locked { opacity: .85; }
+    .comp-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--bg3); color: var(--muted); flex-shrink: 0; }
+    .comp-card.wired .comp-icon { color: var(--green); }
+    .comp-info { flex: 1; min-width: 0; }
+    .comp-info .name { font-size: 11.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .comp-info .req { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; padding: 1px 6px; border-radius: 999px; letter-spacing: .05em; text-transform: uppercase; }
+    .req.required { color: var(--amber); border: 1px solid rgba(245,158,11,.35); }
+    .req.optional { color: var(--muted); border: 1px solid var(--border); }
+    .comp-info .sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    .switch { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider { position: absolute; inset: 0; background: rgba(120,140,180,.22); border-radius: 999px; cursor: pointer; transition: background .2s ease; }
+    .switch .slider::before { content:''; position: absolute; width: 15px; height: 15px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: transform .2s ease; }
+    .switch input:checked + .slider { background: var(--green); }
+    .switch input:checked + .slider::before { transform: translateX(15px); }
+    .switch input:disabled + .slider { cursor: not-allowed; opacity: .7; }
+
+    .rule-block { padding: 10px 16px 6px; border-top: 1px solid var(--border); }
+    .rule-block-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 10px; }
+    .rule-row { margin-bottom: 12px; }
+    .rule-label { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 6px; color: var(--muted); }
+    .rule-label b { color: var(--cyan2); font-family: 'JetBrains Mono', monospace; }
+    input[type="range"] { width: 100%; accent-color: var(--cyan2); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--muted); padding: 6px 0; }
+
+    .circuit-diagram { padding: 10px 16px 16px; }
+    .circuit-diagram svg { width: 100%; height: auto; display: block; }
+
+    /* ════════════ BOTTOM CONSOLE ════════════ */
+    .console-panel { margin-top: 16px; }
+    .console-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .console-controls .left-grp, .console-controls .right-grp { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mission-progress-mini { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+    .mission-progress-mini .bar { width: 100px; }
+
+    .event-strip { display: flex; gap: 7px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    .ev-btn { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .03em; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all .18s ease; }
+    .ev-btn:hover { border-color: rgba(245,158,11,.4); color: var(--amber); background: rgba(245,158,11,.06); }
+
+    .ai-callout { display: none; margin: 12px 16px 0; padding: 12px 14px; border-radius: 9px; background: rgba(56,189,248,.06); border: 1px solid rgba(56,189,248,.25); }
+    .ai-callout.show { display: block; }
+    .ai-callout .t { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan2); margin-bottom: 7px; }
+    .ai-callout ul { padding-left: 18px; }
+    .ai-callout li { font-size: 12px; color: var(--ink); line-height: 1.6; margin-bottom: 3px; }
+
+    .console-log { height: 190px; overflow-y: auto; padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.85; }
+    .log-line { display: flex; gap: 8px; }
+    .log-time { color: var(--muted2); flex-shrink: 0; }
+    .log-tag { flex-shrink: 0; font-weight: 700; }
+    .log-tag.sensor { color: var(--cyan2); }
+    .log-tag.arduino { color: var(--green); }
+    .log-tag.ai { color: #C084FC; }
+    .log-tag.alert { color: var(--red); }
+    .log-tag.system { color: var(--muted); }
+    .log-msg { color: var(--ink); opacity: .92; }
+
+    /* ════════════ MODAL ════════════ */
+    .modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(4,7,13,.72); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.show { display: flex; }
+    .modal-card { width: 100%; max-width: 520px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 16px; padding: 26px; text-align: center; animation: modalIn .4s cubic-bezier(.2,.8,.3,1); }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.97);} to { opacity:1; transform: translateY(0) scale(1);} }
+    .modal-card.fail { border-color: rgba(248,113,113,.4); }
+    .modal-icon { width: 58px; height: 58px; border-radius: 50%; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.35); color: var(--green); }
+    .modal-card.fail .modal-icon { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.35); color: var(--red); }
+    .modal-card h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 21px; margin-bottom: 6px; }
+    .modal-card p.sub { font-size: 12.5px; color: var(--muted); margin-bottom: 20px; }
+    .modal-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .modal-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: left; }
+    .modal-stat .l { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+    .modal-stat .v { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 18px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    .footer { text-align: center; padding: 26px 16px 6px; font-size: 11px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; }
+    .footer a { color: var(--cyan2); text-decoration: none; }
+
+    /* ════════════ SENSOR INSPECTOR POPUP ════════════ */
+    .sensor-dot { z-index: 6; }
+    .inspect-hoverable { cursor: pointer; transition: filter .2s ease; }
+    .inspect-hoverable:hover { filter: brightness(1.25); }
+
+    .inspector-overlay { position: fixed; inset: 0; z-index: 140; background: rgba(4,7,13,.55); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; padding: 18px; }
+    .inspector-overlay.show { display: flex; }
+    .inspector-card { width: 100%; max-width: 340px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px; overflow: hidden; animation: modalIn .3s cubic-bezier(.2,.8,.3,1); box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+    .insp-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); background: rgba(56,189,248,.06); }
+    .insp-head .t { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan2); }
+    .insp-head .t i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.4s ease-in-out infinite; }
+    .insp-close { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; }
+    .insp-close:hover { color: var(--ink); border-color: rgba(94,234,212,.32); }
+    .insp-body { padding: 14px; }
+    .insp-name { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 15px; margin-bottom: 10px; }
+    .insp-value { display: flex; align-items: baseline; gap: 6px; margin-bottom: 12px; }
+    .insp-value .n { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 26px; color: var(--cyan2); }
+    .insp-value .u { font-size: 11px; color: var(--muted); }
+    .insp-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 11.5px; }
+    .insp-row .k { color: var(--muted); flex-shrink: 0; }
+    .insp-row .v { color: var(--ink); font-family: 'JetBrains Mono', monospace; text-align: right; }
+    .insp-note { margin-top: 10px; padding: 9px 10px; border-radius: 8px; background: rgba(52,211,153,.06); border: 1px solid rgba(52,211,153,.18); font-size: 11px; color: var(--muted); line-height: 1.55; }
+    .insp-note b { color: var(--ink); }
+
+    /* ════════════ HOVER INSPECT TOOLTIP ════════════ */
+    .hover-tip { position: fixed; z-index: 130; pointer-events: none; max-width: 210px; padding: 9px 11px; border-radius: 9px; background: rgba(6,10,19,.92); border: 1px solid var(--border-blue); backdrop-filter: blur(8px); opacity: 0; transform: translateY(4px); transition: opacity .15s ease, transform .15s ease; box-shadow: 0 10px 26px rgba(0,0,0,.35); }
+    .hover-tip.show { opacity: 1; transform: translateY(0); }
+    .hover-tip .ht-t { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--cyan2); margin-bottom: 6px; }
+    .hover-tip .ht-row { display: flex; justify-content: space-between; gap: 10px; font-size: 10.5px; color: var(--muted); padding: 1.5px 0; }
+    .hover-tip .ht-row b { color: var(--ink); font-family: 'JetBrains Mono', monospace; }
+
+    .pump-icon { position: absolute; cursor: pointer; }
+    .pump-icon circle.body { fill: var(--bg4); stroke: var(--muted2); stroke-width: 1.5; }
+    .pump-icon.active circle.body { stroke: var(--cyan2); }
+    .pump-icon .blade { transform-origin: center; animation: spinCups 1s linear infinite paused; }
+    .pump-icon.active .blade { animation-play-state: running; }
+
+    /* ════════════ MANUAL / HOW-TO GUIDE ════════════ */
+    .manual-panel { margin-top: 16px; }
+    .manual-panel .panel-head { cursor: pointer; user-select: none; }
+    .manual-panel .panel-head:hover { background: rgba(94,234,212,.03); }
+    .manual-toggle-btn {
+        width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: transparent;
+        color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer;
+        transition: transform .3s cubic-bezier(.2,.8,.3,1), color .2s ease, border-color .2s ease; flex-shrink: 0;
+    }
+    .manual-toggle-btn:hover { color: var(--ink); border-color: rgba(94,234,212,.32); }
+    .manual-panel.collapsed .manual-toggle-btn { transform: rotate(-90deg); }
+    .manual-head-right { display: flex; align-items: center; gap: 10px; }
+    .manual-body {
+        display: grid; grid-template-rows: 1fr; opacity: 1;
+        transition: grid-template-rows .35s cubic-bezier(.2,.8,.3,1), opacity .3s ease;
+    }
+    .manual-body > .manual-body-inner { overflow: hidden; min-height: 0; }
+    .manual-panel.collapsed .manual-body { grid-template-rows: 0fr; opacity: 0; }
+    .manual-intro { padding: 14px 18px 4px; font-size: 12.5px; color: var(--muted); line-height: 1.6; max-width: 820px; }
+    .manual-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--border); margin-top: 10px; }
+    .manual-step { background: var(--panel-bg); padding: 16px 16px 18px; position: relative; transition: background .25s ease; }
+    .manual-step:hover { background: rgba(94,234,212,.035); }
+    .manual-step-num {
+        width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; margin-bottom: 10px;
+        background: linear-gradient(135deg, rgba(52,211,153,.16), rgba(56,189,248,.16)); color: var(--cyan2); border: 1px solid var(--border);
+    }
+    .manual-step h4 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+    .manual-step p { font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+    .manual-step p b { color: var(--ink); }
+    .manual-step kbd { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--cyan2); }
+
+    .manual-tips { padding: 16px 18px 18px; border-top: 1px solid var(--border); }
+    .manual-tips-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 10px; }
+    .manual-tip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .manual-tip { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; }
+    .manual-tip .ic { width: 26px; height: 26px; border-radius: 7px; background: var(--bg3); color: var(--green); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .manual-tip .tx { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+    .manual-tip .tx b { color: var(--ink); display: block; margin-bottom: 2px; font-size: 12px; }
+
+    .telemetry-panel { margin-top: 16px; }
+    .telemetry-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); }
+    .telemetry-cell { background: var(--panel-bg); padding: 10px 12px 12px; min-width: 0; transition: background .25s ease; }
+    .telemetry-cell:hover { background: rgba(94,234,212,.04); }
+    .telemetry-cell .tc-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .telemetry-cell .tc-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .telemetry-cell .tc-val { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 13px; }
+    .telemetry-cell svg { width: 100%; height: 36px; display: block; overflow: visible; }
+    .telemetry-cell path.spark-line { fill: none; stroke-width: 1.6; }
+    .telemetry-cell path.spark-fill { stroke: none; opacity: .14; }
+    @media (max-width: 900px) { .telemetry-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ════════════ IOT CLOUD STATUS WIDGET ════════════ */
+    .iot-widget { position: fixed; right: 18px; bottom: 18px; z-index: 55; width: 208px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 12px; backdrop-filter: blur(10px); box-shadow: 0 14px 34px rgba(0,0,0,.3); font-family: 'JetBrains Mono', monospace; transition: transform .25s ease, opacity .25s ease; }
+    .iot-widget.collapsed .iot-body { display: none; }
+    .iot-widget.collapsed { width: auto; }
+    .iot-head { display: flex; align-items: center; gap: 7px; padding: 9px 11px; cursor: pointer; user-select: none; }
+    .iot-head .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.5s ease-in-out infinite; flex-shrink: 0; }
+    .iot-head .dot.off { background: var(--muted2); box-shadow: none; animation: none; }
+    .iot-head .ttl { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); font-weight: 600; flex: 1; }
+    .iot-head .car { color: var(--muted); font-size: 10px; transition: transform .2s ease; }
+    .iot-widget.collapsed .iot-head .car { transform: rotate(-90deg); }
+    .iot-body { padding: 2px 11px 11px; }
+    .iot-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 10px; color: var(--muted); border-top: 1px solid var(--border); }
+    .iot-row:first-child { border-top: none; }
+    .iot-row .v { color: var(--ink); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .iot-row .v .led { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .iot-row .v .led.off { background: var(--red); }
+    .iot-row .v.amber { color: var(--amber); }
+    @media (max-width: 720px) { .iot-widget { left: 12px; right: 12px; bottom: 12px; width: auto; } }
+
+    /* ════════════ MUTE BUTTON ════════════ */
+    .mute-toggle.muted .ic-on { display: none; }
+    .mute-toggle:not(.muted) .ic-off { display: none; }
+
+    /* ════════════ ARDUINO FULLSCREEN VISUALIZER ════════════ */
+    .arduino-fs-overlay { position: fixed; inset: 0; z-index: 150; background: rgba(3,6,12,.88); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 26px; }
+    .arduino-fs-overlay.show { display: flex; }
+    .arduino-fs-card { width: 100%; max-width: 780px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 16px; padding: 4px; animation: modalIn .35s cubic-bezier(.2,.8,.3,1); }
+    .afs-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .afs-head h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 15px; }
+    .afs-head .panel-tag { margin-left: 8px; }
+    .afs-body { padding: 20px; }
+    .afs-board svg { width: 100%; height: auto; display: block; }
+    .afs-legend { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; margin-top: 16px; }
+    .afs-legend .li { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; }
+    .afs-legend .li .led { width: 8px; height: 8px; border-radius: 50%; background: var(--muted2); flex-shrink: 0; }
+    .afs-legend .li .led.on-green { background: var(--green); box-shadow: 0 0 6px 1px var(--green); }
+    .afs-legend .li .led.on-cyan { background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); }
+    .afs-legend .li .led.on-red { background: var(--red); box-shadow: 0 0 6px 1px var(--red); }
+    .afs-legend .li .led.on-amber { background: var(--amber); box-shadow: 0 0 6px 1px var(--amber); }
+    .afs-legend .li b { color: var(--ink); font-weight: 700; }
+    .gpio-signal { opacity: 0; }
+    .gpio-signal.active { animation: gpioPulse 1s linear infinite; }
+    @keyframes gpioPulse { 0% { opacity: 0; offset-distance: 0%; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { opacity: 0; offset-distance: 100%; } }
+
+    @media (max-width: 720px) {
+        .mission-hero h1 { font-size: 22px; }
+        .farm-scene { height: 380px; }
+        .crop-row { left: 20px; }
+        .modal-stats { grid-template-columns: 1fr; }
+        .telemetry-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="bg-grid"></div>
+<div class="bg-atmos"></div>
+
+<div class="topbar">
+    <a href="../agricultureai.html" class="brand">
+        <div class="brand-mark"><img src="/assets/logo.png" alt="ARCIO"></div>
+        <div class="brand-txt"><b>ARCIO Agri</b><span>Farm Mission Simulator</span></div>
+    </a>
+    <div class="topbar-right">
+        <div class="topbar-clock" id="topbarClock">--:--:--</div>
+        <div class="deploy-badge" id="deployBadge"><i></i><span>Live · Deployed</span></div>
+        <a href="../agricultureai.html" class="btn btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to Agri AI
+        </a>
+        <button class="theme-toggle mute-toggle muted" id="muteToggle" title="Toggle ambient farm sound">
+            <svg class="ic-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            <svg class="ic-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5.5a9 9 0 0 1 0 13"/></svg>
+        </button>
+        <button class="theme-toggle" id="themeToggle" title="Toggle light / dark mode">
+            <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+    </div>
+</div>
+
+<main>
+    <div class="mission-hero fade-up">
+        <div class="hero-row">
+            <div class="hero-text">
+                <div class="eyebrow">Advanced Simulator · 02</div>
+                <h1>Smart Farm Mission Simulator</h1>
+                <p>You're the farm engineer now. Wire the automation, set the irrigation logic, then run the mission — real live weather, a living digital twin, and an Arduino that only does what you tell it to.</p>
+            </div>
+            <div class="hero-meta">
+                <div class="hero-gauge">
+                    <svg viewBox="0 0 80 80" width="68" height="68">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="7"/>
+                        <circle id="heroGaugeRing" cx="40" cy="40" r="34" fill="none" stroke="url(#gaugeGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" transform="rotate(-90 40 40)"/>
+                        <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--green)"/><stop offset="100%" stop-color="var(--cyan2)"/></linearGradient></defs>
+                        <text id="heroGaugeText" x="40" y="46" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="800" font-size="17" fill="var(--ink)">0%</text>
+                    </svg>
+                    <span class="hero-gauge-label">Progress</span>
+                </div>
+                <div class="hero-meta-list">
+                    <div class="hmi"><span class="k">Mode</span><span class="v" id="heroModeTag">Standby</span></div>
+                    <div class="hmi"><span class="k">Clock</span><span class="v" id="heroClock">--:--:--</span></div>
+                    <div class="hmi"><span class="k">Connection</span><span class="v" id="heroConn"><span class="dot-live pending"></span>Connecting</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sim-grid">
+        <!-- ═══════ LEFT · MISSION CONTROL ═══════ -->
+        <div class="panel">
+            <div class="panel-head">
+                <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Mission Control</h3>
+                <div class="panel-tag" id="topStatusTag">Loading…</div>
+            </div>
+            <div class="mission-badge-row" id="missionChipRow"></div>
+            <div class="mission-tags">
+                <span class="mission-chip diff" id="missionDiffChip">Rookie</span>
+                <span class="mission-chip time" id="missionTimeChip">~2 min</span>
+                <span class="mission-chip" id="missionFocusChip">Irrigation</span>
+            </div>
+            <div class="mission-name" id="missionNameEl">Mission 01 · Water Management</div>
+            <div class="mission-obj" id="missionObjEl">Objective — <b>Keep crop health above 70%</b> while running the mission, using the <b>least amount of water</b> possible. Wire the automation on the right, set your threshold, then hit Run.</div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">Live Weather · Open-Meteo</div>
+                <div class="stat-row"><span class="k">Temperature</span><span class="v" id="stTemp">--°C</span></div>
+                <div class="stat-row"><span class="k">Humidity</span><span class="v" id="stHum">--%</span></div>
+                <div class="stat-row"><span class="k">Rain probability</span><span class="v" id="stRain">--%</span></div>
+                <div class="stat-row"><span class="k">Wind</span><span class="v" id="stWind">-- km/h</span></div>
+                <div class="stat-row"><span class="k">UV index</span><span class="v" id="stUv">--</span></div>
+            </div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">Farm Status</div>
+                <div class="stat-row"><span class="k">Est. soil moisture</span><span class="v" id="stMoist">--%</span></div>
+                <div class="meter"><div class="meter-fill moisture" id="barMoist" style="width:0%"></div></div>
+                <div class="stat-row" style="margin-top:10px;"><span class="k">Crop health</span><span class="v good" id="stHealth">--%</span></div>
+                <div class="meter"><div class="meter-fill health" id="barHealth" style="width:0%"></div></div>
+                <div class="stat-row" style="margin-top:10px;"><span class="k">Water tank level</span><span class="v" id="stTank">--%</span></div>
+                <div class="meter"><div class="meter-fill water" id="barTank" style="width:0%"></div></div>
+            </div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">Mission Progress</div>
+                <div class="stat-row"><span class="k" id="stProgressLabel">Not started</span><span class="v" id="stProgressPct">0%</span></div>
+                <div class="meter"><div class="meter-fill progress" id="barProgress" style="width:0%"></div></div>
+            </div>
+        </div>
+
+        <!-- ═══════ CENTER · DIGITAL TWIN (hero) ═══════ -->
+        <div class="panel twin-panel">
+            <div class="panel-head">
+                <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>Interactive Farm Digital Twin</h3>
+                <div class="panel-tag" id="twinTag">Standby</div>
+            </div>
+            <div class="farm-scene cond-sunny" id="farmScene">
+                <svg class="mountain-layer" viewBox="0 0 900 460" preserveAspectRatio="none">
+                    <polygon points="0,300 120,180 220,260 340,140 460,280 600,170 760,270 900,200 900,460 0,460" fill="var(--muted2)" opacity=".28"/>
+                    <polygon points="0,340 150,240 300,320 480,220 650,330 900,250 900,460 0,460" fill="var(--muted2)" opacity=".16"/>
+                </svg>
+                <div class="health-flag" id="healthFlag">Standing By</div>
+                <div class="event-toast" id="eventToast"></div>
+                <div class="cloud c1"><svg width="100" height="36" viewBox="0 0 110 40"><ellipse cx="26" cy="26" rx="22" ry="14"/><ellipse cx="52" cy="18" rx="26" ry="17"/><ellipse cx="82" cy="26" rx="20" ry="13"/></svg></div>
+                <div class="cloud c2"><svg width="84" height="30" viewBox="0 0 90 32"><ellipse cx="20" cy="20" rx="18" ry="11"/><ellipse cx="42" cy="14" rx="20" ry="13"/><ellipse cx="66" cy="20" rx="16" ry="10"/></svg></div>
+                <div class="cloud c3"><svg width="118" height="40" viewBox="0 0 130 44"><ellipse cx="30" cy="28" rx="24" ry="15"/><ellipse cx="62" cy="18" rx="30" ry="19"/><ellipse cx="98" cy="28" rx="22" ry="14"/></svg></div>
+                <div class="farm-orb" id="farmOrb"></div>
+                <div class="rain-layer" id="rainLayer"></div>
+                <div class="wind-layer" id="windLayer"></div>
+                <div class="ground"></div>
+
+                <div class="farmhouse inspect-hoverable" data-inspect="house">
+                    <svg viewBox="0 0 74 54" width="74" height="54"><rect x="8" y="24" width="46" height="26" fill="var(--muted2)" opacity=".55"/><polygon points="4,26 31,6 58,26" fill="var(--green2)" opacity=".6"/><rect x="24" y="34" width="10" height="16" fill="var(--bg4)"/><rect x="40" y="30" width="8" height="8" fill="var(--cyan2)" opacity=".5" id="houseWindow"/><rect x="50" y="10" width="2" height="12" fill="var(--muted2)" id="chimney"/></svg>
+                </div>
+                <div class="greenhouse inspect-hoverable" data-inspect="greenhouse">
+                    <svg viewBox="0 0 96 46" width="96" height="46"><path d="M2 46 V20 Q2 6 48 6 Q94 6 94 20 V46 Z" fill="none" stroke="var(--muted2)" stroke-width="2"/><path d="M2 46 V20 Q2 6 48 6 Q94 6 94 20 V46 Z" fill="var(--cyan2)" opacity=".08" id="greenhouseGlass"/><line x1="24" y1="8" x2="24" y2="46" stroke="var(--muted2)" stroke-width="1" opacity=".5"/><line x1="48" y1="6" x2="48" y2="46" stroke="var(--muted2)" stroke-width="1" opacity=".5"/><line x1="72" y1="8" x2="72" y2="46" stroke="var(--muted2)" stroke-width="1" opacity=".5"/></svg>
+                </div>
+                <div class="solar-panel inspect-hoverable" data-inspect="solar">
+                    <svg viewBox="0 0 52 34" width="52" height="34"><polygon points="4,28 48,28 40,8 12,8" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1.5"/><line x1="16" y1="8" x2="10" y2="28" stroke="var(--muted2)" stroke-width="1"/><line x1="26" y1="8" x2="24" y2="28" stroke="var(--muted2)" stroke-width="1"/><line x1="36" y1="8" x2="38" y2="28" stroke="var(--muted2)" stroke-width="1"/><rect class="glint" x="12" y="10" width="10" height="6" fill="var(--cyan2)" opacity=".2"/><rect x="22" y="28" width="6" height="8" fill="var(--muted2)"/></svg>
+                </div>
+                <div class="weather-station inspect-hoverable" data-inspect="weather">
+                    <svg viewBox="0 0 30 60" width="30" height="60"><line x1="15" y1="20" x2="15" y2="58" stroke="var(--muted2)" stroke-width="2"/><g class="ws-cups" id="wsCups" style="animation-duration:2s;"><circle cx="15" cy="8" r="1.5" fill="var(--muted2)"/><line x1="15" y1="8" x2="4" y2="14" stroke="var(--muted2)" stroke-width="1.4"/><line x1="15" y1="8" x2="26" y2="14" stroke="var(--muted2)" stroke-width="1.4"/><line x1="15" y1="8" x2="15" y2="20" stroke="var(--muted2)" stroke-width="1.4"/><circle cx="4" cy="14" r="3" fill="var(--cyan2)" opacity=".7"/><circle cx="26" cy="14" r="3" fill="var(--cyan2)" opacity=".7"/><circle cx="15" cy="20" r="3" fill="var(--cyan2)" opacity=".7"/></g></svg>
+                </div>
+                <div class="tree t1 inspect-hoverable" data-inspect="trees"><svg viewBox="0 0 30 46" width="30" height="46"><rect x="12" y="26" width="6" height="20" fill="#6b4a2f"/><circle cx="15" cy="18" r="16" fill="var(--green2)" opacity=".75"/></svg></div>
+                <div class="tree t2 inspect-hoverable" data-inspect="trees"><svg viewBox="0 0 30 46" width="24" height="38"><rect x="12" y="26" width="6" height="20" fill="#6b4a2f"/><circle cx="15" cy="18" r="16" fill="var(--green)" opacity=".75"/></svg></div>
+
+                <div class="tank-wrap inspect-hoverable" data-inspect="tank">
+                    <svg viewBox="0 0 46 76" width="46" height="76">
+                        <defs><clipPath id="tankClip"><rect x="4" y="6" width="38" height="62" rx="4"/></clipPath></defs>
+                        <rect x="4" y="6" width="38" height="62" rx="4" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="2"/>
+                        <rect class="tank-fill" id="tankFillScene" x="4" y="40" width="38" height="30" fill="var(--cyan2)" opacity=".6" clip-path="url(#tankClip)"/>
+                        <text id="tankPctScene" x="23" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--ink)">55%</text>
+                    </svg>
+                </div>
+                <svg class="pipe-svg" viewBox="0 0 900 460" width="900" height="460" style="position:absolute; inset:0; pointer-events:none;">
+                    <path id="pipeMain" class="pipe pipe-flow" d="M 796 400 H 400" />
+                    <path id="pipeBranch1" class="pipe pipe-flow" d="M 400 400 V 380 H 470" />
+                    <path id="pipeBranch2" class="pipe pipe-flow" d="M 550 400 V 380" />
+                    <path id="pipeBranch3" class="pipe pipe-flow" d="M 650 400 V 380 H 620" />
+                </svg>
+                <div class="pump-icon inspect-hoverable" id="pumpIcon" data-inspect="pump" style="right:120px; bottom:12.5%;">
+                    <svg width="26" height="26" viewBox="0 0 26 26"><circle class="body" cx="13" cy="13" r="11"/><g class="blade" id="pumpBlade"><path d="M13 4v6M13 16v6M4 13h6M16 13h6" stroke="var(--cyan2)" stroke-width="2" stroke-linecap="round"/></g></svg>
+                </div>
+
+                <div class="crop-row inspect-hoverable" id="cropRow" data-inspect="crops"></div>
+
+                <div class="sensor-dot pulsing" id="sensorMoist" style="left:420px; bottom:19%;" title="Soil Moisture Sensor" data-sensor="moist"></div>
+                <div class="sensor-dot pulsing" id="sensorTemp" style="right:36px; bottom:32%;" title="Temperature Sensor" data-sensor="temp"></div>
+                <div class="sensor-dot pulsing" id="sensorHum" style="right:76px; bottom:38%;" title="Humidity Sensor · DHT11" data-sensor="hum"></div>
+                <div class="sensor-dot pulsing" id="sensorRain" style="right:70px; top:16px;" title="Rain Sensor" data-sensor="rain"></div>
+                <div class="sensor-dot pulsing" id="sensorWater" style="right:80px; bottom:44%;" title="Water Level Sensor" data-sensor="water"></div>
+                <div class="sensor-dot pulsing" id="sensorLdr" style="left:222px; bottom:36%;" title="LDR · Light Sensor" data-sensor="ldr"></div>
+
+                <div class="farm-readout"><span><b id="fTemp">--°C</b></span><span>Soil <b id="fMoist">--%</b></span><span>Rain <b id="fRain">--%</b></span><span>Wind <b id="fWind">-- km/h</b></span></div>
+                <div class="farm-cond-label" id="farmCondLabel">—</div>
+            </div>
+        </div>
+
+        <!-- ═══════ RIGHT · ARDUINO WORKBENCH ═══════ -->
+        <div class="panel">
+            <div class="panel-head">
+                <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>Arduino Workbench</h3>
+                <div class="panel-tag" title="Double-click the board to open the full visualizer">Double-click board ⤢</div>
+            </div>
+            <div class="board-mini" id="boardMini" style="cursor: zoom-in;" title="Double-click for fullscreen GPIO visualizer">
+                <svg viewBox="0 0 300 90">
+                    <rect x="10" y="10" width="280" height="70" rx="8" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1.5"/>
+                    <rect x="120" y="30" width="60" height="30" rx="3" fill="var(--bg3)" stroke="var(--muted2)"/>
+                    <text x="150" y="24" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--muted)">UNO</text>
+                    <text x="150" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted2)">ARDUINO · MCU</text>
+                    <circle id="mcuLed" cx="255" cy="24" r="4" fill="var(--green)"/>
+                    <line x1="10" y1="24" x2="-6" y2="24" stroke="var(--green)" stroke-width="2"/>
+                    <line x1="10" y1="66" x2="-6" y2="66" stroke="var(--muted2)" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="board-power"><i></i>POWER &amp; GND CONNECTED — bus ready</div>
+
+            <div class="comp-list">
+                <div class="comp-card wired locked">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 8 6 11 6 15a6 6 0 0 0 12 0c0-4-2-7-6-13Z"/></svg></div>
+                    <div class="comp-info"><div class="name">Soil Moisture Sensor <span class="req optional">Connected</span></div><div class="sub">Reading A0 · live</div></div>
+                    <label class="switch"><input type="checkbox" checked disabled><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardRelay">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 12h10"/></svg></div>
+                    <div class="comp-info"><div class="name">Relay Module <span class="req required">Required</span></div><div class="sub">Switches pump power via D7</div></div>
+                    <label class="switch"><input type="checkbox" id="wireRelay"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardPump">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg></div>
+                    <div class="comp-info"><div class="name">Water Pump <span class="req required">Required</span></div><div class="sub">Draws from tank via relay</div></div>
+                    <label class="switch"><input type="checkbox" id="wirePump"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardServo">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></div>
+                    <div class="comp-info"><div class="name">Servo Valve <span class="req optional">Precision</span></div><div class="sub">Doses water finely, saves more</div></div>
+                    <label class="switch"><input type="checkbox" id="wireServo"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardLcd">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 10h4M6 14h8"/></svg></div>
+                    <div class="comp-info"><div class="name">LCD Display <span class="req optional">Optional</span></div><div class="sub">Shows live status on-farm</div></div>
+                    <label class="switch"><input type="checkbox" id="wireLcd"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardLed">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+                    <div class="comp-info"><div class="name">Status LED <span class="req optional">Optional</span></div><div class="sub">Blinks while irrigating</div></div>
+                    <label class="switch"><input type="checkbox" id="wireLed"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardBuzzer">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10v4h4l5 5V5l-5 5H3Z"/><path d="M17 9a5 5 0 0 1 0 6"/></svg></div>
+                    <div class="comp-info"><div class="name">Buzzer <span class="req optional">Safety</span></div><div class="sub">Alerts on sensor failure</div></div>
+                    <label class="switch"><input type="checkbox" id="wireBuzzer"><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="rule-block">
+                <div class="rule-block-title">Automation Logic</div>
+                <div class="rule-row">
+                    <div class="rule-label"><span>Irrigate when soil moisture below</span><b id="thresholdVal">32%</b></div>
+                    <input type="range" min="15" max="55" value="32" id="thresholdSlider">
+                </div>
+                <div class="toggle-row"><span>Rain-safe cutoff (block pump if rain likely)</span><label class="switch"><input type="checkbox" id="rainSafe" checked><span class="slider"></span></label></div>
+            </div>
+
+            <div class="circuit-diagram">
+                <div class="rule-block-title">Circuit Path</div>
+                <svg viewBox="0 0 280 46" id="circuitSvg">
+                    <line id="cLine1" x1="20" y1="23" x2="90" y2="23" stroke="var(--border)" stroke-width="2"/>
+                    <line id="cLine2" x1="90" y1="23" x2="160" y2="23" stroke="var(--border)" stroke-width="2"/>
+                    <line id="cLine3" x1="160" y1="23" x2="230" y2="23" stroke="var(--border)" stroke-width="2"/>
+                    <circle cx="20" cy="23" r="10" fill="var(--bg3)" stroke="var(--cyan2)" stroke-width="1.5"/>
+                    <circle cx="90" cy="23" r="10" fill="var(--bg3)" stroke="var(--muted2)" stroke-width="1.5" id="cNodeArd"/>
+                    <circle cx="160" cy="23" r="10" fill="var(--bg3)" stroke="var(--muted2)" stroke-width="1.5" id="cNodeRelay"/>
+                    <circle cx="230" cy="23" r="10" fill="var(--bg3)" stroke="var(--muted2)" stroke-width="1.5" id="cNodePump"/>
+                    <text x="20" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">SENSOR</text>
+                    <text x="90" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">MCU</text>
+                    <text x="160" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">RELAY</text>
+                    <text x="230" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">PUMP</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ BOTTOM CONSOLE ═══════ -->
+    <div class="panel console-panel">
+        <div class="console-controls">
+            <div class="left-grp">
+                <button class="btn btn-primary" id="btnRun">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Run Simulation
+                </button>
+                <button class="btn btn-ghost" id="btnReset">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>Reset
+                </button>
+                <button class="btn btn-blue" id="btnExplain">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg>AI Explain
+                </button>
+                <button class="btn btn-amber" id="btnDeploy" disabled>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21 7.5 13.5 2 9h7z"/></svg>Deploy Smart Farm
+                </button>
+            </div>
+            <div class="mission-progress-mini">
+                <span id="miniProgressLabel">Tick 0 / 30</span>
+                <div class="meter bar"><div class="meter-fill progress" id="miniProgressBar" style="width:0%"></div></div>
+            </div>
+        </div>
+        <div class="event-strip">
+            <button class="ev-btn" data-ev="heatwave">☀ Heatwave</button>
+            <button class="ev-btn" data-ev="rain">🌧 Heavy Rain</button>
+            <button class="ev-btn" data-ev="night">🌙 Night</button>
+            <button class="ev-btn" data-ev="cloudy">☁ Cloudy</button>
+            <button class="ev-btn" data-ev="drysoil">🏜 Dry Soil</button>
+            <button class="ev-btn" data-ev="wetsoil">💧 Wet Soil</button>
+            <button class="ev-btn" data-ev="tankempty">⛽ Water Tank Empty</button>
+            <button class="ev-btn" data-ev="sensorfault">⚠ Sensor Fault</button>
+        </div>
+        <div class="ai-callout" id="aiCallout"><div class="t">AI Explain</div><ul id="aiCalloutList"></ul></div>
+        <div class="console-log" id="consoleLog"></div>
+    </div>
+
+    <!-- ═══════ LIVE TELEMETRY ═══════ -->
+    <div class="panel telemetry-panel">
+        <div class="panel-head">
+            <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Live Telemetry</h3>
+            <div class="panel-tag">Updates every tick</div>
+        </div>
+        <div class="telemetry-grid" id="telemetryGrid">
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Temp</span><span class="tc-val" id="tcTemp" style="color:var(--amber)">--°C</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkTempFill" fill="var(--amber)"/><path class="spark-line" id="sparkTemp" stroke="var(--amber)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Humidity</span><span class="tc-val" id="tcHum" style="color:var(--cyan2)">--%</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkHumFill" fill="var(--cyan2)"/><path class="spark-line" id="sparkHum" stroke="var(--cyan2)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Soil Moisture</span><span class="tc-val" id="tcMoist" style="color:#8a5a2b">--%</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkMoistFill" fill="#8a5a2b"/><path class="spark-line" id="sparkMoist" stroke="#8a5a2b"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Tank Level</span><span class="tc-val" id="tcTank" style="color:var(--blue)">--%</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkTankFill" fill="var(--blue)"/><path class="spark-line" id="sparkTank" stroke="var(--blue)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Crop Health</span><span class="tc-val" id="tcHealth" style="color:var(--green)">--%</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkHealthFill" fill="var(--green)"/><path class="spark-line" id="sparkHealth" stroke="var(--green)"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ MANUAL / HOW TO USE ═══════ -->
+    <div class="panel manual-panel" id="manualPanel">
+        <div class="panel-head" id="manualHead">
+            <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>How To Run This Mission</h3>
+            <div class="manual-head-right">
+                <div class="panel-tag">Manual</div>
+                <button class="manual-toggle-btn" id="manualToggleBtn" title="Collapse / expand manual" aria-expanded="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="manual-body" id="manualBody"><div class="manual-body-inner">
+        <p class="manual-intro">A quick walkthrough of the simulator — from wiring the automation to deploying the finished smart farm. Everything below maps directly to the panels on this page.</p>
+
+        <div class="manual-steps">
+            <div class="manual-step">
+                <div class="manual-step-num">01</div>
+                <h4>Pick a mission &amp; read the objective</h4>
+                <p>Choose one of the 8 mission chips (M01–M08) at the top of <b>Mission Control</b> — each targets a different farming challenge: irrigation basics, heatwaves, storms, night cycles, cloud cover, dry patches, overwatering and tank management. Read the objective for the one you pick; everything you do is judged against it.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">02</div>
+                <h4>Wire the hardware</h4>
+                <p>In the <b>Arduino Workbench</b> on the right, flip the switches to wire the <b>Relay</b> and either the <b>Pump</b> or <b>Servo</b> — these are required. LCD, LED and Buzzer are optional but add safety feedback.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">03</div>
+                <h4>Set the irrigation rule</h4>
+                <p>Drag the <b>moisture threshold</b> slider to decide when the pump should turn on, and leave <b>Rain-safe cutoff</b> checked so it won't irrigate right before a storm.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">04</div>
+                <h4>Press Run Simulation</h4>
+                <p>Click <b>Run Simulation</b> in the console bar. The mission clock starts, live weather drives the farm, and the Arduino begins making its own irrigation decisions each tick.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">05</div>
+                <h4>Watch the digital twin</h4>
+                <p>The center farm scene reacts in real time — pipes glow, sprinklers run, crops change color and clouds/rain track live weather. <b>Click any sensor dot</b> to inspect its reading, pin and status.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">06</div>
+                <h4>Inspect the hardware</h4>
+                <p><b>Hover</b> the farmhouse, greenhouse, solar panel, weather station, tank, trees or crops for live engineering data. <b>Double-click the Arduino board</b> to open the fullscreen GPIO visualizer.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">07</div>
+                <h4>Stress-test with events</h4>
+                <p>Use the event buttons (Heatwave, Rain, Nightfall, Sensor Failure, etc.) in the console to throw curveballs and see whether your wiring and thresholds hold up.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">08</div>
+                <h4>Review &amp; deploy</h4>
+                <p>When the mission ends, a summary shows your score, water used and AI rating. Click <b>Explain</b> in the console for reasoning, then <b>Deploy Smart Farm</b> to keep it running live.</p>
+            </div>
+        </div>
+
+        <div class="manual-tips">
+            <div class="manual-tips-title">Good To Know</div>
+            <div class="manual-tip-grid">
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                    <div class="tx"><b>Live Telemetry panel</b>Five sparkline graphs below the console track temperature, humidity, soil moisture, tank level and crop health tick-by-tick.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><path d="M6 4v5M18 4v5M6 15v5M18 15v5"/></svg></div>
+                    <div class="tx"><b>IoT Cloud Status widget</b>The floating card bottom-right shows Arduino connectivity, packet count, MQTT and latency — click its header to collapse it.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+                    <div class="tx"><b>Ambient sound</b>The speaker icon in the top bar turns on wind, rain, pump hum and relay clicks — off by default, tap to enable.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                    <div class="tx"><b>Mission progress gauge</b>The ring next to the title tracks overall mission completion — same number as the progress bar in Mission Control.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                    <div class="tx"><b>Data-flow particles</b>Blue dots are routine sensor readings, orange is a pump-on command from the Arduino, red means a sensor fault is active.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
+                    <div class="tx"><b>Reset anytime</b>Use Reset in the console to rewire from scratch and try a different threshold or strategy without reloading the page.</div>
+                </div>
+            </div>
+        </div>
+        </div></div>
+    </div>
+
+    <div class="footer">ARCIO Agri · Farm Mission Simulator · Environmental data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> · Simulated irrigation physics, no hardware connected · No API keys · No login required</div>
+</main>
+
+<!-- ═══════ SUCCESS / FAILURE MODAL ═══════ -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard">
+        <div class="modal-icon" id="modalIcon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h2 id="modalTitle">Mission Success</h2>
+        <p class="sub" id="modalSub">Your automation kept the crop alive and used water wisely.</p>
+        <div class="modal-stats">
+            <div class="modal-stat"><div class="l">Water Saved</div><div class="v" id="mWaterSaved">--L</div></div>
+            <div class="modal-stat"><div class="l">Crop Health</div><div class="v" id="mCropHealth">--%</div></div>
+            <div class="modal-stat"><div class="l">Automation Efficiency</div><div class="v" id="mAutoEff">--%</div></div>
+            <div class="modal-stat"><div class="l">Energy Consumption</div><div class="v" id="mEnergy">-- Wh</div></div>
+            <div class="modal-stat"><div class="l">Mission Score</div><div class="v" id="mScore">--</div></div>
+            <div class="modal-stat"><div class="l">AI Rating</div><div class="v" id="mRating">--</div></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="btnModalClose">Close</button>
+            <button class="btn btn-primary" id="btnModalDeploy">Deploy Smart Farm</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ SENSOR / OBJECT INSPECTOR ═══════ -->
+<div class="inspector-overlay" id="inspectorOverlay">
+    <div class="inspector-card">
+        <div class="insp-head">
+            <div class="t"><i></i><span id="inspTag">Sensor Inspector</span></div>
+            <button class="insp-close" id="inspClose">✕</button>
+        </div>
+        <div class="insp-body">
+            <div class="insp-name" id="inspName">—</div>
+            <div class="insp-value"><span class="n" id="inspValue">--</span><span class="u" id="inspUnit"></span></div>
+            <div id="inspRows"></div>
+            <div class="insp-note" id="inspNote"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ HOVER TOOLTIP ═══════ -->
+<div class="hover-tip" id="hoverTip">
+    <div class="ht-t" id="htTitle">—</div>
+    <div id="htRows"></div>
+</div>
+
+<!-- ═══════ IOT CLOUD STATUS WIDGET ═══════ -->
+<div class="iot-widget" id="iotWidget">
+    <div class="iot-head" id="iotHead">
+        <span class="dot" id="iotDot"></span>
+        <span class="ttl">IoT Cloud Status</span>
+        <span class="car">▾</span>
+    </div>
+    <div class="iot-body">
+        <div class="iot-row"><span>Arduino</span><span class="v" id="iotArduino"><span class="led off"></span>Offline</span></div>
+        <div class="iot-row"><span>Cloud</span><span class="v" id="iotCloud"><span class="led"></span>Connected</span></div>
+        <div class="iot-row"><span>Sensor Packets</span><span class="v" id="iotPackets">0</span></div>
+        <div class="iot-row"><span>MQTT</span><span class="v" id="iotMqtt">idle</span></div>
+        <div class="iot-row"><span>DB Sync</span><span class="v" id="iotSync">synced</span></div>
+        <div class="iot-row"><span>Latency</span><span class="v" id="iotLatency">-- ms</span></div>
+        <div class="iot-row"><span>API</span><span class="v" id="iotApi">200 OK</span></div>
+    </div>
+</div>
+
+<!-- ═══════ ARDUINO FULLSCREEN VISUALIZER ═══════ -->
+<div class="arduino-fs-overlay" id="arduinoFsOverlay">
+    <div class="arduino-fs-card">
+        <div class="afs-head">
+            <h3>Arduino UNO — Live GPIO Visualizer<span class="panel-tag" id="gpioMissionTag">Mission 01</span></h3>
+            <button class="insp-close" id="afsClose">✕</button>
+        </div>
+        <div class="afs-body">
+            <div class="afs-board">
+                <svg viewBox="0 0 600 220">
+                    <rect x="20" y="20" width="560" height="180" rx="14" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="2"/>
+                    <rect x="240" y="65" width="120" height="90" rx="4" fill="var(--bg3)" stroke="var(--muted2)"/>
+                    <text x="300" y="55" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" fill="var(--muted)">ARDUINO UNO</text>
+                    <text x="300" y="185" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--muted2)">ATmega328P · 16MHz</text>
+
+                    <!-- GPIO pin headers -->
+                    <g id="gpioPinsTop">
+                        <line x1="80" y1="20" x2="80" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="110" y1="20" x2="110" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="140" y1="20" x2="140" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="460" y1="20" x2="460" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="490" y1="20" x2="490" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="520" y1="20" x2="520" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                    </g>
+
+                    <!-- LEDs -->
+                    <circle id="fsLedPower" cx="45" cy="35" r="6" fill="var(--green)"/>
+                    <text x="45" y="56" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">PWR</text>
+
+                    <circle id="fsLedTx" cx="45" cy="80" r="5" fill="var(--muted2)"/>
+                    <text x="45" y="100" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">TX</text>
+
+                    <circle id="fsLedRx" cx="45" cy="120" r="5" fill="var(--muted2)"/>
+                    <text x="45" y="140" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">RX</text>
+
+                    <circle id="fsLedStatus" cx="45" cy="160" r="5" fill="var(--muted2)"/>
+                    <text x="45" y="180" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">STATUS</text>
+
+                    <circle id="fsLedRelay" cx="555" cy="80" r="6" fill="var(--muted2)"/>
+                    <text x="555" y="100" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">RELAY</text>
+
+                    <circle id="fsLedGpio1" cx="555" cy="35" r="5" fill="var(--muted2)"/>
+                    <text x="555" y="56" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">D7</text>
+
+                    <circle id="fsLedGpio2" cx="555" cy="120" r="5" fill="var(--muted2)"/>
+                    <text x="555" y="140" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">A0</text>
+
+                    <circle id="fsLedGpio3" cx="555" cy="160" r="5" fill="var(--muted2)"/>
+                    <text x="555" y="180" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">D8</text>
+
+                    <!-- signal traces -->
+                    <path id="gpioPathIn" d="M 80 12 L 80 90 L 240 90" fill="none" stroke="var(--border-blue)" stroke-width="1.5" stroke-dasharray="3 4"/>
+                    <path id="gpioPathOut" d="M 360 100 L 520 100 L 520 12" fill="none" stroke="var(--border-blue)" stroke-width="1.5" stroke-dasharray="3 4"/>
+                    <circle class="gpio-signal" id="gpioDotIn" r="3.5" fill="var(--cyan2)" style="offset-path: path('M 80 12 L 80 90 L 240 90');"/>
+                    <circle class="gpio-signal" id="gpioDotOut" r="3.5" fill="var(--green)" style="offset-path: path('M 360 100 L 520 100 L 520 12');"/>
+                </svg>
+            </div>
+            <div class="afs-legend" id="afsLegend">
+                <div class="li"><span class="led" id="legPower"></span>Power — <b>5V bus energized</b></div>
+                <div class="li"><span class="led" id="legTx"></span>TX — <b id="legTxTxt">Idle</b></div>
+                <div class="li"><span class="led" id="legRx"></span>RX — <b id="legRxTxt">Idle</b></div>
+                <div class="li"><span class="led" id="legRelay"></span>Relay — <b id="legRelayTxt">Open</b></div>
+                <div class="li"><span class="led" id="legStatus"></span>Status — <b id="legStatusTxt">Standby</b></div>
+                <div class="li"><span class="led" id="legFault"></span>Fault — <b id="legFaultTxt">None</b></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════ THEME ═══════════════════════ */
+const THEME_KEY = 'arcio_agri_theme';
+function getTheme(){ try { return localStorage.getItem(THEME_KEY) || 'dark'; } catch(e){ return 'dark'; } }
+function applyTheme(t){
+    document.body.setAttribute('data-theme', t);
+    try { localStorage.setItem(THEME_KEY, t); } catch(e){}
+}
+applyTheme(getTheme());
+$('themeToggle').addEventListener('click', () => {
+    applyTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+/* ═══════════════════════ STATE ═══════════════════════ */
+const MAX_TICKS = 30;
+const TICK_MS = 1100;
+const CROP_COUNT = 9;
+
+let state = {
+    tick: 0,
+    running: false,
+    deployed: false,
+    over: false,
+    temp: 30, humidity: 50, rainProb: 15, wind: 10, uv: 5, cloud: 20, isDay: true,
+    moisture: 45, cropHealth: 78, tank: 62,
+    pumpOn: false,
+    waterUsedL: 0,
+    dryTicks: 0, wasteTicks: 0, activeTicks: 0,
+    healthHistory: [],
+    eventTimer: 0, eventName: null,
+    sensorFaultTicks: 0,
+    threshold: 32, rainSafe: true,
+    wiring: { relay:false, pump:false, servo:false, lcd:false, led:false, buzzer:false }
+};
+let intervalRef = null;
+let currentLat = null, currentLon = null;
+
+/* ═══════════════════════ MISSIONS ═══════════════════════ */
+const MISSIONS = [
+    { id:1, name:'Mission 01 · Water Management', focus:'Irrigation', diff:'Rookie', time:'~2 min',
+      obj:'Objective — <b>Keep crop health above 70%</b> while running the mission, using the <b>least amount of water</b> possible. Wire the automation on the right, set your threshold, then hit Run.',
+      ev:null },
+    { id:2, name:'Mission 02 · Heatwave Response', focus:'Irrigation', diff:'Rookie', time:'~2 min',
+      obj:'Objective — Keep <b>crop health above 65%</b> through a sudden heatwave without letting the pump waste water once temperatures fall again.',
+      ev:'heatwave' },
+    { id:3, name:'Mission 03 · Storm Watch', focus:'Safety', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Enable <b>rain-safe cutoff</b> so the pump halts before an unexpected downpour arrives, protecting the roots from waterlogging.',
+      ev:'rain' },
+    { id:4, name:'Mission 04 · Night Cycle Ops', focus:'Automation', diff:'Rookie', time:'~2 min',
+      obj:'Objective — Keep the irrigation loop stable as <b>night falls</b> and temperatures drop, holding crop health above 70%.',
+      ev:'night' },
+    { id:5, name:'Mission 05 · Cloud Cover Efficiency', focus:'Efficiency', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Under heavy <b>cloud cover</b> (lower evaporation), avoid over-irrigating — keep water usage low while crop health stays above 70%.',
+      ev:'cloudy' },
+    { id:6, name:'Mission 06 · Dry Patch Recovery', focus:'Irrigation', diff:'Advanced', time:'~2 min',
+      obj:'Objective — React fast to a sudden <b>dry soil patch</b> — the pump must engage before crops wilt.',
+      ev:'drysoil' },
+    { id:7, name:'Mission 07 · Overwatering Prevention', focus:'Safety', diff:'Advanced', time:'~2 min',
+      obj:'Objective — A <b>wet soil patch</b> hits mid-mission — keep the pump OFF and avoid root damage from excess moisture.',
+      ev:'wetsoil' },
+    { id:8, name:'Mission 08 · Tank Crisis Management', focus:'Resource Mgmt', diff:'Advanced', time:'~2 min',
+      obj:'Objective — The <b>water tank runs critically low</b> mid-mission — ration remaining water while keeping crop health as high as possible.',
+      ev:'tankempty' },
+];
+let missionIdx = 0;
+
+/* ═══════════════════════ LOG ═══════════════════════ */
+function log(tag, msg){
+    const el = $('consoleLog');
+    const t = new Date();
+    const ts = t.toLocaleTimeString('en-GB', {hour12:false});
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">${ts}</span><span class="log-tag ${tag}">[${tag.toUpperCase()}]</span><span class="log-msg"></span>`;
+    line.querySelector('.log-msg').textContent = msg;
+    el.appendChild(line);
+    while (el.children.length > 220) el.removeChild(el.firstChild);
+    el.scrollTop = el.scrollHeight;
+}
+
+/* ═══════════════════════ MISSION CHIPS ═══════════════════════ */
+function buildMissionChips(){
+    const row = $('missionChipRow');
+    row.innerHTML = '';
+    MISSIONS.forEach((m,i) => {
+        const b = document.createElement('button');
+        b.className = 'mchip' + (i===missionIdx ? ' active' : '');
+        b.textContent = 'M' + String(m.id).padStart(2,'0');
+        b.title = m.name;
+        b.addEventListener('click', () => { if(!state.running && !state.deployed){ missionIdx = i; applyMission(); } });
+        row.appendChild(b);
+    });
+}
+function applyMission(){
+    const m = MISSIONS[missionIdx];
+    $('missionNameEl').textContent = m.name;
+    $('missionObjEl').innerHTML = m.obj;
+    $('missionDiffChip').textContent = m.diff;
+    $('missionTimeChip').textContent = m.time;
+    $('missionFocusChip').textContent = m.focus;
+    $('gpioMissionTag').textContent = 'Mission 0' + m.id;
+    buildMissionChips();
+    log('system', `${m.name} loaded — wire the automation, then press Run Simulation.`);
+}
+
+/* ═══════════════════════ CROP FIELD BUILD ═══════════════════════ */
+function buildCropRow(){
+    const row = $('cropRow');
+    row.innerHTML = '';
+    for (let i=0;i<CROP_COUNT;i++){
+        const d = document.createElement('div');
+        d.className = 'crop-plant';
+        d.dataset.i = i;
+        d.innerHTML = `<svg viewBox="0 0 16 40" width="16" height="40">
+            <path d="M8 38 V16" stroke="#3f6b3f" stroke-width="2"/>
+            <ellipse cx="8" cy="14" rx="7" ry="5" fill="var(--green)"/>
+            <ellipse cx="3" cy="20" rx="5" ry="3.4" fill="var(--green2)"/>
+            <ellipse cx="13" cy="20" rx="5" ry="3.4" fill="var(--green2)"/>
+        </svg>`;
+        row.appendChild(d);
+    }
+}
+buildCropRow();
+
+function updateCropVisuals(){
+    const h = state.cropHealth;
+    const plants = document.querySelectorAll('.crop-plant');
+    let color = 'var(--green)';
+    let scale = 1;
+    if (h < 35){ color = '#B45309'; scale = .68; }
+    else if (h < 55){ color = '#CA8A04'; scale = .82; }
+    else if (h < 75){ color = '#65A30D'; scale = .94; }
+    else { color = 'var(--green)'; scale = 1.05; }
+    plants.forEach((p, i) => {
+        const jitter = 1 - (i % 3) * .02;
+        p.style.transform = `scale(${(scale*jitter).toFixed(3)})`;
+        p.querySelectorAll('ellipse').forEach(e => e.setAttribute('fill', color));
+    });
+}
+
+/* ═══════════════════════ WMO ═══════════════════════ */
+function wmoCondition(code, isDay){
+    if ([95,96,99].includes(code)) return 'storm';
+    if ([61,63,65,80,81,82,51,53,55].includes(code)) return 'rain';
+    if ([2,3,45,48].includes(code)) return 'cloudy';
+    return isDay ? 'sunny' : 'sunny';
+}
+
+function estimateSoilMoisture(temp, rainProb, wind, humidity){
+    let m = 40 + (rainProb*0.35) + (humidity*0.18) - (temp*0.55) - (wind*0.25);
+    return Math.max(6, Math.min(94, Math.round(m)));
+}
+
+/* ═══════════════════════ WEATHER FETCH ═══════════════════════ */
+async function loadWeather(lat, lon){
+    currentLat = lat; currentLon = lon;
+    setConnStatus('Fetching…', null);
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+            `&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,cloud_cover,is_day,uv_index` +
+            `&hourly=precipitation_probability,uv_index&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const cur = data.current || {};
+        let rainProb = 15;
+        try {
+            const idx = (data.hourly.time || []).findIndex(t => t === (cur.time || '').slice(0,13)+':00');
+            if (idx >= 0 && data.hourly.precipitation_probability) rainProb = data.hourly.precipitation_probability[idx];
+        } catch(e){}
+        state.temp = Math.round(cur.temperature_2m ?? 30);
+        state.humidity = Math.round(cur.relative_humidity_2m ?? 50);
+        state.wind = Math.round(cur.wind_speed_10m ?? 10);
+        state.cloud = Math.round(cur.cloud_cover ?? 20);
+        state.isDay = (cur.is_day ?? 1) === 1;
+        state.rainProb = Math.round(rainProb ?? 15);
+        state.uv = Math.round((cur.uv_index ?? 5) * 10) / 10;
+        state.moisture = estimateSoilMoisture(state.temp, state.rainProb, state.wind, state.humidity);
+        setConnStatus('Live', true);
+        log('system', `Live weather loaded — ${state.temp}°C, ${state.humidity}% humidity, ${state.rainProb}% rain chance.`);
+        renderAll();
+    } catch(e){
+        setConnStatus('Offline data', false);
+        log('system', 'Could not reach Open-Meteo — using baseline farm conditions.');
+        renderAll();
+    }
+}
+
+function initGeolocation(){
+    if (!navigator.geolocation){ loadWeather(28.6139, 77.2090); return; }
+    navigator.geolocation.getCurrentPosition(
+        pos => loadWeather(pos.coords.latitude, pos.coords.longitude),
+        () => loadWeather(28.6139, 77.2090),
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+}
+initGeolocation();
+
+/* ═══════════════════════ ANIMATED NUMBERS + HERO META ═══════════════════════ */
+const _statAnimCache = {};
+function animateStat(id, target, suffix){
+    suffix = suffix || '';
+    const el = $(id); if (!el) return;
+    const prev = _statAnimCache[id] != null ? _statAnimCache[id] : target;
+    _statAnimCache[id] = target;
+    if (Math.abs(target - prev) < 0.6){ el.textContent = target + suffix; return; }
+    const start = performance.now();
+    const dur = 420;
+    function step(now){
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(prev + (target - prev) * eased) + suffix;
+        if (t < 1) requestAnimationFrame(step);
+        else el.textContent = target + suffix;
+    }
+    requestAnimationFrame(step);
+}
+function updateHeroGauge(pct){
+    const circ = 213.6;
+    const ring = $('heroGaugeRing');
+    if (ring) ring.style.strokeDashoffset = (circ - (circ * pct / 100)).toFixed(1);
+    const txt = $('heroGaugeText');
+    if (txt) txt.textContent = pct + '%';
+}
+function setConnStatus(label, ok){
+    const tag = $('topStatusTag'); if (tag) tag.textContent = label;
+    const dotCls = 'dot-live' + (ok === true ? '' : ok === false ? ' off' : ' pending');
+    const hc = $('heroConn'); if (hc) hc.innerHTML = `<span class="${dotCls}"></span>${label}`;
+}
+function tickClock(){
+    const s = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const a = $('topbarClock'); if (a) a.textContent = s;
+    const b = $('heroClock'); if (b) b.textContent = s;
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ═══════════════════════ RENDER ═══════════════════════ */
+function renderAll(){
+    const rTemp = Math.round(state.temp);
+    const rHum = Math.round(state.humidity);
+    const rRain = Math.round(state.rainProb);
+    const rWind = Math.round(state.wind);
+    const rMoist = Math.round(state.moisture);
+    const rTank = Math.round(state.tank);
+    const rHealth = Math.round(state.cropHealth);
+
+    animateStat('stTemp', rTemp, '°C');
+    animateStat('stHum', rHum, '%');
+    animateStat('stRain', rRain, '%');
+    animateStat('stWind', rWind, ' km/h');
+    $('stUv').textContent = state.uv;
+
+    animateStat('stMoist', rMoist, '%');
+    $('barMoist').style.width = rMoist + '%';
+    animateStat('stHealth', rHealth, '%');
+    $('barHealth').style.width = rHealth + '%';
+    const healthColorClass = state.cropHealth >= 70 ? 'good' : state.cropHealth >= 40 ? 'warn' : 'bad';
+    $('stHealth').className = 'v ' + healthColorClass;
+    animateStat('stTank', rTank, '%');
+    $('barTank').style.width = rTank + '%';
+    $('tankPctScene').textContent = rTank + '%';
+    $('tankFillScene').setAttribute('y', 6 + (62 * (1 - state.tank/100)));
+    $('tankFillScene').setAttribute('height', 62 * (state.tank/100));
+
+    $('fTemp').textContent = rTemp + '°C';
+    $('fMoist').textContent = rMoist + '%';
+    $('fRain').textContent = rRain + '%';
+    $('fWind').textContent = rWind + ' km/h';
+
+    const cond = state.isDay ? wmoCondition(0, true) : 'night';
+    const effCond = !state.isDay ? 'night' : (state.rainProb >= 55 ? 'rain' : (state.cloud >= 55 ? 'cloudy' : 'sunny'));
+    const scene = $('farmScene');
+    scene.className = 'farm-scene cond-' + effCond;
+    $('farmCondLabel').textContent = effCond.charAt(0).toUpperCase()+effCond.slice(1) + (state.eventName ? ' · Event Active' : '');
+    $('windLayer').classList.toggle('show', state.wind >= 16);
+    $('wsCups').style.animationDuration = Math.max(.4, 3 - state.wind/12) + 's';
+
+    const healthClass = state.cropHealth >= 70 ? '' : state.cropHealth >= 40 ? 'warn' : 'bad';
+    $('healthFlag').className = 'health-flag ' + healthClass;
+    $('healthFlag').textContent = !state.running && !state.deployed && state.tick===0 ? 'Standing By' :
+        state.cropHealth >= 70 ? 'Crop Healthy' : state.cropHealth >= 40 ? 'Crop Stressed' : 'Crop Critical';
+
+    updateCropVisuals();
+
+    // progress
+    const pct = Math.min(100, Math.round((state.tick/MAX_TICKS)*100));
+    $('barProgress').style.width = pct + '%';
+    $('miniProgressBar').style.width = pct + '%';
+    $('miniProgressLabel').textContent = `Tick ${state.tick} / ${MAX_TICKS}`;
+    animateStat('stProgressPct', pct, '%');
+    $('stProgressLabel').textContent = state.deployed ? 'Deployed — running live' : state.over ? 'Mission complete' : state.running ? 'In progress' : 'Not started';
+    updateHeroGauge(pct);
+
+    $('twinTag').textContent = state.deployed ? 'Deployed' : state.running ? 'Running' : state.over ? 'Complete' : 'Standby';
+    $('heroModeTag').textContent = $('twinTag').textContent;
+
+    // pipes
+    const flowing = state.pumpOn;
+    ['pipeMain','pipeBranch1','pipeBranch2','pipeBranch3'].forEach(id => $(id).classList.toggle('on', flowing));
+
+    // sensor fault visuals
+    document.querySelectorAll('.sensor-dot').forEach(s => s.classList.toggle('fault', state.sensorFaultTicks > 0));
+
+    // circuit + threshold label
+    $('thresholdVal').textContent = state.threshold + '%';
+    updateCircuit();
+    $('mcuLed').setAttribute('fill', state.pumpOn ? 'var(--cyan2)' : 'var(--green)');
+
+    $('deployBadge').classList.toggle('show', state.deployed);
+    $('btnRun').disabled = state.running || state.deployed;
+    $('btnDeploy').disabled = !(state.over && !state.deployed);
+
+    // pump icon
+    const pumpEl = $('pumpIcon');
+    if (pumpEl) pumpEl.classList.toggle('active', state.pumpOn);
+
+    // new subsystems
+    pushHist();
+    drawSparklines();
+    refreshInspector();
+    refreshHoverTip();
+    renderArduinoFs();
+    updateAudio();
+}
+
+function updateCircuit(){
+    const w = state.wiring;
+    const sensorOk = state.sensorFaultTicks === 0;
+    $('cLine1').setAttribute('stroke', sensorOk ? 'var(--cyan2)' : 'var(--red)');
+    $('cNodeArd').setAttribute('stroke', 'var(--green)');
+    $('cLine2').setAttribute('stroke', w.relay ? 'var(--green)' : 'var(--border)');
+    $('cNodeRelay').setAttribute('stroke', w.relay ? 'var(--green)' : 'var(--muted2)');
+    $('cLine3').setAttribute('stroke', (w.relay && (w.pump||w.servo) && state.pumpOn) ? 'var(--cyan2)' : (w.relay && (w.pump||w.servo)) ? 'var(--green)' : 'var(--border)');
+    $('cNodePump').setAttribute('stroke', (w.pump||w.servo) ? 'var(--green)' : 'var(--muted2)');
+}
+
+/* ═══════════════════════ WIRING EVENTS ═══════════════════════ */
+function bindWire(id, key, cardId){
+    $(id).addEventListener('change', e => {
+        state.wiring[key] = e.target.checked;
+        $(cardId).classList.toggle('wired', e.target.checked);
+        log('arduino', `${cardId.replace('card','')} ${e.target.checked ? 'wired into circuit' : 'disconnected'}.`);
+        updateCircuit();
+    });
+}
+bindWire('wireRelay','relay','cardRelay');
+bindWire('wirePump','pump','cardPump');
+bindWire('wireServo','servo','cardServo');
+bindWire('wireLcd','lcd','cardLcd');
+bindWire('wireLed','led','cardLed');
+bindWire('wireBuzzer','buzzer','cardBuzzer');
+
+$('thresholdSlider').addEventListener('input', e => {
+    state.threshold = parseInt(e.target.value, 10);
+    $('thresholdVal').textContent = state.threshold + '%';
+});
+$('rainSafe').addEventListener('change', e => { state.rainSafe = e.target.checked; });
+
+/* ═══════════════════════ SIGNAL PARTICLE FX ═══════════════════════ */
+function fireParticle(fromEl, colorClass){
+    const scene = $('farmScene');
+    const sceneBox = scene.getBoundingClientRect();
+    const fromBox = fromEl.getBoundingClientRect();
+    const p = document.createElement('div');
+    p.className = 'signal-particle' + (colorClass ? ' ' + colorClass : '');
+    const startX = fromBox.left - sceneBox.left + fromBox.width/2;
+    const startY = fromBox.top - sceneBox.top + fromBox.height/2;
+    p.style.left = startX + 'px';
+    p.style.top = startY + 'px';
+    scene.appendChild(p);
+    const targetX = sceneBox.width * 0.5;
+    const targetY = sceneBox.height * 0.86;
+    requestAnimationFrame(() => {
+        p.style.transition = 'all 1s cubic-bezier(.3,.6,.3,1)';
+        p.style.left = targetX + 'px';
+        p.style.top = targetY + 'px';
+        p.style.opacity = '0.15';
+    });
+    setTimeout(() => p.remove(), 1050);
+}
+function pulseSensors(){
+    ['sensorMoist','sensorTemp','sensorHum','sensorRain','sensorWater','sensorLdr'].forEach((id,i) => {
+        setTimeout(() => { if($(id)) fireParticle($(id), 'blue'); }, i*90);
+    });
+}
+function fireCommandParticle(){
+    const board = $('boardMini'); if (board) fireParticle(board, 'orange');
+}
+function fireFaultParticle(){
+    const ids = ['sensorMoist','sensorTemp','sensorHum','sensorRain','sensorWater','sensorLdr'];
+    const id = ids[Math.floor(Math.random() * ids.length)];
+    if ($(id)) fireParticle($(id), 'red');
+}
+
+/* ═══════════════════════ EVENT TOAST ═══════════════════════ */
+function toast(msg){
+    const t = $('eventToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._h);
+    toast._h = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* ═══════════════════════ EVENT BUTTONS ═══════════════════════ */
+const EVENTS = {
+    heatwave:  { label: 'Heatwave', duration: 6, apply: s => { s.temp = 42; s.cloud = 5; s.rainProb = Math.min(s.rainProb,10);} },
+    rain:      { label: 'Unexpected Rain', duration: 6, apply: s => { s.rainProb = 88; s.cloud = 92; s.moisture = Math.min(94, s.moisture+18);} },
+    night:     { label: 'Nightfall', duration: 6, apply: s => { s.isDay = false; s.temp = Math.max(14, s.temp-8); } },
+    cloudy:    { label: 'Cloud Cover', duration: 6, apply: s => { s.cloud = 85; s.rainProb = 25; } },
+    drysoil:   { label: 'Dry Soil Patch', duration: 4, apply: s => { s.moisture = Math.max(6, s.moisture-30); } },
+    wetsoil:   { label: 'Wet Soil Patch', duration: 4, apply: s => { s.moisture = Math.min(94, s.moisture+30); } },
+    tankempty: { label: 'Water Tank Low', duration: 0, apply: s => { s.tank = 4; } },
+    sensorfault:{ label: 'Sensor Failure', duration: 5, apply: s => { s.sensorFaultTicks = 5; } },
+};
+document.querySelectorAll('.ev-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const ev = EVENTS[btn.dataset.ev];
+        if (!ev) return;
+        ev.apply(state);
+        state.eventName = ev.label;
+        state.eventTimer = ev.duration;
+        toast(`Event: ${ev.label}`);
+        log('alert', `${ev.label} triggered — the automation must adapt.`);
+        renderAll();
+    });
+});
+
+/* ═══════════════════════ SIMULATION TICK ═══════════════════════ */
+function tick(){
+    state.tick++;
+    const wasPumpOn = state.pumpOn;
+
+    // weather drift + event decay
+    if (state.eventTimer > 0){
+        state.eventTimer--;
+        if (state.eventTimer === 0){ log('system', `${state.eventName} has passed.`); state.eventName = null; }
+    } else {
+        state.temp += (Math.random()-0.5)*1.4;
+        state.temp = Math.max(12, Math.min(44, state.temp));
+        state.cloud += (Math.random()-0.5)*8;
+        state.cloud = Math.max(0, Math.min(100, state.cloud));
+        state.rainProb += (Math.random()-0.5)*6;
+        state.rainProb = Math.max(0, Math.min(100, state.rainProb));
+        state.wind += (Math.random()-0.5)*2;
+        state.wind = Math.max(0, Math.min(38, state.wind));
+    }
+    if (state.sensorFaultTicks > 0) state.sensorFaultTicks--;
+
+    // evaporation
+    const evapRate = 1.1 + (state.temp/42)*2.4 - (state.humidity/100)*1.1 + (state.wind/38)*0.6;
+    state.moisture = Math.max(0, state.moisture - Math.max(0.3, evapRate));
+
+    // arduino decision
+    const wiringReady = state.wiring.relay && (state.wiring.pump || state.wiring.servo);
+    const sensorBlind = state.sensorFaultTicks > 0 && !state.wiring.buzzer;
+    let decidePump = state.pumpOn;
+
+    if (!wiringReady){
+        decidePump = false;
+    } else if (sensorBlind){
+        // holds last state, arduino "flying blind"
+        if (state.tick % 6 === 0) log('alert', 'Sensor signal lost — Arduino cannot read soil moisture. Wire a buzzer to catch this sooner.');
+    } else {
+        if (state.sensorFaultTicks > 0 && state.wiring.buzzer){
+            if (state.tick % 3 === 0) log('alert', 'Buzzer sounding — sensor fault detected, irrigation paused for safety.');
+            decidePump = false;
+        } else if (state.rainSafe && state.rainProb >= 60){
+            if (decidePump) log('arduino', 'Rain-safe cutoff engaged — pump held OFF, rain likely.');
+            decidePump = false;
+        } else if (state.tank <= 0){
+            if (decidePump) log('alert', 'Water tank empty — pump cannot run.');
+            decidePump = false;
+        } else if (state.moisture < state.threshold){
+            if (!decidePump) log('arduino', `Soil moisture ${Math.round(state.moisture)}% below threshold ${state.threshold}% — relay closed, pump ON.`);
+            decidePump = true;
+        } else if (state.moisture > state.threshold + 12){
+            if (decidePump) log('arduino', `Soil moisture recovered to ${Math.round(state.moisture)}% — pump OFF.`);
+            decidePump = false;
+        }
+    }
+    state.pumpOn = decidePump;
+    if (state.pumpOn && !wasPumpOn) fireCommandParticle();
+    if (state.sensorFaultTicks > 0 && state.tick % 3 === 0) fireFaultParticle();
+
+    // pump effects
+    if (state.pumpOn && state.tank > 0){
+        const precision = state.wiring.servo ? 0.55 : 1;
+        const recover = (state.wiring.servo ? 5.5 : 8.5);
+        state.moisture = Math.min(96, state.moisture + recover);
+        const litersPerTick = 6 * precision;
+        state.tank = Math.max(0, state.tank - litersPerTick*0.9);
+        state.waterUsedL += litersPerTick;
+        state.activeTicks++;
+        pulseSensors();
+    }
+
+    // failure tracking
+    if (state.pumpOn && state.rainProb >= 60){
+        state.wasteTicks++;
+        state.cropHealth = Math.max(0, state.cropHealth - 1.4); // root damage from waterlogging
+        if (state.wasteTicks === 3) log('alert', 'Pump running while raining — water wasted, roots at risk.');
+    }
+    if (!state.pumpOn && state.moisture < 15){
+        state.dryTicks++;
+    } else {
+        state.dryTicks = Math.max(0, state.dryTicks-1);
+    }
+
+    // crop health drift toward target based on moisture band (ideal 35-70)
+    let target;
+    if (state.moisture < 20) target = 15;
+    else if (state.moisture < 35) target = 55;
+    else if (state.moisture <= 70) target = 92;
+    else if (state.moisture <= 85) target = 65;
+    else target = 40;
+    state.cropHealth += (target - state.cropHealth) * 0.14;
+    state.cropHealth = Math.max(0, Math.min(100, state.cropHealth));
+    state.healthHistory.push(state.cropHealth);
+
+    renderAll();
+
+    // failure conditions (hard fail)
+    if (state.dryTicks >= 7){
+        endMission(false, 'Plants dried out — irrigation never activated in time.');
+        return;
+    }
+    if (state.wasteTicks >= 8){
+        endMission(false, 'Pump left on through repeated rain — roots damaged beyond recovery.');
+        return;
+    }
+
+    if (state.tick >= MAX_TICKS){
+        endMission(state.cropHealth >= 55, null);
+    }
+}
+
+/* ═══════════════════════ RUN / RESET ═══════════════════════ */
+$('btnRun').addEventListener('click', () => {
+    if (state.running || state.deployed) return;
+    state.running = true;
+    const m = MISSIONS[missionIdx];
+    log('system', 'Simulation started — mission clock running.');
+    log('arduino', `Automation rule set: irrigate below ${state.threshold}% soil moisture${state.rainSafe ? ', rain-safe cutoff active' : ''}.`);
+    if (m.ev && EVENTS[m.ev]){
+        setTimeout(() => {
+            if (!state.running || state.over) return;
+            const ev = EVENTS[m.ev];
+            ev.apply(state);
+            state.eventName = ev.label;
+            state.eventTimer = ev.duration;
+            toast(`Mission Event: ${ev.label}`);
+            log('alert', `${ev.label} triggered by mission scenario.`);
+            renderAll();
+        }, TICK_MS*3);
+    }
+    renderAll();
+    intervalRef = setInterval(tick, TICK_MS);
+});
+
+$('btnReset').addEventListener('click', resetMission);
+function resetMission(){
+    clearInterval(intervalRef);
+    intervalRef = null;
+    const w = state.wiring, th = state.threshold, rs = state.rainSafe;
+    state = {
+        tick: 0, running: false, deployed: false, over: false,
+        temp: state.temp, humidity: state.humidity, rainProb: state.rainProb, wind: state.wind, uv: state.uv, cloud: state.cloud, isDay: state.isDay,
+        moisture: estimateSoilMoisture(state.temp, state.rainProb, state.wind, state.humidity),
+        cropHealth: 78, tank: 62, pumpOn: false, waterUsedL: 0,
+        dryTicks: 0, wasteTicks: 0, activeTicks: 0, healthHistory: [],
+        eventTimer: 0, eventName: null, sensorFaultTicks: 0,
+        threshold: th, rainSafe: rs, wiring: w
+    };
+    $('deployBadge').classList.remove('show');
+    $('aiCallout').classList.remove('show');
+    log('system', 'Mission reset. Farm restored to baseline conditions.');
+    renderAll();
+}
+
+/* ═══════════════════════ END MISSION ═══════════════════════ */
+function endMission(success, failReason){
+    clearInterval(intervalRef);
+    intervalRef = null;
+    state.running = false;
+    state.over = true;
+    renderAll();
+
+    const avgHealth = state.healthHistory.length ? Math.round(state.healthHistory.reduce((a,b)=>a+b,0)/state.healthHistory.length) : Math.round(state.cropHealth);
+    const baselineWater = MAX_TICKS * 8.5;
+    const waterSaved = Math.max(0, Math.round(baselineWater - state.waterUsedL));
+    const autoEff = Math.round(Math.min(100, 100 - (state.wasteTicks*8) - (state.dryTicks*8)));
+    const energy = Math.round(state.activeTicks * 4.2);
+    let score = Math.round(avgHealth*0.5 + Math.min(100,waterSaved/baselineWater*100)*0.3 + Math.max(0,autoEff)*0.2);
+    score = Math.max(0, Math.min(100, score));
+    const rating = score >= 90 ? 'S' : score >= 78 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
+
+    $('mWaterSaved').textContent = waterSaved + 'L';
+    $('mCropHealth').textContent = avgHealth + '%';
+    $('mAutoEff').textContent = Math.max(0,autoEff) + '%';
+    $('mEnergy').textContent = energy + ' Wh';
+    $('mScore').textContent = score;
+    $('mRating').textContent = rating;
+
+    const card = $('modalCard');
+    if (success){
+        card.classList.remove('fail');
+        $('modalIcon').innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        $('modalTitle').textContent = 'Mission Success';
+        $('modalSub').textContent = 'Your automation kept the crop healthy and used water wisely.';
+        log('ai', `Mission complete — score ${score}, rating ${rating}. Nicely engineered.`);
+    } else {
+        card.classList.add('fail');
+        $('modalIcon').innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        $('modalTitle').textContent = 'Mission Failed';
+        $('modalSub').textContent = failReason || `Crop health finished at ${avgHealth}% — below the 55% survival line.`;
+        log('alert', `Mission failed — ${failReason || 'crop health too low.'}`);
+    }
+    $('modalOverlay').classList.add('show');
+}
+
+$('btnModalClose').addEventListener('click', () => $('modalOverlay').classList.remove('show'));
+$('btnModalDeploy').addEventListener('click', deploy);
+$('btnDeploy').addEventListener('click', deploy);
+
+function deploy(){
+    if (!state.over) return;
+    $('modalOverlay').classList.remove('show');
+    state.deployed = true;
+    state.over = false;
+    log('system', 'Smart Farm deployed — automation now runs continuously with live weather.');
+    renderAll();
+    intervalRef = setInterval(() => {
+        state.tick++;
+        tick_deployLoop();
+    }, TICK_MS);
+    // periodically refresh real weather while deployed
+    setInterval(() => { if (state.deployed && currentLat != null) loadWeather(currentLat, currentLon); }, 45000);
+}
+function tick_deployLoop(){
+    // same physics as tick() but never ends the mission
+    state.temp += (Math.random()-0.5)*1.2;
+    state.temp = Math.max(12, Math.min(44, state.temp));
+    state.rainProb += (Math.random()-0.5)*5;
+    state.rainProb = Math.max(0, Math.min(100, state.rainProb));
+    const evapRate = 1.1 + (state.temp/42)*2.4 - (state.humidity/100)*1.1;
+    state.moisture = Math.max(0, state.moisture - Math.max(0.3, evapRate));
+    const wiringReady = state.wiring.relay && (state.wiring.pump || state.wiring.servo);
+    if (wiringReady){
+        if (state.rainSafe && state.rainProb >= 60){ state.pumpOn = false; }
+        else if (state.tank <= 0){ state.pumpOn = false; }
+        else if (state.moisture < state.threshold){ state.pumpOn = true; }
+        else if (state.moisture > state.threshold + 12){ state.pumpOn = false; }
+    } else { state.pumpOn = false; }
+    if (state.pumpOn && state.tank > 0){
+        state.moisture = Math.min(96, state.moisture + 8);
+        state.tank = Math.max(0, state.tank - 5);
+        state.waterUsedL += 6;
+        pulseSensors();
+    } else if (state.tank < 40) {
+        state.tank = Math.min(100, state.tank + 0.6); // slow refill simulation
+    }
+    let target = state.moisture < 20 ? 15 : state.moisture < 35 ? 55 : state.moisture <= 70 ? 92 : state.moisture <= 85 ? 65 : 40;
+    state.cropHealth += (target - state.cropHealth) * 0.1;
+    state.cropHealth = Math.max(0, Math.min(100, state.cropHealth));
+    renderAll();
+}
+
+/* ═══════════════════════ AI EXPLAIN ═══════════════════════ */
+$('btnExplain').addEventListener('click', () => {
+    const items = [];
+    const w = state.wiring;
+    if (state.pumpOn){
+        items.push(`Irrigation started because soil moisture (${Math.round(state.moisture)}%) dropped below your ${state.threshold}% threshold — the relay closed and the pump began drawing from the tank.`);
+    } else if (w.relay && (w.pump||w.servo)) {
+        items.push(`The pump is currently OFF because soil moisture is above your threshold, or a safety rule (rain-safe cutoff, empty tank) is holding it back.`);
+    } else {
+        items.push(`The pump can't run yet — it needs both the Relay and the Pump (or Servo Valve) wired into the circuit before Arduino can act on sensor data.`);
+    }
+    items.push(`The relay exists because the Arduino's digital pins can't safely switch a pump's motor current directly — it's a low-power switch controlling a high-power circuit.`);
+    items.push(`Soil moisture matters because it's the one signal that ties weather, evaporation, and root health together — too low and roots stress, too high and roots suffocate or rot.`);
+    if (state.waterUsedL < MAX_TICKS*8.5){
+        items.push(`Water savings increased because irrigation only fires when needed, instead of running on a fixed timer — that's the entire point of closed-loop automation.`);
+    }
+    if (state.rainSafe){
+        items.push(`Rain-safe cutoff is holding the pump off whenever rain probability is high, so you don't waterlog the field right before a storm.`);
+    }
+    const list = $('aiCalloutList');
+    list.innerHTML = '';
+    items.forEach(t => { const li = document.createElement('li'); li.textContent = t; list.appendChild(li); });
+    $('aiCallout').classList.add('show');
+    log('ai', 'Explain requested — reasoning summarized above the console.');
+});
+
+/* ═══════════════════════ SENSOR INSPECTOR ═══════════════════════ */
+const SENSOR_INFO = {
+    moist: { name: 'Soil Moisture Sensor', unit: '%', pin: 'Analog · A0', principle: 'Capacitive probe measures the dielectric permittivity of the soil to estimate volumetric water content.', why: 'The single signal irrigation decisions are built on — too low stresses roots, too high suffocates them.' },
+    temp:  { name: 'Temperature Sensor', unit: '°C', pin: 'Digital · D2 (DHT11)', principle: 'Thermistor-based digital sensor reports ambient air temperature once per read cycle.', why: 'Drives evaporation-rate estimates and heatwave detection.' },
+    hum:   { name: 'Humidity Sensor', unit: '%', pin: 'Digital · D2 (DHT11, shared bus)', principle: 'Capacitive humidity element reports relative humidity alongside temperature on the same bus.', why: 'High humidity slows evaporation, so the Arduino can irrigate less often.' },
+    rain:  { name: 'Rain Sensor', unit: '%', pin: 'Analog · A1', principle: 'Resistive rain plate — falling water bridges conductive traces and lowers measured resistance.', why: 'Feeds the rain-safe cutoff so the pump never runs into an incoming storm.' },
+    water: { name: 'Water Level Sensor', unit: '%', pin: 'Analog · A2', principle: 'Float/capacitive strip reports how full the storage tank currently is.', why: 'Stops the pump from running dry and burning out the motor.' },
+    ldr:   { name: 'LDR · Light Sensor', unit: '% light', pin: 'Analog · A3', principle: 'Light-dependent resistor changes resistance with ambient light level, used to infer day/night and cloud cover.', why: 'Controls greenhouse lighting and feeds the digital twin\'s day/night cycle.' },
+};
+let inspectorActiveKey = null;
+function sensorLiveValue(key){
+    switch(key){
+        case 'moist': return Math.round(state.moisture);
+        case 'temp': return Math.round(state.temp);
+        case 'hum': return Math.round(state.humidity);
+        case 'rain': return Math.round(state.rainProb);
+        case 'water': return Math.round(state.tank);
+        case 'ldr': return Math.round(state.isDay ? Math.max(4, 100 - state.cloud) : 3);
+    }
+    return '--';
+}
+function showSensorInspector(key){
+    const info = SENSOR_INFO[key]; if (!info) return;
+    inspectorActiveKey = key;
+    $('inspTag').textContent = 'Sensor Inspector';
+    refreshInspector();
+    $('inspectorOverlay').classList.add('show');
+    log('sensor', `${info.name} inspector opened — pin ${info.pin}.`);
+}
+function refreshInspector(){
+    if (!inspectorActiveKey) return;
+    const info = SENSOR_INFO[inspectorActiveKey]; if (!info) return;
+    const faulted = state.sensorFaultTicks > 0;
+    $('inspName').textContent = info.name;
+    $('inspValue').textContent = faulted ? '—' : sensorLiveValue(inspectorActiveKey);
+    $('inspUnit').textContent = info.unit;
+    const rows = [
+        ['Arduino Pin', info.pin],
+        ['Status', faulted ? '<span style="color:var(--red)">FAULT</span>' : '<span style="color:var(--green)">OK · Reading</span>'],
+        ['Working Principle', info.principle],
+    ];
+    $('inspRows').innerHTML = rows.map(r => `<div class="insp-row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join('');
+    $('inspNote').innerHTML = `<b>Why it matters:</b> ${info.why}`;
+}
+document.querySelectorAll('.sensor-dot[data-sensor]').forEach(dot => {
+    dot.style.cursor = 'pointer';
+    dot.addEventListener('click', () => showSensorInspector(dot.dataset.sensor));
+});
+$('inspClose').addEventListener('click', () => { $('inspectorOverlay').classList.remove('show'); inspectorActiveKey = null; });
+$('inspectorOverlay').addEventListener('click', e => { if (e.target.id === 'inspectorOverlay'){ $('inspectorOverlay').classList.remove('show'); inspectorActiveKey = null; } });
+
+/* ═══════════════════════ HOVER INSPECTION ═══════════════════════ */
+const HOVER_INFO = {
+    house: () => ({ title: 'Farmhouse', rows: [['Power Source', state.isDay ? 'Solar + Grid' : 'Grid + Battery'], ['House Lights', state.isDay ? 'Off' : 'On'], ['Role', 'Operator base station']] }),
+    greenhouse: () => ({ title: 'Greenhouse', rows: [['Internal Temp', Math.round(state.temp + 2) + '°C'], ['Humidity', Math.round(Math.min(100, state.humidity + 10)) + '%'], ['Ventilation', state.temp > 32 ? 'Vents open' : 'Closed'], ['Grow Lights', state.isDay ? 'Off' : 'On']] }),
+    solar: () => ({ title: 'Solar Panel', rows: [['Power Output', (state.isDay ? Math.round(40 + (100 - state.cloud) * 0.6) : 0) + ' W'], ['Efficiency', state.isDay ? Math.round(70 + (100 - state.cloud) * 0.25) + '%' : '0% · night'], ['Status', state.isDay ? 'Generating' : 'Idle']] }),
+    weather: () => ({ title: 'Weather Station', rows: [['Wind Speed', Math.round(state.wind) + ' km/h'], ['Rain Probability', Math.round(state.rainProb) + '%'], ['Pressure (est.)', Math.round(1008 - state.wind * 0.4) + ' hPa'], ['UV Index', state.uv]] }),
+    tank: () => {
+        const level = Math.round(state.tank);
+        let remain = 'Not draining';
+        if (state.pumpOn && (state.running || state.deployed)) {
+            const ticksLeft = state.tank / 5;
+            const secs = Math.max(0, Math.round(ticksLeft * (TICK_MS / 1000)));
+            remain = secs + 's at current draw';
+        }
+        return { title: 'Water Storage Tank', rows: [['Capacity', '500 L (sim.)'], ['Current Level', level + '%'], ['Est. Remaining', remain]] };
+    },
+    trees: () => ({ title: 'Windbreak Trees', rows: [['Sway', state.wind >= 16 ? 'Strong — high wind' : 'Gentle breeze'], ['Role', 'Windbreak & shade'], ['Wind Speed', Math.round(state.wind) + ' km/h']] }),
+    crops: () => ({ title: 'Crop Field', rows: [['Crop Health', Math.round(state.cropHealth) + '%'], ['Plant Count', CROP_COUNT], ['Condition', state.cropHealth >= 70 ? 'Healthy' : state.cropHealth >= 40 ? 'Stressed' : 'Critical'], ['Soil Moisture', Math.round(state.moisture) + '%']] }),
+    pump: () => ({ title: 'Irrigation Pump', rows: [['Status', state.pumpOn ? 'Running' : 'Idle'], ['Flow Rate', state.pumpOn ? (state.wiring.servo ? '3.3 L/min' : '5.4 L/min') : '0 L/min'], ['Circuit Wired', (state.wiring.relay && (state.wiring.pump || state.wiring.servo)) ? 'Yes' : 'No']] }),
+};
+let hoverKey = null;
+function positionHoverTip(e){
+    const tip = $('hoverTip');
+    let x = e.clientX + 16, y = e.clientY + 16;
+    const maxX = window.innerWidth - 224, maxY = window.innerHeight - 110;
+    if (x > maxX) x = e.clientX - 224;
+    if (y > maxY) y = e.clientY - 110;
+    tip.style.left = Math.max(6, x) + 'px';
+    tip.style.top = Math.max(6, y) + 'px';
+}
+function refreshHoverTip(e){
+    if (!hoverKey || !HOVER_INFO[hoverKey]) return;
+    const data = HOVER_INFO[hoverKey]();
+    $('htTitle').textContent = data.title;
+    $('htRows').innerHTML = data.rows.map(r => `<div class="ht-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+    if (e) positionHoverTip(e);
+}
+document.querySelectorAll('.inspect-hoverable[data-inspect]').forEach(el => {
+    el.addEventListener('mouseenter', e => { hoverKey = el.dataset.inspect; refreshHoverTip(e); $('hoverTip').classList.add('show'); });
+    el.addEventListener('mousemove', positionHoverTip);
+    el.addEventListener('mouseleave', () => { hoverKey = null; $('hoverTip').classList.remove('show'); });
+});
+
+/* ═══════════════════════ LIVE TELEMETRY SPARKLINES ═══════════════════════ */
+const HIST_LEN = 40;
+const hist = { temp: [], hum: [], moist: [], tank: [], health: [] };
+function pushHist(){
+    hist.temp.push(state.temp); hist.hum.push(state.humidity); hist.moist.push(state.moisture);
+    hist.tank.push(state.tank); hist.health.push(state.cropHealth);
+    Object.keys(hist).forEach(k => { if (hist[k].length > HIST_LEN) hist[k].shift(); });
+}
+function sparkPath(arr, min, max){
+    if (arr.length < 2) return null;
+    const w = 100, h = 34;
+    const pts = arr.map((v, i) => {
+        const x = i / (arr.length - 1) * w;
+        const t = Math.max(0, Math.min(1, (v - min) / ((max - min) || 1)));
+        return [x, (h - t * h) + 1];
+    });
+    const line = 'M' + pts.map(p => p.join(',')).join(' L');
+    return { line, fill: line + ` L${w},${h + 1} L0,${h + 1} Z` };
+}
+function drawSparklines(){
+    const specs = [
+        ['temp', 10, 46, 'sparkTemp', 'sparkTempFill', 'tcTemp', '°C'],
+        ['hum', 0, 100, 'sparkHum', 'sparkHumFill', 'tcHum', '%'],
+        ['moist', 0, 100, 'sparkMoist', 'sparkMoistFill', 'tcMoist', '%'],
+        ['tank', 0, 100, 'sparkTank', 'sparkTankFill', 'tcTank', '%'],
+        ['health', 0, 100, 'sparkHealth', 'sparkHealthFill', 'tcHealth', '%'],
+    ];
+    specs.forEach(([key, min, max, lineId, fillId, valId, unit]) => {
+        const p = sparkPath(hist[key], min, max);
+        if (p){ $(lineId).setAttribute('d', p.line); $(fillId).setAttribute('d', p.fill); }
+        const last = hist[key][hist[key].length - 1];
+        if (last != null) $(valId).textContent = Math.round(last) + unit;
+    });
+}
+
+/* ═══════════════════════ IOT CLOUD STATUS WIDGET ═══════════════════════ */
+let iotPacketCount = 0;
+function updateIotWidget(){
+    const online = state.running || state.deployed;
+    $('iotDot').classList.toggle('off', !online);
+    $('iotArduino').innerHTML = online ? '<span class="led"></span>Online' : '<span class="led off"></span>Offline';
+    $('iotCloud').innerHTML = '<span class="led"></span>Connected';
+    if (online) iotPacketCount += Math.floor(Math.random() * 3) + 1;
+    $('iotPackets').textContent = iotPacketCount.toLocaleString();
+    $('iotMqtt').textContent = online ? 'publishing' : 'idle';
+    $('iotSync').textContent = online ? 'synced' : 'idle';
+    $('iotLatency').textContent = online ? (Math.round(28 + Math.random() * 70) + ' ms') : '-- ms';
+    $('iotApi').innerHTML = online ? '200 OK' : '<span class="v amber">standby</span>';
+}
+$('iotHead').addEventListener('click', () => $('iotWidget').classList.toggle('collapsed'));
+setInterval(updateIotWidget, 1400);
+
+/* ═══════════════════════ ARDUINO FULLSCREEN VISUALIZER ═══════════════════════ */
+$('boardMini').addEventListener('dblclick', () => { $('arduinoFsOverlay').classList.add('show'); renderArduinoFs(); });
+$('afsClose').addEventListener('click', () => $('arduinoFsOverlay').classList.remove('show'));
+$('arduinoFsOverlay').addEventListener('click', e => { if (e.target.id === 'arduinoFsOverlay') $('arduinoFsOverlay').classList.remove('show'); });
+function renderArduinoFs(){
+    const w = state.wiring;
+    const dataActive = state.running || state.deployed;
+    const relayOn = w.relay && state.pumpOn;
+    const faulted = state.sensorFaultTicks > 0;
+    $('fsLedTx').setAttribute('fill', dataActive ? 'var(--cyan2)' : 'var(--muted2)');
+    $('fsLedRx').setAttribute('fill', dataActive ? 'var(--green)' : 'var(--muted2)');
+    $('fsLedStatus').setAttribute('fill', faulted ? 'var(--red)' : (dataActive ? 'var(--green)' : 'var(--muted2)'));
+    $('fsLedRelay').setAttribute('fill', relayOn ? 'var(--cyan2)' : 'var(--muted2)');
+    $('fsLedGpio1').setAttribute('fill', w.relay ? 'var(--green)' : 'var(--muted2)');
+    $('fsLedGpio2').setAttribute('fill', dataActive ? 'var(--cyan2)' : 'var(--muted2)');
+    $('fsLedGpio3').setAttribute('fill', (w.pump || w.servo) ? 'var(--green)' : 'var(--muted2)');
+    $('gpioDotIn').classList.toggle('active', dataActive);
+    $('gpioDotOut').classList.toggle('active', relayOn);
+    $('legPower').className = 'led on-green';
+    $('legTx').className = 'led' + (dataActive ? ' on-cyan' : '');
+    $('legTxTxt').textContent = dataActive ? 'Streaming sensor data' : 'Idle';
+    $('legRx').className = 'led' + (dataActive ? ' on-green' : '');
+    $('legRxTxt').textContent = dataActive ? 'Acknowledging commands' : 'Idle';
+    $('legRelay').className = 'led' + (relayOn ? ' on-cyan' : '');
+    $('legRelayTxt').textContent = relayOn ? 'Closed — pump powered' : 'Open';
+    $('legStatus').className = 'led' + (faulted ? ' on-red' : (dataActive ? ' on-green' : ''));
+    $('legStatusTxt').textContent = faulted ? 'Fault detected' : (dataActive ? 'Nominal' : 'Standby');
+    $('legFault').className = 'led' + (faulted ? ' on-amber' : '');
+    $('legFaultTxt').textContent = faulted ? 'Sensor signal lost' : 'None';
+}
+
+/* ═══════════════════════ AMBIENT AUDIO ═══════════════════════ */
+let audioCtx = null, muted = true, masterGain, windGain, rainGain, pumpGain, pumpOsc;
+function initAudio(){
+    if (audioCtx) return;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain(); masterGain.gain.value = 0; masterGain.connect(audioCtx.destination);
+
+        const bufSize = 2 * audioCtx.sampleRate;
+        const noiseBuffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const windSrc = audioCtx.createBufferSource(); windSrc.buffer = noiseBuffer; windSrc.loop = true;
+        const windFilter = audioCtx.createBiquadFilter(); windFilter.type = 'bandpass'; windFilter.frequency.value = 500; windFilter.Q.value = 0.6;
+        windGain = audioCtx.createGain(); windGain.gain.value = 0;
+        windSrc.connect(windFilter); windFilter.connect(windGain); windGain.connect(masterGain); windSrc.start();
+
+        const rainSrc = audioCtx.createBufferSource(); rainSrc.buffer = noiseBuffer; rainSrc.loop = true;
+        const rainFilter = audioCtx.createBiquadFilter(); rainFilter.type = 'highpass'; rainFilter.frequency.value = 2200;
+        rainGain = audioCtx.createGain(); rainGain.gain.value = 0;
+        rainSrc.connect(rainFilter); rainFilter.connect(rainGain); rainGain.connect(masterGain); rainSrc.start();
+
+        pumpOsc = audioCtx.createOscillator(); pumpOsc.type = 'sawtooth'; pumpOsc.frequency.value = 85;
+        pumpGain = audioCtx.createGain(); pumpGain.gain.value = 0;
+        pumpOsc.connect(pumpGain); pumpGain.connect(masterGain); pumpOsc.start();
+    } catch(e){ audioCtx = null; }
+}
+function setMuted(m){
+    muted = m;
+    $('muteToggle').classList.toggle('muted', muted);
+    if (audioCtx && masterGain) masterGain.gain.setTargetAtTime(muted ? 0 : 0.5, audioCtx.currentTime, 0.35);
+}
+$('muteToggle').addEventListener('click', () => {
+    if (!audioCtx) initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    setMuted(!muted);
+});
+function blip(freq, dur, type, gainVal){
+    if (!audioCtx || muted) return;
+    const o = audioCtx.createOscillator(); o.type = type || 'square'; o.frequency.value = freq;
+    const g = audioCtx.createGain(); g.gain.value = 0.0001;
+    o.connect(g); g.connect(masterGain);
+    const t = audioCtx.currentTime;
+    g.gain.linearRampToValueAtTime(gainVal || 0.15, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.02);
+}
+function playRelayClick(){ blip(1200, 0.06, 'square', 0.12); }
+function playBuzzer(){ blip(2400, 0.12, 'square', 0.1); }
+function playBirdChirp(){
+    if (!audioCtx || muted) return;
+    const base = 1800 + Math.random() * 800;
+    blip(base, 0.09, 'sine', 0.05);
+    setTimeout(() => blip(base * 1.15, 0.07, 'sine', 0.04), 90);
+}
+let birdTimer = null;
+function scheduleBirds(){
+    clearTimeout(birdTimer);
+    birdTimer = setTimeout(() => { if (state.isDay && !muted) playBirdChirp(); scheduleBirds(); }, 4000 + Math.random() * 9000);
+}
+scheduleBirds();
+let prevPumpOnAudio = false;
+function updateAudio(){
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const active = state.running || state.deployed;
+    if (windGain) windGain.gain.setTargetAtTime(muted ? 0 : (active ? Math.min(0.09, state.wind / 38 * 0.09) : 0), now, 0.4);
+    const isRaining = active && state.rainProb >= 55;
+    if (rainGain) rainGain.gain.setTargetAtTime(muted ? 0 : (isRaining ? 0.05 : 0), now, 0.6);
+    if (pumpGain){
+        pumpGain.gain.setTargetAtTime(muted ? 0 : (state.pumpOn ? 0.06 : 0), now, 0.3);
+        if (pumpOsc) pumpOsc.frequency.setTargetAtTime(state.pumpOn ? 85 + Math.random() * 4 : 85, now, 0.5);
+    }
+    if (state.pumpOn !== prevPumpOnAudio && active){ playRelayClick(); }
+    prevPumpOnAudio = state.pumpOn;
+    if (state.sensorFaultTicks > 0 && state.wiring.buzzer && state.tick % 3 === 0) playBuzzer();
+}
+
+/* ═══════════════════════ MANUAL COLLAPSE ═══════════════════════ */
+$('manualHead').addEventListener('click', () => {
+    const panel = $('manualPanel');
+    const collapsed = panel.classList.toggle('collapsed');
+    $('manualToggleBtn').setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+});
+
+/* ═══════════════════════ INIT ═══════════════════════ */
+applyMission();
+updateIotWidget();
+renderAll();
+
+})();
+</script>
+</body>
+</html>

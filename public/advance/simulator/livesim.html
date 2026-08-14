@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ARCIO Live — Smart City Mission Simulator</title>
+<link rel="icon" type="image/png" href="../../assets/logo.png">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+        --bg: #060A13;
+        --bg2: #0A1120;
+        --bg3: #0D1526;
+        --bg4: #08101E;
+        --blue: #3B82F6;
+        --blue-deep: #1D4ED8;
+        --cyan: #5EEAD4;
+        --cyan2: #38BDF8;
+        --ink: #EAF1FF;
+        --muted: #6B7DA0;
+        --muted2: #4A5A7A;
+        --border: rgba(94, 234, 212, 0.10);
+        --border-blue: rgba(59, 130, 246, 0.18);
+        --green: #34D399;
+        --green2: #10B981;
+        --amber: #F59E0B;
+        --red: #F87171;
+        --violet: #C084FC;
+        --panel-bg: rgba(10, 17, 32, 0.92);
+        --panel-border: rgba(94, 234, 212, 0.10);
+        --radius: 12px;
+        --radius-sm: 8px;
+        --bg-grid-color: rgba(56, 189, 248, .05);
+    }
+
+    [data-theme="light"] {
+        --bg: #F0F4FF;
+        --bg2: #E8EDF8;
+        --bg3: #DDE3F0;
+        --bg4: #EDF1FA;
+        --ink: #0A1020;
+        --muted: #4A5A7A;
+        --muted2: #7A8AAA;
+        --border: rgba(59, 130, 246, 0.15);
+        --panel-bg: rgba(255, 255, 255, 0.92);
+        --panel-border: rgba(59, 130, 246, 0.14);
+        --bg-grid-color: rgba(59, 130, 246, 0.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: 'Inter', sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        min-height: 100vh;
+        transition: background .35s ease, color .35s ease;
+        overflow-x: hidden;
+    }
+    ::selection { background: rgba(56,189,248,.25); color: var(--ink); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(56,189,248,.15); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56,189,248,.28); }
+
+    .bg-grid {
+        position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .5;
+        background-image: linear-gradient(var(--bg-grid-color) 1px, transparent 1px),
+                           linear-gradient(90deg, var(--bg-grid-color) 1px, transparent 1px);
+        background-size: 42px 42px;
+    }
+    .bg-atmos {
+        position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(56,189,248,.08) 0%, transparent 65%);
+    }
+
+    a { color: inherit; }
+    .fade-up { animation: fadeUp .6s cubic-bezier(.2,.8,.3,1) both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ════════════ TOPBAR ════════════ */
+    .topbar {
+        position: sticky; top: 0; z-index: 60;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 14px; min-height: 56px; padding: 10px 22px;
+        background: rgba(6,10,19,.86); backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--border);
+    }
+    [data-theme="light"] .topbar { background: rgba(240,244,255,.86); }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .brand-mark {
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 16px;
+        background: linear-gradient(135deg, var(--cyan2), var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent;
+        flex-shrink: 0; overflow: visible;
+    }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; display: block; background: none; }
+    .brand-txt { display: flex; flex-direction: column; line-height: 1.15; }
+    .brand-txt b { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 14px; letter-spacing: -.01em; }
+    .brand-txt span { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .deploy-badge {
+        display: none; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace;
+        font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+        color: var(--cyan2); background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.3);
+        padding: 5px 10px; border-radius: 999px;
+    }
+    .deploy-badge.show { display: inline-flex; }
+    .deploy-badge i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan2); animation: pulseDot 1.4s ease-in-out infinite; }
+    @keyframes pulseDot { 0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(56,189,248,.5);} 50%{ opacity:.55; box-shadow:0 0 0 5px rgba(56,189,248,0);} }
+
+    .btn {
+        display: inline-flex; align-items: center; gap: 7px; font-family: 'Inter', sans-serif;
+        font-weight: 600; font-size: 12.5px; padding: 8px 14px; border-radius: 8px;
+        border: 1px solid var(--border); cursor: pointer; transition: all .18s ease; white-space: nowrap;
+        background: transparent; color: var(--ink);
+    }
+    .btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+    .btn-ghost:hover { border-color: rgba(56,189,248,.32); color: var(--ink); background: rgba(56,189,248,.05); }
+    .btn-outline { background: transparent; border-color: rgba(56,189,248,.28); color: var(--cyan2); }
+    .btn-outline:hover { background: rgba(56,189,248,.08); border-color: rgba(56,189,248,.45); }
+    .btn-primary { background: linear-gradient(135deg, var(--cyan2), var(--blue)); color: #041019; border-color: transparent; box-shadow: 0 6px 18px rgba(56,189,248,.25); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(56,189,248,.35); }
+    .btn-amber { background: transparent; border-color: rgba(245,158,11,.35); color: var(--amber); }
+    .btn-amber:hover { background: rgba(245,158,11,.08); }
+    .btn-blue { background: transparent; border-color: rgba(192,132,252,.35); color: var(--violet); }
+    .btn-blue:hover { background: rgba(192,132,252,.08); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn:active:not(:disabled) { transform: scale(.95); }
+    .theme-toggle:active { transform: scale(.9); }
+    .theme-toggle { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .18s ease; }
+    .theme-toggle:hover { color: var(--ink); border-color: rgba(56,189,248,.32); transform: translateY(-1px); }
+
+    /* ════════════ LAYOUT ════════════ */
+    main { position: relative; z-index: 1; max-width: 1640px; margin: 0 auto; padding: 20px 22px 60px; }
+
+    .mission-hero { padding: 4px 2px 20px; }
+    .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: wrap; }
+    .hero-text { flex: 1; min-width: 280px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--cyan2); margin-bottom: 8px; }
+    .eyebrow::before { content: ''; width: 16px; height: 1px; background: var(--cyan2); }
+    .mission-hero h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 27px; letter-spacing: -.02em; }
+    .mission-hero p { font-family: 'Inter'; font-size: 13.5px; color: var(--muted); margin-top: 6px; max-width: 720px; line-height: 1.55; }
+
+    .hero-meta {
+        display: flex; align-items: center; gap: 20px; padding: 13px 20px 13px 16px;
+        background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px;
+        backdrop-filter: blur(12px); box-shadow: 0 18px 40px -20px rgba(0,0,0,.5); flex-shrink: 0;
+    }
+    .hero-gauge { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .hero-gauge svg { display: block; }
+    #heroGaugeRing { transition: stroke-dashoffset .7s cubic-bezier(.2,.8,.3,1); }
+    .hero-gauge-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+    .hero-meta-list { display: flex; flex-direction: column; gap: 8px; }
+    .hmi { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .hmi .k { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .hmi .v { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 11.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+    .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); animation: pulseDot 1.5s ease-in-out infinite; display: inline-block; flex-shrink: 0; }
+    .dot-live.off { background: var(--red); box-shadow: 0 0 6px 1px rgba(248,113,113,.5); animation: none; }
+    .dot-live.pending { background: var(--amber); box-shadow: 0 0 6px 1px rgba(245,158,11,.5); }
+    @media (max-width: 720px) { .hero-row { flex-direction: column; align-items: flex-start; } .hero-meta { width: 100%; justify-content: space-between; } }
+    .topbar-clock { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: .04em; padding: 0 2px; }
+
+    .sim-grid { display: grid; grid-template-columns: 264px minmax(0,1fr) 304px; gap: 18px; align-items: start; }
+    @media (max-width: 1180px) { .sim-grid { grid-template-columns: 1fr; } }
+
+    .panel {
+        background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius);
+        backdrop-filter: blur(14px); overflow: hidden; position: relative;
+        box-shadow: 0 22px 46px -22px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.02) inset;
+        transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease, border-color .3s ease;
+    }
+    .panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; z-index: 1;
+        background: linear-gradient(90deg, transparent, rgba(56,189,248,.4), transparent);
+        opacity: .7;
+    }
+    .panel:hover { transform: translateY(-2px); box-shadow: 0 28px 56px -20px rgba(0,0,0,.6); border-color: rgba(56,189,248,.22); }
+    .twin-panel:hover { transform: none; }
+    .panel-pad { padding: 16px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+    .panel-head h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .01em; display: flex; align-items: center; gap: 8px; }
+    .panel-head h3 svg { color: var(--cyan2); flex-shrink: 0; }
+    .panel-tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--border); padding: 2px 7px; border-radius: 999px; }
+
+    /* ════════════ LEFT — MISSION CONTROL ════════════ */
+    .mission-badge-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 16px 4px; }
+    .mchip { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: .04em; padding: 5px 9px; border-radius: 7px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all .15s ease; background: transparent; }
+    .mchip:hover { border-color: rgba(56,189,248,.4); color: var(--ink); }
+    .mchip.active { color: #04081a; background: linear-gradient(135deg, var(--cyan2), var(--blue)); border-color: transparent; font-weight: 700; }
+    .mission-tags { display: flex; gap: 8px; padding: 2px 16px 4px; flex-wrap: wrap; }
+    .mission-chip { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .06em; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted); }
+    .mission-chip.diff { color: var(--amber); border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.07); }
+    .mission-chip.time { color: var(--cyan2); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.07); }
+    .mission-name { padding: 8px 16px 2px; font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 17px; }
+    .mission-obj { padding: 6px 16px 14px; font-size: 12px; color: var(--muted); line-height: 1.55; border-bottom: 1px solid var(--border); }
+    .mission-obj b { color: var(--ink); }
+
+    .stat-block { padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background .25s ease; }
+    .stat-block:hover { background: rgba(56,189,248,.035); }
+    .stat-block:last-child { border-bottom: none; }
+    .stat-block-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 9px; }
+    .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+    .stat-row .k { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .stat-row .v { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--ink); }
+    .stat-row .v.warn { color: var(--amber); }
+    .stat-row .v.bad { color: var(--red); }
+    .stat-row .v.good { color: var(--green); }
+
+    .meter { height: 6px; border-radius: 4px; background: rgba(120,140,180,.14); overflow: hidden; margin-top: 4px; }
+    .meter-fill { height: 100%; border-radius: 4px; transition: width .6s cubic-bezier(.2,.8,.3,1), background .4s ease; }
+    .meter-fill.comfort { background: linear-gradient(90deg, var(--green2), var(--green)); }
+    .meter-fill.power { background: linear-gradient(90deg, var(--blue-deep), var(--cyan2)); }
+    .meter-fill.progress { background: linear-gradient(90deg, var(--cyan2), var(--cyan)); }
+    .meter-fill.flood { background: linear-gradient(90deg, #8a5a2b, var(--blue)); }
+
+    /* ════════════ CENTER — DIGITAL TWIN ════════════ */
+    .twin-panel { position: relative; }
+    .city-scene {
+        position: relative; height: 460px; overflow: hidden;
+        background: linear-gradient(180deg, var(--bg3) 0%, var(--bg3) 55%, #0d1a2e 100%);
+        transition: background 1.2s ease;
+    }
+    @media (min-width: 1181px) { .city-scene { height: 540px; } }
+    [data-theme="light"] .city-scene { background: linear-gradient(180deg, var(--bg3) 0%, var(--bg3) 55%, #cfdcee 100%); }
+    .city-scene.cond-sunny { background: linear-gradient(180deg, rgba(245,158,11,.14) 0%, var(--bg3) 55%, #0d1a2e 100%); }
+    .city-scene.cond-cloudy { background: linear-gradient(180deg, rgba(107,125,160,.16) 0%, var(--bg3) 55%, #0d1a2e 100%); }
+    .city-scene.cond-rain { background: linear-gradient(180deg, rgba(59,130,246,.2) 0%, var(--bg3) 55%, #0d1a2e 100%); }
+    .city-scene.cond-storm { background: linear-gradient(180deg, rgba(30,40,70,.5) 0%, var(--bg3) 55%, #0a1220 100%); }
+    .city-scene.cond-night { background: linear-gradient(180deg, #050814 0%, var(--bg4) 55%, #061428 100%); }
+
+    .city-orb { position: absolute; top: 26px; right: 46px; width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle, #FDE68A 0%, var(--amber) 70%); box-shadow: 0 0 46px 10px rgba(245,158,11,.4); transition: all 1s ease; }
+    .cond-night .city-orb { background: radial-gradient(circle, #E9EEFC 0%, #A9B8DE 75%); box-shadow: 0 0 30px 6px rgba(160,180,230,.28); top: 20px; right: 60px; width: 30px; height: 30px; }
+    .cond-cloudy .city-orb, .cond-rain .city-orb, .cond-storm .city-orb { opacity: .25; filter: blur(1px); }
+
+    .cloud { position: absolute; opacity: 0; transition: opacity .8s ease; }
+    .cloud svg ellipse { fill: var(--muted); }
+    .cond-cloudy .cloud, .cond-rain .cloud, .cond-storm .cloud { opacity: .92; }
+    .cond-sunny .cloud.c1 { opacity: .28; }
+    .cloud.c1 { top: 18px; left: 8%; width: 100px; animation: driftSlow 32s linear infinite; }
+    .cloud.c2 { top: 40px; left: 38%; width: 84px; animation: driftSlow 24s linear infinite reverse; }
+    .cloud.c3 { top: 12px; left: 64%; width: 118px; animation: driftSlow 38s linear infinite; }
+    .cond-storm .cloud { animation-duration: 6s !important; }
+    @keyframes driftSlow { from { transform: translateX(0); } to { transform: translateX(60px); } }
+
+    .lightning-layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: #dbeafe; }
+    .cond-storm .lightning-layer.flash { animation: lightningFlash 2.4s ease-out infinite; }
+    @keyframes lightningFlash { 0%,100%{opacity:0;} 3%{opacity:.55;} 6%{opacity:0;} 9%{opacity:.3;} 12%{opacity:0;} }
+
+    .rain-layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s ease; overflow: hidden; }
+    .cond-rain .rain-layer, .cond-storm .rain-layer { opacity: 1; }
+    .drop { position: absolute; top: -20px; width: 1.5px; height: 16px; background: linear-gradient(var(--cyan2), transparent); animation: fall linear infinite; }
+    @keyframes fall { to { transform: translateY(500px); } }
+    .cond-storm .drop { animation-duration: .35s !important; }
+
+    .wind-layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
+    .wind-layer.show { opacity: .7; }
+    .wind-line { position: absolute; height: 1.5px; background: linear-gradient(90deg, transparent, var(--muted), transparent); animation: windBlow linear infinite; }
+    @keyframes windBlow { from { transform: translateX(-40px); opacity:0; } 15% { opacity:.6; } to { transform: translateX(420px); opacity:0; } }
+
+    .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: linear-gradient(180deg, transparent, rgba(56,189,248,.05)); }
+    .road { position: absolute; left: 0; right: 0; bottom: 6%; height: 34px; background: var(--bg4); opacity: .85; }
+    [data-theme="light"] .road { background: #37415a; }
+    .road-line { position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: repeating-linear-gradient(90deg, var(--amber) 0 18px, transparent 18px 34px); opacity: .55; animation: roadDash 1.6s linear infinite; }
+    @keyframes roadDash { to { background-position: -52px 0; } }
+    .car { position: absolute; bottom: 6px; width: 20px; height: 9px; border-radius: 3px; background: var(--cyan2); opacity: .8; animation: carDrive linear infinite; box-shadow: 0 0 6px rgba(56,189,248,.4); }
+    @keyframes carDrive { from { transform: translateX(-30px);} to { transform: translateX(940px);} }
+    .car.rev { animation-direction: reverse; background: var(--amber); }
+
+    .skyline { position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .38; transition: opacity 1s ease; }
+    .cond-night .skyline { opacity: .5; }
+
+    .city-building { position: absolute; bottom: 14%; }
+    .city-building svg { display: block; }
+    .bldg-window { transition: fill .5s ease, opacity .5s ease; }
+    .bldg-window.lit { fill: var(--amber); opacity: .9; }
+
+    .traffic-light { position: absolute; bottom: 6%; width: 16px; }
+    .tl-lamp { transition: fill .3s ease, filter .3s ease; }
+    .tl-lamp.on { filter: drop-shadow(0 0 6px currentColor); }
+
+    .street-lamp { position: absolute; bottom: 6%; width: 10px; }
+    .street-lamp .bulb { transition: fill .5s ease, filter .5s ease; fill: var(--muted2); }
+    .street-lamp .bulb.on { fill: var(--amber); filter: drop-shadow(0 0 8px rgba(245,158,11,.7)); }
+
+    .solar-panel { position: absolute; left: 44px; bottom: 15%; width: 52px; }
+    .solar-panel .glint { animation: glint 3.4s ease-in-out infinite; }
+    .cond-sunny .solar-panel .glint { opacity: 1; }
+    @keyframes glint { 0%,100%{ opacity:.15; } 50%{ opacity:.7; } }
+
+    .weather-station { position: absolute; right: 30px; bottom: 15%; width: 30px; }
+    .ws-cups { transform-origin: 15px 8px; animation: spinCups linear infinite; }
+    @keyframes spinCups { to { transform: rotate(360deg); } }
+
+    .turbine { position: absolute; right: 96px; bottom: 13%; width: 46px; }
+    .turbine-blades { transform-origin: 23px 20px; animation: spinCups linear infinite; }
+
+    .park { position: absolute; left: 300px; bottom: 12%; width: 130px; height: 60px; }
+    .tree { position: absolute; bottom: 0; width: 26px; animation: sway 4.5s ease-in-out infinite; transform-origin: bottom center; }
+    .tree.t1 { left: 0; animation-duration: 4.2s; }
+    .tree.t2 { left: 40px; width: 22px; animation-duration: 5.1s; }
+    .tree.t3 { left: 78px; width: 24px; animation-duration: 4.7s; }
+    @keyframes sway { 0%,100% { transform: rotate(-2.5deg);} 50% { transform: rotate(2.5deg);} }
+    .cond-storm .tree { animation-duration: 1s !important; }
+
+    .lake-wrap { position: absolute; left: 460px; bottom: 8%; width: 110px; }
+    .lake-ripple { animation: rippleMove 4s ease-in-out infinite; transform-origin: center; }
+    @keyframes rippleMove { 0%,100%{ transform: scale(1); opacity:.5;} 50%{ transform: scale(1.06); opacity:.8;} }
+
+    .drainage { position: absolute; left: 610px; bottom: 6%; width: 34px; }
+    .drain-flow { opacity: 0; }
+    .drain-flow.active { opacity: 1; animation: drainFlow 1s linear infinite; }
+    @keyframes drainFlow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -16; } }
+
+    .tower { position: absolute; right: 170px; bottom: 13%; width: 20px; }
+    .tower-led { animation: pulseDot 1.4s ease-in-out infinite; }
+    .tower-ring { opacity: 0; transform-origin: center; }
+    .tower-ring.active { animation: towerPing 2.2s ease-out infinite; }
+    @keyframes towerPing { 0%{ opacity:.6; transform: scale(.3);} 100%{ opacity:0; transform: scale(2.6);} }
+
+    .fan-icon { position: absolute; cursor: default; }
+    .fan-icon .blade { transform-origin: center; animation: spinCups 1s linear infinite paused; }
+    .fan-icon.active .blade { animation-play-state: running; }
+
+    .flood-gate { transition: transform .6s cubic-bezier(.3,.8,.3,1); transform-origin: top; }
+    .flood-gate.open { transform: scaleY(.25); }
+
+    .siren { transition: filter .3s ease; }
+    .siren.active { animation: sirenFlash .6s ease-in-out infinite; }
+    @keyframes sirenFlash { 0%,100%{ filter: drop-shadow(0 0 2px var(--red));} 50%{ filter: drop-shadow(0 0 12px var(--red));} }
+
+    .emergency-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle, rgba(248,113,113,.16), transparent 70%); }
+    .emergency-overlay.active { animation: emgPulse 1s ease-in-out infinite; }
+    @keyframes emgPulse { 0%,100%{ opacity:.15;} 50%{ opacity:.5;} }
+
+    .display-board { position: absolute; overflow: hidden; }
+    .display-board text { font-family: 'JetBrains Mono', monospace; }
+
+    .sensor-dot { position: absolute; width: 14px; height: 14px; border-radius: 50%; background: var(--bg3); border: 2px solid var(--cyan2); box-shadow: 0 0 0 0 rgba(56,189,248,.5); cursor: help; z-index: 6; }
+    .sensor-dot.pulsing { animation: sensorPulse 1.8s ease-out infinite; }
+    @keyframes sensorPulse { 0%{ box-shadow: 0 0 0 0 rgba(56,189,248,.5);} 100%{ box-shadow: 0 0 0 10px rgba(56,189,248,0);} }
+    .sensor-dot.fault { border-color: var(--red); }
+
+    .signal-particle { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px 1px var(--cyan); pointer-events: none; z-index: 5; }
+    .signal-particle.blue { background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); }
+    .signal-particle.green { background: var(--green); box-shadow: 0 0 6px 1px var(--green); }
+    .signal-particle.orange { background: var(--amber); box-shadow: 0 0 6px 1px var(--amber); }
+    .signal-particle.red { background: var(--red); box-shadow: 0 0 6px 1px var(--red); }
+
+    .city-readout {
+        position: absolute; left: 12px; bottom: 12px; display: flex; gap: 12px; padding: 7px 12px;
+        background: rgba(6,10,19,.72); border: 1px solid var(--border); border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--muted); backdrop-filter: blur(6px);
+    }
+    .city-readout b { color: var(--ink); }
+    .city-cond-label { position: absolute; right: 12px; bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan2); background: rgba(6,10,19,.72); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; backdrop-filter: blur(6px); }
+
+    .health-flag { position: absolute; top: 12px; left: 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 6px 10px; border-radius: 8px; background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.35); color: var(--cyan2); backdrop-filter: blur(6px); transition: all .4s ease; }
+    .health-flag.warn { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.35); color: var(--amber); }
+    .health-flag.bad { background: rgba(248,113,113,.14); border-color: rgba(248,113,113,.4); color: var(--red); }
+
+    .event-toast { position: absolute; top: 12px; right: 12px; max-width: 220px; padding: 8px 12px; border-radius: 8px; background: rgba(6,10,19,.85); border: 1px solid var(--amber); color: var(--amber); font-size: 11px; font-weight: 600; backdrop-filter: blur(6px); opacity: 0; transform: translateY(-8px); transition: all .35s ease; pointer-events: none; }
+    .event-toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ════════════ RIGHT — ARDUINO CONTROL CENTER ════════════ */
+    .board-mini { padding: 14px 16px 4px; }
+    .board-mini svg { width: 100%; height: auto; display: block; }
+    .board-power { display: flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--green); padding: 8px 16px 12px; }
+    .board-power i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.6s ease-in-out infinite; }
+
+    .comp-list { padding: 4px 16px 8px; display: flex; flex-direction: column; gap: 8px; }
+    .comp-card { border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px; display: flex; align-items: center; gap: 9px; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+    .comp-card:hover { transform: translateX(2px); border-color: rgba(56,189,248,.24); }
+    .comp-card.wired { border-color: rgba(56,189,248,.35); background: rgba(56,189,248,.05); }
+    .comp-card.locked { opacity: .85; }
+    .comp-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: var(--bg3); color: var(--muted); flex-shrink: 0; }
+    .comp-card.wired .comp-icon { color: var(--cyan2); }
+    .comp-info { flex: 1; min-width: 0; }
+    .comp-info .name { font-size: 11.5px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .comp-info .req { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; padding: 1px 6px; border-radius: 999px; letter-spacing: .05em; text-transform: uppercase; }
+    .req.required { color: var(--amber); border: 1px solid rgba(245,158,11,.35); }
+    .req.optional { color: var(--muted); border: 1px solid var(--border); }
+    .comp-info .sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    .switch { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider { position: absolute; inset: 0; background: rgba(120,140,180,.22); border-radius: 999px; cursor: pointer; transition: background .2s ease; }
+    .switch .slider::before { content:''; position: absolute; width: 15px; height: 15px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: transform .2s ease; }
+    .switch input:checked + .slider { background: var(--cyan2); }
+    .switch input:checked + .slider::before { transform: translateX(15px); }
+    .switch input:disabled + .slider { cursor: not-allowed; opacity: .7; }
+
+    .rule-block { padding: 10px 16px 6px; border-top: 1px solid var(--border); }
+    .rule-block-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 10px; }
+    .rule-row { margin-bottom: 12px; }
+    .rule-label { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 6px; color: var(--muted); }
+    .rule-label b { color: var(--cyan2); font-family: 'JetBrains Mono', monospace; }
+    input[type="range"] { width: 100%; accent-color: var(--cyan2); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--muted); padding: 6px 0; }
+
+    .circuit-diagram { padding: 10px 16px 16px; }
+    .circuit-diagram svg { width: 100%; height: auto; display: block; }
+
+    /* ════════════ BOTTOM CONSOLE ════════════ */
+    .console-panel { margin-top: 16px; }
+    .console-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .console-controls .left-grp, .console-controls .right-grp { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mission-progress-mini { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+    .mission-progress-mini .bar { width: 100px; }
+
+    .event-strip { display: flex; gap: 7px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    .ev-btn { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: .03em; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: all .18s ease; }
+    .ev-btn:hover { border-color: rgba(245,158,11,.4); color: var(--amber); background: rgba(245,158,11,.06); }
+
+    .ai-callout { display: none; margin: 12px 16px 0; padding: 12px 14px; border-radius: 9px; background: rgba(56,189,248,.06); border: 1px solid rgba(56,189,248,.25); }
+    .ai-callout.show { display: block; }
+    .ai-callout .t { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan2); margin-bottom: 7px; }
+    .ai-callout ul { padding-left: 18px; }
+    .ai-callout li { font-size: 12px; color: var(--ink); line-height: 1.6; margin-bottom: 3px; }
+    .ai-callout .ai-metric-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+    .ai-callout .ai-metric { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+    .ai-callout .ai-metric b { color: var(--cyan2); display: block; font-size: 15px; font-family: 'Space Grotesk', sans-serif; }
+
+    .console-log { height: 190px; overflow-y: auto; padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.85; }
+    .log-line { display: flex; gap: 8px; }
+    .log-time { color: var(--muted2); flex-shrink: 0; }
+    .log-tag { flex-shrink: 0; font-weight: 700; }
+    .log-tag.sensor { color: var(--cyan2); }
+    .log-tag.arduino { color: var(--green); }
+    .log-tag.ai { color: var(--violet); }
+    .log-tag.alert { color: var(--red); }
+    .log-tag.system { color: var(--muted); }
+    .log-msg { color: var(--ink); opacity: .92; }
+
+    /* ════════════ TIMELINE ════════════ */
+    .timeline-panel { margin-top: 16px; }
+    .timeline-list { padding: 14px 18px 18px; max-height: 260px; overflow-y: auto; }
+    .tl-item { display: grid; grid-template-columns: 58px 20px 1fr; gap: 4px; opacity: 0; animation: tlIn .4s ease forwards; }
+    @keyframes tlIn { from { opacity: 0; transform: translateY(-6px);} to { opacity: 1; transform: translateY(0);} }
+    .tl-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted2); padding-top: 2px; }
+    .tl-rail { display: flex; flex-direction: column; align-items: center; }
+    .tl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); flex-shrink: 0; margin-top: 3px; }
+    .tl-dot.alert { background: var(--red); box-shadow: 0 0 6px 1px var(--red); }
+    .tl-dot.good { background: var(--green); box-shadow: 0 0 6px 1px var(--green); }
+    .tl-line { width: 1px; flex: 1; background: var(--border); min-height: 14px; }
+    .tl-text { font-size: 12px; color: var(--ink); padding-bottom: 14px; line-height: 1.5; }
+    .tl-item:last-child .tl-line { display: none; }
+
+    /* ════════════ MODAL ════════════ */
+    .modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(4,7,13,.72); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.show { display: flex; }
+    .modal-card { width: 100%; max-width: 520px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 16px; padding: 26px; text-align: center; animation: modalIn .4s cubic-bezier(.2,.8,.3,1); }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.97);} to { opacity:1; transform: translateY(0) scale(1);} }
+    .modal-card.fail { border-color: rgba(248,113,113,.4); }
+    .modal-icon { width: 58px; height: 58px; border-radius: 50%; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; background: rgba(56,189,248,.12); border: 1px solid rgba(56,189,248,.35); color: var(--cyan2); }
+    .modal-card.fail .modal-icon { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.35); color: var(--red); }
+    .modal-card h2 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 21px; margin-bottom: 6px; }
+    .modal-card p.sub { font-size: 12.5px; color: var(--muted); margin-bottom: 20px; }
+    .modal-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .modal-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: left; }
+    .modal-stat .l { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+    .modal-stat .v { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 18px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    .footer { text-align: center; padding: 26px 16px 6px; font-size: 11px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; }
+    .footer a { color: var(--cyan2); text-decoration: none; }
+
+    /* ════════════ SENSOR / OBJECT INSPECTOR ════════════ */
+    .inspect-hoverable { cursor: pointer; transition: filter .2s ease; }
+    .inspect-hoverable:hover { filter: brightness(1.25); }
+
+    .inspector-overlay { position: fixed; inset: 0; z-index: 140; background: rgba(4,7,13,.55); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; padding: 18px; }
+    .inspector-overlay.show { display: flex; }
+    .inspector-card { width: 100%; max-width: 340px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px; overflow: hidden; animation: modalIn .3s cubic-bezier(.2,.8,.3,1); box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+    .insp-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); background: rgba(56,189,248,.06); }
+    .insp-head .t { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--cyan2); }
+    .insp-head .t i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px 1px var(--green); animation: pulseDot 1.4s ease-in-out infinite; }
+    .insp-close { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1; }
+    .insp-close:hover { color: var(--ink); border-color: rgba(56,189,248,.32); }
+    .insp-body { padding: 14px; }
+    .insp-name { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 15px; margin-bottom: 10px; }
+    .insp-value { display: flex; align-items: baseline; gap: 6px; margin-bottom: 12px; }
+    .insp-value .n { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 26px; color: var(--cyan2); }
+    .insp-value .u { font-size: 11px; color: var(--muted); }
+    .insp-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 11.5px; }
+    .insp-row .k { color: var(--muted); flex-shrink: 0; }
+    .insp-row .v { color: var(--ink); font-family: 'JetBrains Mono', monospace; text-align: right; }
+    .insp-note { margin-top: 10px; padding: 9px 10px; border-radius: 8px; background: rgba(56,189,248,.06); border: 1px solid rgba(56,189,248,.18); font-size: 11px; color: var(--muted); line-height: 1.55; }
+    .insp-note b { color: var(--ink); }
+
+    .hover-tip { position: fixed; z-index: 130; pointer-events: none; max-width: 210px; padding: 9px 11px; border-radius: 9px; background: rgba(6,10,19,.92); border: 1px solid var(--border-blue); backdrop-filter: blur(8px); opacity: 0; transform: translateY(4px); transition: opacity .15s ease, transform .15s ease; box-shadow: 0 10px 26px rgba(0,0,0,.35); }
+    .hover-tip.show { opacity: 1; transform: translateY(0); }
+    .hover-tip .ht-t { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--cyan2); margin-bottom: 6px; }
+    .hover-tip .ht-row { display: flex; justify-content: space-between; gap: 10px; font-size: 10.5px; color: var(--muted); padding: 1.5px 0; }
+    .hover-tip .ht-row b { color: var(--ink); font-family: 'JetBrains Mono', monospace; }
+
+    /* ════════════ MANUAL / HOW-TO GUIDE ════════════ */
+    .manual-panel { margin-top: 16px; }
+    .manual-panel .panel-head { cursor: pointer; user-select: none; }
+    .manual-panel .panel-head:hover { background: rgba(56,189,248,.03); }
+    .manual-toggle-btn {
+        width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: transparent;
+        color: var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer;
+        transition: transform .3s cubic-bezier(.2,.8,.3,1), color .2s ease, border-color .2s ease; flex-shrink: 0;
+    }
+    .manual-toggle-btn:hover { color: var(--ink); border-color: rgba(56,189,248,.32); }
+    .manual-panel.collapsed .manual-toggle-btn { transform: rotate(-90deg); }
+    .manual-head-right { display: flex; align-items: center; gap: 10px; }
+    .manual-body {
+        display: grid; grid-template-rows: 1fr; opacity: 1;
+        transition: grid-template-rows .35s cubic-bezier(.2,.8,.3,1), opacity .3s ease;
+    }
+    .manual-body > .manual-body-inner { overflow: hidden; min-height: 0; }
+    .manual-panel.collapsed .manual-body { grid-template-rows: 0fr; opacity: 0; }
+    .manual-intro { padding: 14px 18px 4px; font-size: 12.5px; color: var(--muted); line-height: 1.6; max-width: 820px; }
+    .manual-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: var(--border); margin-top: 10px; }
+    .manual-step { background: var(--panel-bg); padding: 16px 16px 18px; position: relative; transition: background .25s ease; }
+    .manual-step:hover { background: rgba(56,189,248,.035); }
+    .manual-step-num {
+        width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; margin-bottom: 10px;
+        background: linear-gradient(135deg, rgba(56,189,248,.16), rgba(59,130,246,.16)); color: var(--cyan2); border: 1px solid var(--border);
+    }
+    .manual-step h4 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+    .manual-step p { font-size: 11.5px; color: var(--muted); line-height: 1.6; }
+    .manual-step p b { color: var(--ink); }
+
+    .manual-tips { padding: 16px 18px 18px; border-top: 1px solid var(--border); }
+    .manual-tips-title { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted2); margin-bottom: 10px; }
+    .manual-tip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+    .manual-tip { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; }
+    .manual-tip .ic { width: 26px; height: 26px; border-radius: 7px; background: var(--bg3); color: var(--cyan2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .manual-tip .tx { font-size: 11.5px; color: var(--muted); line-height: 1.55; }
+    .manual-tip .tx b { color: var(--ink); display: block; margin-bottom: 2px; font-size: 12px; }
+
+    .telemetry-panel { margin-top: 16px; }
+    .telemetry-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border); }
+    .telemetry-cell { background: var(--panel-bg); padding: 10px 12px 12px; min-width: 0; transition: background .25s ease; }
+    .telemetry-cell:hover { background: rgba(56,189,248,.04); }
+    .telemetry-cell .tc-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .telemetry-cell .tc-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .telemetry-cell .tc-val { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 13px; }
+    .telemetry-cell svg { width: 100%; height: 36px; display: block; overflow: visible; }
+    .telemetry-cell path.spark-line { fill: none; stroke-width: 1.6; }
+    .telemetry-cell path.spark-fill { stroke: none; opacity: .14; }
+    @media (max-width: 900px) { .telemetry-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 560px) { .telemetry-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ════════════ IOT CLOUD STATUS WIDGET ════════════ */
+    .iot-widget { position: fixed; right: 18px; bottom: 18px; z-index: 55; width: 208px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 12px; backdrop-filter: blur(10px); box-shadow: 0 14px 34px rgba(0,0,0,.3); font-family: 'JetBrains Mono', monospace; transition: transform .25s ease, opacity .25s ease; }
+    .iot-widget.collapsed .iot-body { display: none; }
+    .iot-widget.collapsed { width: auto; }
+    .iot-head { display: flex; align-items: center; gap: 7px; padding: 9px 11px; cursor: pointer; user-select: none; }
+    .iot-head .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); animation: pulseDot 1.5s ease-in-out infinite; flex-shrink: 0; }
+    .iot-head .dot.off { background: var(--muted2); box-shadow: none; animation: none; }
+    .iot-head .ttl { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); font-weight: 600; flex: 1; }
+    .iot-head .car { color: var(--muted); font-size: 10px; transition: transform .2s ease; }
+    .iot-widget.collapsed .iot-head .car { transform: rotate(-90deg); }
+    .iot-body { padding: 2px 11px 11px; }
+    .iot-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 10px; color: var(--muted); border-top: 1px solid var(--border); }
+    .iot-row:first-child { border-top: none; }
+    .iot-row .v { color: var(--ink); font-weight: 600; display: flex; align-items: center; gap: 5px; }
+    .iot-row .v .led { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .iot-row .v .led.off { background: var(--red); }
+    .iot-row .v.amber { color: var(--amber); }
+    @media (max-width: 720px) { .iot-widget { left: 12px; right: 12px; bottom: 12px; width: auto; } }
+
+    .mute-toggle.muted .ic-on { display: none; }
+    .mute-toggle:not(.muted) .ic-off { display: none; }
+
+    /* ════════════ ARDUINO FULLSCREEN VISUALIZER ════════════ */
+    .arduino-fs-overlay { position: fixed; inset: 0; z-index: 150; background: rgba(3,6,12,.88); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; padding: 26px; }
+    .arduino-fs-overlay.show { display: flex; }
+    .arduino-fs-card { width: 100%; max-width: 780px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 16px; padding: 4px; animation: modalIn .35s cubic-bezier(.2,.8,.3,1); }
+    .afs-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .afs-head h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 15px; }
+    .afs-head .panel-tag { margin-left: 8px; }
+    .afs-body { padding: 20px; }
+    .afs-board svg { width: 100%; height: auto; display: block; }
+    .afs-legend { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; margin-top: 16px; }
+    .afs-legend .li { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; }
+    .afs-legend .li .led { width: 8px; height: 8px; border-radius: 50%; background: var(--muted2); flex-shrink: 0; }
+    .afs-legend .li .led.on-green { background: var(--green); box-shadow: 0 0 6px 1px var(--green); }
+    .afs-legend .li .led.on-cyan { background: var(--cyan2); box-shadow: 0 0 6px 1px var(--cyan2); }
+    .afs-legend .li .led.on-red { background: var(--red); box-shadow: 0 0 6px 1px var(--red); }
+    .afs-legend .li .led.on-amber { background: var(--amber); box-shadow: 0 0 6px 1px var(--amber); }
+    .afs-legend .li b { color: var(--ink); font-weight: 700; }
+    .gpio-signal { opacity: 0; }
+    .gpio-signal.active { animation: gpioPulse 1s linear infinite; }
+    @keyframes gpioPulse { 0% { opacity: 0; offset-distance: 0%; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { opacity: 0; offset-distance: 100%; } }
+
+    @media (max-width: 720px) {
+        .mission-hero h1 { font-size: 22px; }
+        .city-scene { height: 380px; }
+        .park { left: 20px; }
+        .modal-stats { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="bg-grid"></div>
+<div class="bg-atmos"></div>
+
+<div class="topbar">
+    <a href="../../dashboard.html" class="brand">
+        <div class="brand-mark"><img src="/assets/logo.png" alt="ARCIO"></div>
+        <div class="brand-txt"><b>ARCIO Live</b><span>Environmental Mission Simulator</span></div>
+    </a>
+    <div class="topbar-right">
+        <div class="topbar-clock" id="topbarClock">--:--:--</div>
+        <div class="deploy-badge" id="deployBadge"><i></i><span>Live · Deployed</span></div>
+        <a href="../../dashboard.html" class="btn btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to Dashboard
+        </a>
+        <button class="theme-toggle mute-toggle muted" id="muteToggle" title="Toggle ambient city sound">
+            <svg class="ic-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            <svg class="ic-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5.5a9 9 0 0 1 0 13"/></svg>
+        </button>
+        <button class="theme-toggle" id="themeToggle" title="Toggle light / dark mode">
+            <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+    </div>
+</div>
+
+<main>
+    <div class="mission-hero fade-up">
+        <div class="hero-row">
+            <div class="hero-text">
+                <div class="eyebrow">Advanced Simulator · 03</div>
+                <h1>Smart City Mission Simulator</h1>
+                <p>You're the IoT engineer on shift. Wire the automation, set the response threshold, then run the mission — real live weather, a living city digital twin, and an Arduino that only reacts the way you've told it to.</p>
+            </div>
+            <div class="hero-meta">
+                <div class="hero-gauge">
+                    <svg viewBox="0 0 80 80" width="68" height="68">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="7"/>
+                        <circle id="heroGaugeRing" cx="40" cy="40" r="34" fill="none" stroke="url(#gaugeGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" transform="rotate(-90 40 40)"/>
+                        <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--cyan2)"/><stop offset="100%" stop-color="var(--blue)"/></linearGradient></defs>
+                        <text id="heroGaugeText" x="40" y="46" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="800" font-size="17" fill="var(--ink)">0%</text>
+                    </svg>
+                    <span class="hero-gauge-label">Progress</span>
+                </div>
+                <div class="hero-meta-list">
+                    <div class="hmi"><span class="k">Mode</span><span class="v" id="heroModeTag">Standby</span></div>
+                    <div class="hmi"><span class="k">Clock</span><span class="v" id="heroClock">--:--:--</span></div>
+                    <div class="hmi"><span class="k">Connection</span><span class="v" id="heroConn"><span class="dot-live pending"></span>Connecting</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sim-grid">
+        <!-- ═══════ LEFT · MISSION CONTROL ═══════ -->
+        <div class="panel">
+            <div class="panel-head">
+                <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Mission Control</h3>
+                <div class="panel-tag" id="topStatusTag">Loading…</div>
+            </div>
+            <div class="mission-badge-row" id="missionChipRow"></div>
+            <div class="mission-tags">
+                <span class="mission-chip diff" id="missionDiffChip">Field Engineer</span>
+                <span class="mission-chip time" id="missionTimeChip">~2 min</span>
+                <span class="mission-chip" id="missionFocusChip">Climate Response</span>
+            </div>
+            <div class="mission-name" id="missionNameEl">Mission 01 · Heatwave Response</div>
+            <div class="mission-obj" id="missionObjEl">Objective — <b>Keep City Comfort Index above 70%</b> while running the mission, using the <b>least amount of grid power</b> possible. Wire the automation on the right, set your threshold, then hit Run.</div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">Live Weather · Open-Meteo</div>
+                <div class="stat-row"><span class="k">Temperature</span><span class="v" id="stTemp">--°C</span></div>
+                <div class="stat-row"><span class="k">Humidity</span><span class="v" id="stHum">--%</span></div>
+                <div class="stat-row"><span class="k">Rain probability</span><span class="v" id="stRain">--%</span></div>
+                <div class="stat-row"><span class="k">Wind</span><span class="v" id="stWind">-- km/h</span></div>
+                <div class="stat-row"><span class="k">UV index</span><span class="v" id="stUv">--</span></div>
+            </div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">Environment Conditions</div>
+                <div class="stat-row"><span class="k">Air quality index</span><span class="v" id="stAqi">--</span></div>
+                <div class="stat-row"><span class="k">Ambient noise</span><span class="v" id="stNoise">-- dB</span></div>
+                <div class="stat-row" style="margin-top:6px;"><span class="k">Flood risk level</span><span class="v" id="stFlood">--%</span></div>
+                <div class="meter"><div class="meter-fill flood" id="barFlood" style="width:0%"></div></div>
+            </div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">City Status</div>
+                <div class="stat-row"><span class="k">City comfort index</span><span class="v good" id="stComfort">--%</span></div>
+                <div class="meter"><div class="meter-fill comfort" id="barComfort" style="width:0%"></div></div>
+                <div class="stat-row" style="margin-top:10px;"><span class="k">Power grid reserve</span><span class="v" id="stPower">--%</span></div>
+                <div class="meter"><div class="meter-fill power" id="barPower" style="width:0%"></div></div>
+            </div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">Mission Progress</div>
+                <div class="stat-row"><span class="k" id="stProgressLabel">Not started</span><span class="v" id="stProgressPct">0%</span></div>
+                <div class="meter"><div class="meter-fill progress" id="barProgress" style="width:0%"></div></div>
+            </div>
+        </div>
+
+        <!-- ═══════ CENTER · DIGITAL TWIN (hero) ═══════ -->
+        <div class="panel twin-panel">
+            <div class="panel-head">
+                <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 10l7-6 7 6v11H5z"/><path d="M9 21v-6h6v6"/></svg>Interactive Smart City Digital Twin</h3>
+                <div class="panel-tag" id="twinTag">Standby</div>
+            </div>
+            <div class="city-scene cond-sunny" id="cityScene">
+                <svg class="skyline" viewBox="0 0 900 460" preserveAspectRatio="none">
+                    <g fill="var(--muted2)" opacity=".3">
+                        <rect x="0" y="260" width="40" height="200"/><rect x="46" y="220" width="34" height="240"/>
+                        <rect x="700" y="240" width="46" height="220"/><rect x="752" y="200" width="30" height="260"/>
+                        <rect x="810" y="270" width="42" height="190"/><rect x="858" y="230" width="42" height="230"/>
+                    </g>
+                    <g fill="var(--muted2)" opacity=".16">
+                        <rect x="20" y="300" width="30" height="160"/><rect x="740" y="290" width="34" height="170"/><rect x="880" y="300" width="20" height="160"/>
+                    </g>
+                </svg>
+                <div class="health-flag" id="healthFlag">Standing By</div>
+                <div class="event-toast" id="eventToast"></div>
+                <div class="emergency-overlay" id="emergencyOverlay"></div>
+                <div class="lightning-layer" id="lightningLayer"></div>
+                <div class="cloud c1"><svg width="100" height="36" viewBox="0 0 110 40"><ellipse cx="26" cy="26" rx="22" ry="14"/><ellipse cx="52" cy="18" rx="26" ry="17"/><ellipse cx="82" cy="26" rx="20" ry="13"/></svg></div>
+                <div class="cloud c2"><svg width="84" height="30" viewBox="0 0 90 32"><ellipse cx="20" cy="20" rx="18" ry="11"/><ellipse cx="42" cy="14" rx="20" ry="13"/><ellipse cx="66" cy="20" rx="16" ry="10"/></svg></div>
+                <div class="cloud c3"><svg width="118" height="40" viewBox="0 0 130 44"><ellipse cx="30" cy="28" rx="24" ry="15"/><ellipse cx="62" cy="18" rx="30" ry="19"/><ellipse cx="98" cy="28" rx="22" ry="14"/></svg></div>
+                <div class="city-orb" id="cityOrb"></div>
+                <div class="rain-layer" id="rainLayer"></div>
+                <div class="wind-layer" id="windLayer"></div>
+                <div class="ground"></div>
+
+                <!-- Buildings: School + Hospital + Office -->
+                <div class="city-building inspect-hoverable" data-inspect="buildings" style="left:16px; width:64px;">
+                    <svg viewBox="0 0 64 78" width="64" height="78">
+                        <rect x="4" y="18" width="56" height="60" fill="var(--muted2)" opacity=".65"/>
+                        <rect x="0" y="10" width="64" height="10" fill="var(--muted2)" opacity=".8"/>
+                        <text x="32" y="17" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="6" fill="var(--bg)">SCHOOL</text>
+                        <rect class="bldg-window w1" x="10" y="28" width="9" height="9" fill="var(--bg4)"/>
+                        <rect class="bldg-window w2" x="24" y="28" width="9" height="9" fill="var(--bg4)"/>
+                        <rect class="bldg-window w3" x="38" y="28" width="9" height="9" fill="var(--bg4)"/>
+                        <rect class="bldg-window w4" x="10" y="44" width="9" height="9" fill="var(--bg4)"/>
+                        <rect class="bldg-window w5" x="24" y="44" width="9" height="9" fill="var(--bg4)"/>
+                        <rect class="bldg-window w6" x="38" y="44" width="9" height="9" fill="var(--bg4)"/>
+                        <rect x="26" y="62" width="12" height="16" fill="var(--bg4)"/>
+                    </svg>
+                </div>
+                <div class="city-building inspect-hoverable" data-inspect="buildings" style="left:92px; width:56px;">
+                    <svg viewBox="0 0 56 96" width="56" height="96">
+                        <rect x="4" y="10" width="48" height="86" fill="var(--muted2)" opacity=".7"/>
+                        <rect x="18" y="0" width="20" height="12" fill="var(--red)" opacity=".85"/>
+                        <text x="28" y="9" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="#fff">+</text>
+                        <g class="hosp-windows">
+                            <rect class="bldg-window h1" x="10" y="20" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h2" x="24" y="20" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h3" x="38" y="20" width="8" height="8" fill="var(--bg4)"/>
+                            <rect class="bldg-window h4" x="10" y="34" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h5" x="24" y="34" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h6" x="38" y="34" width="8" height="8" fill="var(--bg4)"/>
+                            <rect class="bldg-window h7" x="10" y="48" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h8" x="24" y="48" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h9" x="38" y="48" width="8" height="8" fill="var(--bg4)"/>
+                            <rect class="bldg-window h10" x="10" y="62" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h11" x="24" y="62" width="8" height="8" fill="var(--bg4)"/><rect class="bldg-window h12" x="38" y="62" width="8" height="8" fill="var(--bg4)"/>
+                        </g>
+                        <rect x="22" y="80" width="12" height="16" fill="var(--bg4)"/>
+                    </svg>
+                </div>
+                <div class="city-building inspect-hoverable" data-inspect="buildings" style="left:164px; width:40px;">
+                    <svg viewBox="0 0 40 120" width="40" height="120">
+                        <rect x="2" y="4" width="36" height="116" fill="var(--muted2)" opacity=".62"/>
+                        <rect class="bldg-window o1" x="8" y="12" width="7" height="7" fill="var(--bg4)"/><rect class="bldg-window o2" x="20" y="12" width="7" height="7" fill="var(--bg4)"/>
+                        <rect class="bldg-window o3" x="8" y="24" width="7" height="7" fill="var(--bg4)"/><rect class="bldg-window o4" x="20" y="24" width="7" height="7" fill="var(--bg4)"/>
+                        <rect class="bldg-window o5" x="8" y="36" width="7" height="7" fill="var(--bg4)"/><rect class="bldg-window o6" x="20" y="36" width="7" height="7" fill="var(--bg4)"/>
+                        <rect class="bldg-window o7" x="8" y="48" width="7" height="7" fill="var(--bg4)"/><rect class="bldg-window o8" x="20" y="48" width="7" height="7" fill="var(--bg4)"/>
+                        <rect class="bldg-window o9" x="8" y="60" width="7" height="7" fill="var(--bg4)"/><rect class="bldg-window o10" x="20" y="60" width="7" height="7" fill="var(--bg4)"/>
+                        <rect class="bldg-window o11" x="8" y="72" width="7" height="7" fill="var(--bg4)"/><rect class="bldg-window o12" x="20" y="72" width="7" height="7" fill="var(--bg4)"/>
+                    </svg>
+                    <div class="fan-icon inspect-hoverable" id="fanIcon" data-inspect="fan" style="left:8px; top:-14px;">
+                        <svg width="20" height="20" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1.5"/><g class="blade"><path d="M13 4v6M13 16v6M4 13h6M16 13h6" stroke="var(--cyan2)" stroke-width="2" stroke-linecap="round"/></g></svg>
+                    </div>
+                </div>
+
+                <div class="display-board inspect-hoverable" data-inspect="display" style="left:96px; bottom:24%; width:44px; height:14px;">
+                    <svg viewBox="0 0 44 14" width="44" height="14"><rect width="44" height="14" rx="2" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1"/><text id="displayBoardText" x="22" y="10" text-anchor="middle" font-size="6" fill="var(--cyan2)">CITY OK</text></svg>
+                </div>
+
+                <div class="traffic-light inspect-hoverable" data-inspect="trafficlight" style="left:250px;">
+                    <svg viewBox="0 0 16 70" width="16" height="70">
+                        <rect x="7" y="20" width="2" height="50" fill="var(--muted2)"/>
+                        <rect x="0" y="0" width="16" height="34" rx="3" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1"/>
+                        <circle class="tl-lamp" id="tlRed" cx="8" cy="8" r="4" fill="var(--red)"/>
+                        <circle class="tl-lamp" id="tlAmber" cx="8" cy="17" r="4" fill="var(--amber)"/>
+                        <circle class="tl-lamp" id="tlGreen" cx="8" cy="26" r="4" fill="var(--green)"/>
+                    </svg>
+                </div>
+
+                <div class="street-lamp inspect-hoverable" data-inspect="streetlight" style="left:200px;">
+                    <svg viewBox="0 0 10 60" width="10" height="60"><rect x="4" y="10" width="2" height="50" fill="var(--muted2)"/><circle class="bulb" id="lampBulb1" cx="5" cy="8" r="5"/></svg>
+                </div>
+                <div class="street-lamp" style="left:330px;"><svg viewBox="0 0 10 60" width="10" height="60"><rect x="4" y="10" width="2" height="50" fill="var(--muted2)"/><circle class="bulb" id="lampBulb2" cx="5" cy="8" r="5"/></svg></div>
+                <div class="street-lamp" style="left:660px;"><svg viewBox="0 0 10 60" width="10" height="60"><rect x="4" y="10" width="2" height="50" fill="var(--muted2)"/><circle class="bulb" id="lampBulb3" cx="5" cy="8" r="5"/></svg></div>
+
+                <div class="road"><div class="road-line"></div></div>
+                <div class="car" id="car1" style="animation-duration:9s;"></div>
+                <div class="car rev" id="car2" style="animation-duration:12s; animation-delay:-4s; bottom:16px;"></div>
+
+                <div class="solar-panel inspect-hoverable" data-inspect="solar">
+                    <svg viewBox="0 0 52 34" width="52" height="34"><polygon points="4,28 48,28 40,8 12,8" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1.5"/><line x1="16" y1="8" x2="10" y2="28" stroke="var(--muted2)" stroke-width="1"/><line x1="26" y1="8" x2="24" y2="28" stroke="var(--muted2)" stroke-width="1"/><line x1="36" y1="8" x2="38" y2="28" stroke="var(--muted2)" stroke-width="1"/><rect class="glint" x="12" y="10" width="10" height="6" fill="var(--cyan2)" opacity=".2"/><rect x="22" y="28" width="6" height="8" fill="var(--muted2)"/></svg>
+                </div>
+                <div class="weather-station inspect-hoverable" data-inspect="weather">
+                    <svg viewBox="0 0 30 60" width="30" height="60"><line x1="15" y1="20" x2="15" y2="58" stroke="var(--muted2)" stroke-width="2"/><g class="ws-cups" id="wsCups" style="animation-duration:2s;"><circle cx="15" cy="8" r="1.5" fill="var(--muted2)"/><line x1="15" y1="8" x2="4" y2="14" stroke="var(--muted2)" stroke-width="1.4"/><line x1="15" y1="8" x2="26" y2="14" stroke="var(--muted2)" stroke-width="1.4"/><line x1="15" y1="8" x2="15" y2="20" stroke="var(--muted2)" stroke-width="1.4"/><circle cx="4" cy="14" r="3" fill="var(--cyan2)" opacity=".7"/><circle cx="26" cy="14" r="3" fill="var(--cyan2)" opacity=".7"/><circle cx="15" cy="20" r="3" fill="var(--cyan2)" opacity=".7"/></g></svg>
+                </div>
+                <div class="turbine inspect-hoverable" data-inspect="turbine">
+                    <svg viewBox="0 0 46 86" width="46" height="86"><rect x="21" y="26" width="3" height="58" fill="var(--muted2)"/><g class="turbine-blades" id="turbineBlades"><circle cx="23" cy="20" r="2.4" fill="var(--muted2)"/><path d="M23 20 L23 2" stroke="var(--cyan2)" stroke-width="3" stroke-linecap="round"/><path d="M23 20 L39 28" stroke="var(--cyan2)" stroke-width="3" stroke-linecap="round"/><path d="M23 20 L7 28" stroke="var(--cyan2)" stroke-width="3" stroke-linecap="round"/></g></svg>
+                </div>
+
+                <div class="park">
+                    <div class="tree t1 inspect-hoverable" data-inspect="park"><svg viewBox="0 0 30 46" width="26" height="40"><rect x="12" y="26" width="6" height="20" fill="#6b4a2f"/><circle cx="15" cy="18" r="16" fill="var(--green2)" opacity=".75"/></svg></div>
+                    <div class="tree t2 inspect-hoverable" data-inspect="park"><svg viewBox="0 0 30 46" width="22" height="36"><rect x="12" y="26" width="6" height="20" fill="#6b4a2f"/><circle cx="15" cy="18" r="16" fill="var(--green)" opacity=".75"/></svg></div>
+                    <div class="tree t3 inspect-hoverable" data-inspect="park"><svg viewBox="0 0 30 46" width="24" height="38"><rect x="12" y="26" width="6" height="20" fill="#6b4a2f"/><circle cx="15" cy="18" r="16" fill="var(--green2)" opacity=".7"/></svg></div>
+                </div>
+
+                <div class="lake-wrap inspect-hoverable" data-inspect="lake">
+                    <svg viewBox="0 0 110 40" width="110" height="40">
+                        <ellipse class="lake-ripple" cx="55" cy="22" rx="52" ry="16" fill="var(--blue)" opacity=".38"/>
+                        <ellipse class="lake-ripple" cx="55" cy="22" rx="38" ry="10" fill="var(--cyan2)" opacity=".3" style="animation-delay:.6s"/>
+                    </svg>
+                </div>
+                <div class="drainage inspect-hoverable" data-inspect="drainage">
+                    <svg viewBox="0 0 34 26" width="34" height="26">
+                        <rect x="2" y="2" width="30" height="10" rx="2" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1.4"/>
+                        <line x1="6" y1="4" x2="6" y2="10" stroke="var(--muted2)" stroke-width="1.2"/><line x1="12" y1="4" x2="12" y2="10" stroke="var(--muted2)" stroke-width="1.2"/>
+                        <line x1="18" y1="4" x2="18" y2="10" stroke="var(--muted2)" stroke-width="1.2"/><line x1="24" y1="4" x2="24" y2="10" stroke="var(--muted2)" stroke-width="1.2"/><line x1="28" y1="4" x2="28" y2="10" stroke="var(--muted2)" stroke-width="1.2"/>
+                        <path class="drain-flow" id="drainFlow" d="M17 12 V24" stroke="var(--cyan2)" stroke-width="2.4" stroke-dasharray="4 4"/>
+                        <path class="flood-gate" id="floodGate" d="M4 12 H30 V16 H4 Z" fill="var(--muted2)"/>
+                    </svg>
+                </div>
+                <div class="tower inspect-hoverable" data-inspect="tower">
+                    <svg viewBox="0 0 26 70" width="26" height="70" overflow="visible">
+                        <ellipse class="tower-ring" id="towerRing" cx="13" cy="6" rx="10" ry="10" fill="none" stroke="var(--red)" stroke-width="2"/>
+                        <path d="M13 8 L6 68 M13 8 L20 68 M8 40 H18 M9.5 54 H16.5" stroke="var(--muted2)" stroke-width="1.6" fill="none"/>
+                        <circle class="tower-led" id="towerLed" cx="13" cy="4" r="3" fill="var(--red)"/>
+                        <g id="sirenGroup" class="siren"><circle cx="13" cy="14" r="4" fill="var(--red)" opacity=".85"/></g>
+                    </svg>
+                </div>
+
+                <div class="sensor-dot pulsing" id="sensorTemp" style="right:36px; bottom:32%;" title="Temperature Sensor" data-sensor="temp"></div>
+                <div class="sensor-dot pulsing" id="sensorHum" style="right:76px; bottom:38%;" title="Humidity Sensor · DHT11" data-sensor="hum"></div>
+                <div class="sensor-dot pulsing" id="sensorRain" style="right:70px; top:16px;" title="Rain Sensor" data-sensor="rain"></div>
+                <div class="sensor-dot pulsing" id="sensorWind" style="right:118px; bottom:44%;" title="Wind Sensor" data-sensor="wind"></div>
+                <div class="sensor-dot pulsing" id="sensorLdr" style="left:222px; bottom:36%;" title="LDR · Light Sensor" data-sensor="ldr"></div>
+                <div class="sensor-dot pulsing" id="sensorAqi" style="left:420px; bottom:19%;" title="Air Quality Sensor" data-sensor="aqi"></div>
+                <div class="sensor-dot pulsing" id="sensorNoise" style="left:280px; bottom:44%;" title="Noise Sensor" data-sensor="noise"></div>
+                <div class="sensor-dot pulsing" id="sensorFlood" style="left:600px; bottom:16%;" title="Flood Level Sensor" data-sensor="flood"></div>
+
+                <div class="city-readout"><span><b id="cTemp">--°C</b></span><span>AQI <b id="cAqi">--</b></span><span>Rain <b id="cRain">--%</b></span><span>Wind <b id="cWind">-- km/h</b></span></div>
+                <div class="city-cond-label" id="cityCondLabel">—</div>
+            </div>
+        </div>
+
+        <!-- ═══════ RIGHT · ARDUINO CONTROL CENTER ═══════ -->
+        <div class="panel">
+            <div class="panel-head">
+                <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>Arduino Control Center</h3>
+                <div class="panel-tag" title="Double-click the board to open the full visualizer">Double-click board ⤢</div>
+            </div>
+            <div class="board-mini" id="boardMini" style="cursor: zoom-in;" title="Double-click for fullscreen GPIO visualizer">
+                <svg viewBox="0 0 300 90">
+                    <rect x="10" y="10" width="280" height="70" rx="8" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="1.5"/>
+                    <rect x="120" y="30" width="60" height="30" rx="3" fill="var(--bg3)" stroke="var(--muted2)"/>
+                    <text x="150" y="24" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--muted)">UNO</text>
+                    <text x="150" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted2)">ARDUINO · MCU</text>
+                    <circle id="mcuLed" cx="255" cy="24" r="4" fill="var(--green)"/>
+                    <line x1="10" y1="24" x2="-6" y2="24" stroke="var(--green)" stroke-width="2"/>
+                    <line x1="10" y1="66" x2="-6" y2="66" stroke="var(--muted2)" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="board-power"><i></i>POWER &amp; GND CONNECTED — bus ready</div>
+
+            <div class="comp-list">
+                <div class="comp-card wired locked">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                    <div class="comp-info"><div class="name">Environmental Sensor Array <span class="req optional">Connected</span></div><div class="sub">Temp / RH / AQI / Noise · live</div></div>
+                    <label class="switch"><input type="checkbox" checked disabled><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardRelay">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 12h10"/></svg></div>
+                    <div class="comp-info"><div class="name">Relay Module <span class="req required">Required</span></div><div class="sub">Switches cooling power via D7</div></div>
+                    <label class="switch"><input type="checkbox" id="wireRelay"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardFan">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg></div>
+                    <div class="comp-info"><div class="name">Cooling Fan Bank <span class="req required">Required</span></div><div class="sub">Draws from power grid via relay</div></div>
+                    <label class="switch"><input type="checkbox" id="wireFan"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardStreet">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></div>
+                    <div class="comp-info"><div class="name">Street Light Driver <span class="req optional">Precision</span></div><div class="sub">Auto-dims lamps at night, saves power</div></div>
+                    <label class="switch"><input type="checkbox" id="wireStreet"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardDisplay">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 10h4M6 14h8"/></svg></div>
+                    <div class="comp-info"><div class="name">Public Display Board <span class="req optional">Optional</span></div><div class="sub">Shows live city status on-street</div></div>
+                    <label class="switch"><input type="checkbox" id="wireDisplay"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardLed">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+                    <div class="comp-info"><div class="name">Status LED <span class="req optional">Optional</span></div><div class="sub">Blinks while cooling is active</div></div>
+                    <label class="switch"><input type="checkbox" id="wireLed"><span class="slider"></span></label>
+                </div>
+                <div class="comp-card" id="cardSiren">
+                    <div class="comp-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10v4h4l5 5V5l-5 5H3Z"/><path d="M17 9a5 5 0 0 1 0 6"/></svg></div>
+                    <div class="comp-info"><div class="name">Warning Siren <span class="req optional">Safety</span></div><div class="sub">Alerts on sensor / grid failure</div></div>
+                    <label class="switch"><input type="checkbox" id="wireSiren"><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="rule-block">
+                <div class="rule-block-title">Automation Logic</div>
+                <div class="rule-row">
+                    <div class="rule-label"><span>Activate cooling above</span><b id="thresholdVal">32°C</b></div>
+                    <input type="range" min="24" max="42" value="32" id="thresholdSlider">
+                </div>
+                <div class="toggle-row"><span>Flood-safe lockdown (cut non-essential power if flood risk high)</span><label class="switch"><input type="checkbox" id="floodSafe" checked><span class="slider"></span></label></div>
+            </div>
+
+            <div class="circuit-diagram">
+                <div class="rule-block-title">Circuit Path</div>
+                <svg viewBox="0 0 280 46" id="circuitSvg">
+                    <line id="cLine1" x1="20" y1="23" x2="90" y2="23" stroke="var(--border)" stroke-width="2"/>
+                    <line id="cLine2" x1="90" y1="23" x2="160" y2="23" stroke="var(--border)" stroke-width="2"/>
+                    <line id="cLine3" x1="160" y1="23" x2="230" y2="23" stroke="var(--border)" stroke-width="2"/>
+                    <circle cx="20" cy="23" r="10" fill="var(--bg3)" stroke="var(--cyan2)" stroke-width="1.5"/>
+                    <circle cx="90" cy="23" r="10" fill="var(--bg3)" stroke="var(--muted2)" stroke-width="1.5" id="cNodeArd"/>
+                    <circle cx="160" cy="23" r="10" fill="var(--bg3)" stroke="var(--muted2)" stroke-width="1.5" id="cNodeRelay"/>
+                    <circle cx="230" cy="23" r="10" fill="var(--bg3)" stroke="var(--muted2)" stroke-width="1.5" id="cNodeFan"/>
+                    <text x="20" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">SENSOR</text>
+                    <text x="90" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">MCU</text>
+                    <text x="160" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">RELAY</text>
+                    <text x="230" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7" fill="var(--muted)">FANS</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ BOTTOM CONSOLE ═══════ -->
+    <div class="panel console-panel">
+        <div class="console-controls">
+            <div class="left-grp">
+                <button class="btn btn-primary" id="btnRun">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Run Simulation
+                </button>
+                <button class="btn btn-ghost" id="btnPause">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>Pause
+                </button>
+                <button class="btn btn-ghost" id="btnReset">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>Reset
+                </button>
+                <button class="btn btn-blue" id="btnExplain">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.7-2.5 2-2.5 3.5M12 17h.01"/></svg>AI Explain
+                </button>
+                <button class="btn btn-amber" id="btnDeploy" disabled>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21 7.5 13.5 2 9h7z"/></svg>Deploy Smart City
+                </button>
+            </div>
+            <div class="mission-progress-mini">
+                <span id="miniProgressLabel">Tick 0 / 30</span>
+                <div class="meter bar"><div class="meter-fill progress" id="miniProgressBar" style="width:0%"></div></div>
+            </div>
+        </div>
+        <div class="event-strip">
+            <button class="ev-btn" data-ev="heatwave">☀ Heatwave</button>
+            <button class="ev-btn" data-ev="rain">🌧 Heavy Rain</button>
+            <button class="ev-btn" data-ev="storm">⛈ Storm</button>
+            <button class="ev-btn" data-ev="pooraqi">🌫 Poor AQI</button>
+            <button class="ev-btn" data-ev="powerfailure">⚡ Power Failure</button>
+            <button class="ev-btn" data-ev="highwind">🌬 High Wind</button>
+            <button class="ev-btn" data-ev="floodwarning">🌊 Flood Warning</button>
+            <button class="ev-btn" data-ev="sensorfault">⚠ Sensor Failure</button>
+            <button class="ev-btn" data-ev="networkfailure">📡 Network Failure</button>
+        </div>
+        <div class="ai-callout" id="aiCallout"><div class="t">AI Explain — Environmental Analysis</div><ul id="aiCalloutList"></ul><div class="ai-metric-row" id="aiMetricRow"></div></div>
+        <div class="console-log" id="consoleLog"></div>
+    </div>
+
+    <!-- ═══════ LIVE TELEMETRY ═══════ -->
+    <div class="panel telemetry-panel">
+        <div class="panel-head">
+            <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Live Telemetry</h3>
+            <div class="panel-tag">Updates every tick</div>
+        </div>
+        <div class="telemetry-grid" id="telemetryGrid">
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Temp</span><span class="tc-val" id="tcTemp" style="color:var(--amber)">--°C</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkTempFill" fill="var(--amber)"/><path class="spark-line" id="sparkTemp" stroke="var(--amber)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Humidity</span><span class="tc-val" id="tcHum" style="color:var(--cyan2)">--%</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkHumFill" fill="var(--cyan2)"/><path class="spark-line" id="sparkHum" stroke="var(--cyan2)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">AQI</span><span class="tc-val" id="tcAqi" style="color:var(--violet)">--</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkAqiFill" fill="var(--violet)"/><path class="spark-line" id="sparkAqi" stroke="var(--violet)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Rain Prob.</span><span class="tc-val" id="tcRain" style="color:var(--blue)">--%</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkRainFill" fill="var(--blue)"/><path class="spark-line" id="sparkRain" stroke="var(--blue)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Wind</span><span class="tc-val" id="tcWind" style="color:var(--green)">-- km/h</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkWindFill" fill="var(--green)"/><path class="spark-line" id="sparkWind" stroke="var(--green)"/></svg>
+            </div>
+            <div class="telemetry-cell">
+                <div class="tc-head"><span class="tc-label">Power Reserve</span><span class="tc-val" id="tcPower" style="color:var(--cyan2)">--%</span></div>
+                <svg viewBox="0 0 100 36" preserveAspectRatio="none"><path class="spark-fill" id="sparkPowerFill" fill="var(--cyan2)"/><path class="spark-line" id="sparkPower" stroke="var(--cyan2)"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ MISSION TIMELINE ═══════ -->
+    <div class="panel timeline-panel">
+        <div class="panel-head">
+            <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Mission Timeline</h3>
+            <div class="panel-tag">Narrative log</div>
+        </div>
+        <div class="timeline-list" id="timelineList"></div>
+    </div>
+
+    <!-- ═══════ MANUAL / HOW TO USE ═══════ -->
+    <div class="panel manual-panel" id="manualPanel">
+        <div class="panel-head" id="manualHead">
+            <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>How To Run This Mission</h3>
+            <div class="manual-head-right">
+                <div class="panel-tag">Manual</div>
+                <button class="manual-toggle-btn" id="manualToggleBtn" title="Collapse / expand manual" aria-expanded="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="manual-body" id="manualBody"><div class="manual-body-inner">
+        <p class="manual-intro">A quick walkthrough of the simulator — from wiring the automation to deploying the finished smart city. Everything below maps directly to the panels on this page.</p>
+
+        <div class="manual-steps">
+            <div class="manual-step">
+                <div class="manual-step-num">01</div>
+                <h4>Pick a mission &amp; read the objective</h4>
+                <p>Choose one of the 8 mission chips (M01–M08) at the top of <b>Mission Control</b> — each targets a different city-scale challenge: heatwaves, floods, storms, air quality, power failures, high wind and flood emergencies. Read the objective for the one you pick; everything you do is judged against it.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">02</div>
+                <h4>Wire the hardware</h4>
+                <p>In the <b>Arduino Control Center</b> on the right, flip the switches to wire the <b>Relay</b> and the <b>Cooling Fan Bank</b> — these are required. Street Light Driver, Display Board, LED and Siren are optional but add efficiency and safety.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">03</div>
+                <h4>Set the response rule</h4>
+                <p>Drag the <b>temperature threshold</b> slider to decide when cooling should activate, and leave <b>Flood-safe lockdown</b> checked so non-essential power cuts automatically if flood risk spikes.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">04</div>
+                <h4>Press Run Simulation</h4>
+                <p>Click <b>Run Simulation</b> in the console bar. The mission clock starts, live weather drives the city, and the Arduino begins making its own cooling decisions each tick.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">05</div>
+                <h4>Watch the digital twin</h4>
+                <p>The center city scene reacts in real time — traffic lights cycle, street lamps glow at night, fans spin, clouds and rain track live weather. <b>Click any sensor dot</b> to inspect its reading, pin and status.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">06</div>
+                <h4>Inspect the hardware</h4>
+                <p><b>Hover</b> the buildings, traffic light, weather station, turbine, solar panel, lake, drainage or park for live engineering data. <b>Double-click the Arduino board</b> to open the fullscreen GPIO visualizer.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">07</div>
+                <h4>Stress-test with events</h4>
+                <p>Use the event buttons (Heatwave, Storm, Poor AQI, Power Failure, etc.) in the console to throw curveballs and see whether your wiring and thresholds hold up.</p>
+            </div>
+            <div class="manual-step">
+                <div class="manual-step-num">08</div>
+                <h4>Review &amp; deploy</h4>
+                <p>When the mission ends, a summary shows your score, power saved and AI rating. Click <b>Explain</b> in the console for reasoning, then <b>Deploy Smart City</b> to keep it running live.</p>
+            </div>
+        </div>
+
+        <div class="manual-tips">
+            <div class="manual-tips-title">Good To Know</div>
+            <div class="manual-tip-grid">
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                    <div class="tx"><b>Live Telemetry panel</b>Six sparkline graphs below the console track temperature, humidity, AQI, rain probability, wind and power reserve tick-by-tick.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+                    <div class="tx"><b>Mission Timeline</b>A narrative, human-readable log of major events — separate from the raw system console below it.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="20" height="6" rx="2"/><path d="M6 4v5M18 4v5M6 15v5M18 15v5"/></svg></div>
+                    <div class="tx"><b>IoT Cloud Status widget</b>The floating card bottom-right shows Arduino connectivity, packet count, MQTT and latency — click its header to collapse it.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+                    <div class="tx"><b>Ambient sound</b>The speaker icon in the top bar turns on wind, rain, fan hum and relay clicks — off by default, tap to enable.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                    <div class="tx"><b>Mission progress gauge</b>The ring next to the title tracks overall mission completion — same number as the progress bar in Mission Control.</div>
+                </div>
+                <div class="manual-tip">
+                    <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                    <div class="tx"><b>Data-flow particles</b>Blue dots are routine sensor readings, orange is a command from the Arduino, red means a sensor or network fault is active.</div>
+                </div>
+            </div>
+        </div>
+        </div></div>
+    </div>
+
+    <div class="footer">ARCIO Live · Smart City Mission Simulator · Environmental data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> · Simulated city automation physics, no hardware connected · No API keys · No login required</div>
+</main>
+
+<!-- ═══════ SUCCESS / FAILURE MODAL ═══════ -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard">
+        <div class="modal-icon" id="modalIcon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h2 id="modalTitle">Mission Success</h2>
+        <p class="sub" id="modalSub">Your automation kept the city comfortable and used power wisely.</p>
+        <div class="modal-stats">
+            <div class="modal-stat"><div class="l">Power Saved</div><div class="v" id="mPowerSaved">--%</div></div>
+            <div class="modal-stat"><div class="l">Automation Efficiency</div><div class="v" id="mAutoEff">--%</div></div>
+            <div class="modal-stat"><div class="l">Response Time</div><div class="v" id="mResponse">--s</div></div>
+            <div class="modal-stat"><div class="l">Environmental Rating</div><div class="v" id="mEnvRating">--</div></div>
+            <div class="modal-stat"><div class="l">Mission Score</div><div class="v" id="mScore">--</div></div>
+            <div class="modal-stat"><div class="l">AI Rating</div><div class="v" id="mRating">--</div></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="btnModalClose">Close</button>
+            <button class="btn btn-primary" id="btnModalDeploy">Deploy Smart City</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ SENSOR / OBJECT INSPECTOR ═══════ -->
+<div class="inspector-overlay" id="inspectorOverlay">
+    <div class="inspector-card">
+        <div class="insp-head">
+            <div class="t"><i></i><span id="inspTag">Sensor Inspector</span></div>
+            <button class="insp-close" id="inspClose">✕</button>
+        </div>
+        <div class="insp-body">
+            <div class="insp-name" id="inspName">—</div>
+            <div class="insp-value"><span class="n" id="inspValue">--</span><span class="u" id="inspUnit"></span></div>
+            <div id="inspRows"></div>
+            <div class="insp-note" id="inspNote"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ HOVER TOOLTIP ═══════ -->
+<div class="hover-tip" id="hoverTip">
+    <div class="ht-t" id="htTitle">—</div>
+    <div id="htRows"></div>
+</div>
+
+<!-- ═══════ IOT CLOUD STATUS WIDGET ═══════ -->
+<div class="iot-widget" id="iotWidget">
+    <div class="iot-head" id="iotHead">
+        <span class="dot" id="iotDot"></span>
+        <span class="ttl">IoT Cloud Status</span>
+        <span class="car">▾</span>
+    </div>
+    <div class="iot-body">
+        <div class="iot-row"><span>Arduino</span><span class="v" id="iotArduino"><span class="led off"></span>Offline</span></div>
+        <div class="iot-row"><span>Cloud</span><span class="v" id="iotCloud"><span class="led"></span>Connected</span></div>
+        <div class="iot-row"><span>Sensor Packets</span><span class="v" id="iotPackets">0</span></div>
+        <div class="iot-row"><span>MQTT</span><span class="v" id="iotMqtt">idle</span></div>
+        <div class="iot-row"><span>DB Sync</span><span class="v" id="iotSync">synced</span></div>
+        <div class="iot-row"><span>Latency</span><span class="v" id="iotLatency">-- ms</span></div>
+        <div class="iot-row"><span>API</span><span class="v" id="iotApi">200 OK</span></div>
+    </div>
+</div>
+
+<!-- ═══════ ARDUINO FULLSCREEN VISUALIZER ═══════ -->
+<div class="arduino-fs-overlay" id="arduinoFsOverlay">
+    <div class="arduino-fs-card">
+        <div class="afs-head">
+            <h3>Arduino UNO — Live GPIO Visualizer<span class="panel-tag" id="gpioMissionTag">Mission 01</span></h3>
+            <button class="insp-close" id="afsClose">✕</button>
+        </div>
+        <div class="afs-body">
+            <div class="afs-board">
+                <svg viewBox="0 0 600 220">
+                    <rect x="20" y="20" width="560" height="180" rx="14" fill="var(--bg4)" stroke="var(--muted2)" stroke-width="2"/>
+                    <rect x="240" y="65" width="120" height="90" rx="4" fill="var(--bg3)" stroke="var(--muted2)"/>
+                    <text x="300" y="55" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="15" fill="var(--muted)">ARDUINO UNO</text>
+                    <text x="300" y="185" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--muted2)">ATmega328P · 16MHz</text>
+
+                    <g id="gpioPinsTop">
+                        <line x1="80" y1="20" x2="80" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="110" y1="20" x2="110" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="140" y1="20" x2="140" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="460" y1="20" x2="460" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="490" y1="20" x2="490" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                        <line x1="520" y1="20" x2="520" y2="4" stroke="var(--muted2)" stroke-width="2"/>
+                    </g>
+
+                    <circle id="fsLedPower" cx="45" cy="35" r="6" fill="var(--green)"/>
+                    <text x="45" y="56" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">PWR</text>
+
+                    <circle id="fsLedTx" cx="45" cy="80" r="5" fill="var(--muted2)"/>
+                    <text x="45" y="100" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">TX</text>
+
+                    <circle id="fsLedRx" cx="45" cy="120" r="5" fill="var(--muted2)"/>
+                    <text x="45" y="140" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">RX</text>
+
+                    <circle id="fsLedStatus" cx="45" cy="160" r="5" fill="var(--muted2)"/>
+                    <text x="45" y="180" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">STATUS</text>
+
+                    <circle id="fsLedRelay" cx="555" cy="80" r="6" fill="var(--muted2)"/>
+                    <text x="555" y="100" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">RELAY</text>
+
+                    <circle id="fsLedGpio1" cx="555" cy="35" r="5" fill="var(--muted2)"/>
+                    <text x="555" y="56" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">D7</text>
+
+                    <circle id="fsLedGpio2" cx="555" cy="120" r="5" fill="var(--muted2)"/>
+                    <text x="555" y="140" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">A0</text>
+
+                    <circle id="fsLedGpio3" cx="555" cy="160" r="5" fill="var(--muted2)"/>
+                    <text x="555" y="180" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--muted)">D8</text>
+
+                    <path id="gpioPathIn" d="M 80 12 L 80 90 L 240 90" fill="none" stroke="var(--border-blue)" stroke-width="1.5" stroke-dasharray="3 4"/>
+                    <path id="gpioPathOut" d="M 360 100 L 520 100 L 520 12" fill="none" stroke="var(--border-blue)" stroke-width="1.5" stroke-dasharray="3 4"/>
+                    <circle class="gpio-signal" id="gpioDotIn" r="3.5" fill="var(--cyan2)" style="offset-path: path('M 80 12 L 80 90 L 240 90');"/>
+                    <circle class="gpio-signal" id="gpioDotOut" r="3.5" fill="var(--green)" style="offset-path: path('M 360 100 L 520 100 L 520 12');"/>
+                </svg>
+            </div>
+            <div class="afs-legend" id="afsLegend">
+                <div class="li"><span class="led" id="legPower"></span>Power — <b>5V bus energized</b></div>
+                <div class="li"><span class="led" id="legTx"></span>TX — <b id="legTxTxt">Idle</b></div>
+                <div class="li"><span class="led" id="legRx"></span>RX — <b id="legRxTxt">Idle</b></div>
+                <div class="li"><span class="led" id="legRelay"></span>Relay — <b id="legRelayTxt">Open</b></div>
+                <div class="li"><span class="led" id="legStatus"></span>Status — <b id="legStatusTxt">Standby</b></div>
+                <div class="li"><span class="led" id="legFault"></span>Fault — <b id="legFaultTxt">None</b></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════ THEME ═══════════════════════ */
+const THEME_KEY = 'arcio_live_theme';
+function getTheme(){ try { return localStorage.getItem(THEME_KEY) || 'dark'; } catch(e){ return 'dark'; } }
+function applyTheme(t){
+    document.body.setAttribute('data-theme', t);
+    try { localStorage.setItem(THEME_KEY, t); } catch(e){}
+}
+applyTheme(getTheme());
+$('themeToggle').addEventListener('click', () => {
+    applyTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+/* ═══════════════════════ STATE ═══════════════════════ */
+const MAX_TICKS = 30;
+const TICK_MS = 1100;
+
+let state = {
+    tick: 0,
+    running: false, paused: false,
+    deployed: false,
+    over: false,
+    temp: 29, humidity: 50, rainProb: 15, wind: 10, uv: 5, cloud: 20, isDay: true,
+    aqi: 55, noise: 52, floodLevel: 12,
+    cityComfort: 80, powerReserve: 64,
+    fanOn: false,
+    powerUsedKwh: 0,
+    overheatTicks: 0, wasteTicks: 0, activeTicks: 0,
+    comfortHistory: [],
+    eventTimer: 0, eventName: null,
+    sensorFaultTicks: 0, networkFaultTicks: 0,
+    threshold: 32, floodSafe: true,
+    wiring: { relay:false, fan:false, street:false, display:false, led:false, siren:false }
+};
+let intervalRef = null;
+let currentLat = null, currentLon = null;
+
+/* ═══════════════════════ MISSIONS ═══════════════════════ */
+const MISSIONS = [
+    { id:1, name:'Mission 01 · Heatwave Response', focus:'Climate Response', diff:'Field Engineer', time:'~2 min',
+      obj:'Objective — <b>Keep City Comfort Index above 70%</b> while running the mission, using the <b>least amount of grid power</b> possible. Wire the automation on the right, set your threshold, then hit Run.',
+      ev:null },
+    { id:2, name:'Mission 02 · Extreme Heatwave', focus:'Climate Response', diff:'Field Engineer', time:'~2 min',
+      obj:'Objective — Keep <b>City Comfort above 65%</b> through an intense heatwave spike without leaving the cooling fans on once the grid recovers.',
+      ev:'heatwave' },
+    { id:3, name:'Mission 03 · Flood Watch', focus:'Safety', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Enable <b>flood-safe lockdown</b> before heavy rain pushes flood levels critical, cutting non-essential power in time.',
+      ev:'rain' },
+    { id:4, name:'Mission 04 · Storm Warning', focus:'Safety', diff:'Advanced', time:'~2 min',
+      obj:'Objective — Ride out a full <b>storm warning</b> (high wind + heavy rain + flooding) while keeping City Comfort above 55%.',
+      ev:'storm' },
+    { id:5, name:'Mission 05 · Air Quality Alert', focus:'Environment', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Air quality spikes to hazardous levels mid-mission — keep <b>City Comfort above 60%</b> despite the poor AQI.',
+      ev:'pooraqi' },
+    { id:6, name:'Mission 06 · Power Failure Response', focus:'Resource Mgmt', diff:'Advanced', time:'~2 min',
+      obj:'Objective — A <b>power failure</b> drains the grid reserve mid-mission — ration remaining power while keeping comfort as high as possible.',
+      ev:'powerfailure' },
+    { id:7, name:'Mission 07 · High Wind Ops', focus:'Automation', diff:'Intermediate', time:'~2 min',
+      obj:'Objective — Keep systems stable through a <b>high wind</b> event, holding City Comfort above 65%.',
+      ev:'highwind' },
+    { id:8, name:'Mission 08 · Flood Emergency', focus:'Safety', diff:'Advanced', time:'~2 min',
+      obj:'Objective — A sudden <b>flood warning</b> pushes water levels critical — trigger flood-safe lockdown fast enough to protect the grid.',
+      ev:'floodwarning' },
+];
+let missionIdx = 0;
+
+
+/* ═══════════════════════ LOG ═══════════════════════ */
+function log(tag, msg){
+    const el = $('consoleLog');
+    const t = new Date();
+    const ts = t.toLocaleTimeString('en-GB', {hour12:false});
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">${ts}</span><span class="log-tag ${tag}">[${tag.toUpperCase()}]</span><span class="log-msg"></span>`;
+    line.querySelector('.log-msg').textContent = msg;
+    el.appendChild(line);
+    while (el.children.length > 220) el.removeChild(el.firstChild);
+    el.scrollTop = el.scrollHeight;
+}
+
+/* ═══════════════════════ MISSION CHIPS ═══════════════════════ */
+function buildMissionChips(){
+    const row = $('missionChipRow');
+    row.innerHTML = '';
+    MISSIONS.forEach((m,i) => {
+        const b = document.createElement('button');
+        b.className = 'mchip' + (i===missionIdx ? ' active' : '');
+        b.textContent = 'M' + String(m.id).padStart(2,'0');
+        b.title = m.name;
+        b.addEventListener('click', () => { if(!state.running && !state.deployed){ missionIdx = i; applyMission(); } });
+        row.appendChild(b);
+    });
+}
+function applyMission(){
+    const m = MISSIONS[missionIdx];
+    $('missionNameEl').textContent = m.name;
+    $('missionObjEl').innerHTML = m.obj;
+    $('missionDiffChip').textContent = m.diff;
+    $('missionTimeChip').textContent = m.time;
+    $('missionFocusChip').textContent = m.focus;
+    $('gpioMissionTag').textContent = 'Mission 0' + m.id;
+    buildMissionChips();
+    log('system', `${m.name} loaded — wire the automation, then press Run Simulation.`);
+}
+
+/* ═══════════════════════ TIMELINE ═══════════════════════ */
+function pushTimeline(text, kind){
+    const el = $('timelineList');
+    const ts = new Date().toLocaleTimeString('en-GB', {hour12:false, hour:'2-digit', minute:'2-digit'});
+    const item = document.createElement('div');
+    item.className = 'tl-item';
+    item.innerHTML = `<span class="tl-time">${ts}</span><span class="tl-rail"><span class="tl-dot ${kind||''}"></span><span class="tl-line"></span></span><span class="tl-text"></span>`;
+    item.querySelector('.tl-text').textContent = text;
+    el.insertBefore(item, el.firstChild);
+    while (el.children.length > 40) el.removeChild(el.lastChild);
+}
+
+/* ═══════════════════════ WMO ═══════════════════════ */
+function estimateAqi(wind, temp, cloud, humidity){
+    let a = 60 + (temp>30 ? (temp-30)*3 : 0) - (wind*1.4) + (cloud*0.15) - (humidity*0.1);
+    return Math.max(8, Math.min(300, Math.round(a)));
+}
+function estimateNoise(wind, isDay){
+    let n = (isDay ? 58 : 42) + (wind>20 ? 6 : 0) + (Math.random()*6 - 3);
+    return Math.max(30, Math.min(95, Math.round(n)));
+}
+
+/* ═══════════════════════ WEATHER FETCH ═══════════════════════ */
+async function loadWeather(lat, lon){
+    currentLat = lat; currentLon = lon;
+    setConnStatus('Fetching…', null);
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+            `&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,cloud_cover,is_day,uv_index` +
+            `&hourly=precipitation_probability,uv_index&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const cur = data.current || {};
+        let rainProb = 15;
+        try {
+            const idx = (data.hourly.time || []).findIndex(t => t === (cur.time || '').slice(0,13)+':00');
+            if (idx >= 0 && data.hourly.precipitation_probability) rainProb = data.hourly.precipitation_probability[idx];
+        } catch(e){}
+        state.temp = Math.round(cur.temperature_2m ?? 29);
+        state.humidity = Math.round(cur.relative_humidity_2m ?? 50);
+        state.wind = Math.round(cur.wind_speed_10m ?? 10);
+        state.cloud = Math.round(cur.cloud_cover ?? 20);
+        state.isDay = (cur.is_day ?? 1) === 1;
+        state.rainProb = Math.round(rainProb ?? 15);
+        state.uv = Math.round((cur.uv_index ?? 5) * 10) / 10;
+        state.aqi = estimateAqi(state.wind, state.temp, state.cloud, state.humidity);
+        state.noise = estimateNoise(state.wind, state.isDay);
+        setConnStatus('Live', true);
+        log('system', `Live weather loaded — ${state.temp}°C, ${state.humidity}% humidity, ${state.rainProb}% rain chance.`);
+        pushTimeline('Weather updated from Open-Meteo.', 'good');
+        renderAll();
+    } catch(e){
+        setConnStatus('Offline data', false);
+        log('system', 'Could not reach Open-Meteo — using baseline city conditions.');
+        renderAll();
+    }
+}
+
+function initGeolocation(){
+    if (!navigator.geolocation){ loadWeather(28.6139, 77.2090); return; }
+    navigator.geolocation.getCurrentPosition(
+        pos => loadWeather(pos.coords.latitude, pos.coords.longitude),
+        () => loadWeather(28.6139, 77.2090),
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+}
+initGeolocation();
+
+/* ═══════════════════════ ANIMATED NUMBERS + HERO META ═══════════════════════ */
+const _statAnimCache = {};
+function animateStat(id, target, suffix){
+    suffix = suffix || '';
+    const el = $(id); if (!el) return;
+    const prev = _statAnimCache[id] != null ? _statAnimCache[id] : target;
+    _statAnimCache[id] = target;
+    if (Math.abs(target - prev) < 0.6){ el.textContent = target + suffix; return; }
+    const start = performance.now();
+    const dur = 420;
+    function step(now){
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(prev + (target - prev) * eased) + suffix;
+        if (t < 1) requestAnimationFrame(step);
+        else el.textContent = target + suffix;
+    }
+    requestAnimationFrame(step);
+}
+function updateHeroGauge(pct){
+    const circ = 213.6;
+    const ring = $('heroGaugeRing');
+    if (ring) ring.style.strokeDashoffset = (circ - (circ * pct / 100)).toFixed(1);
+    const txt = $('heroGaugeText');
+    if (txt) txt.textContent = pct + '%';
+}
+function setConnStatus(label, ok){
+    const tag = $('topStatusTag'); if (tag) tag.textContent = label;
+    const dotCls = 'dot-live' + (ok === true ? '' : ok === false ? ' off' : ' pending');
+    const hc = $('heroConn'); if (hc) hc.innerHTML = `<span class="${dotCls}"></span>${label}`;
+}
+function tickClock(){
+    const s = new Date().toLocaleTimeString('en-GB', { hour12: false });
+    const a = $('topbarClock'); if (a) a.textContent = s;
+    const b = $('heroClock'); if (b) b.textContent = s;
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ═══════════════════════ RENDER ═══════════════════════ */
+let prevSnapshot = {};
+function renderAll(){
+    const rTemp = Math.round(state.temp);
+    const rHum = Math.round(state.humidity);
+    const rRain = Math.round(state.rainProb);
+    const rWind = Math.round(state.wind);
+    const rAqi = Math.round(state.aqi);
+    const rNoise = Math.round(state.noise);
+    const rFlood = Math.round(state.floodLevel);
+    const rComfort = Math.round(state.cityComfort);
+    const rPower = Math.round(state.powerReserve);
+
+    animateStat('stTemp', rTemp, '°C');
+    animateStat('stHum', rHum, '%');
+    animateStat('stRain', rRain, '%');
+    animateStat('stWind', rWind, ' km/h');
+    $('stUv').textContent = state.uv;
+
+    animateStat('stAqi', rAqi, '');
+    $('stAqi').className = 'v ' + (rAqi > 150 ? 'bad' : rAqi > 100 ? 'warn' : 'good');
+    animateStat('stNoise', rNoise, ' dB');
+    animateStat('stFlood', rFlood, '%');
+    $('barFlood').style.width = rFlood + '%';
+
+    animateStat('stComfort', rComfort, '%');
+    $('barComfort').style.width = rComfort + '%';
+    $('stComfort').className = 'v ' + (state.cityComfort >= 70 ? 'good' : state.cityComfort >= 40 ? 'warn' : 'bad');
+    animateStat('stPower', rPower, '%');
+    $('barPower').style.width = rPower + '%';
+
+    $('cTemp').textContent = rTemp + '°C';
+    $('cAqi').textContent = rAqi;
+    $('cRain').textContent = rRain + '%';
+    $('cWind').textContent = rWind + ' km/h';
+
+    const effCond = state.eventName === 'Storm Warning' ? 'storm' : !state.isDay ? 'night' : (state.rainProb >= 55 ? 'rain' : (state.cloud >= 55 ? 'cloudy' : 'sunny'));
+    const scene = $('cityScene');
+    scene.className = 'city-scene cond-' + effCond;
+    $('cityCondLabel').textContent = effCond.charAt(0).toUpperCase()+effCond.slice(1) + (state.eventName ? ' · Event Active' : '');
+    $('windLayer').classList.toggle('show', state.wind >= 16);
+    $('wsCups').style.animationDuration = Math.max(.4, 3 - state.wind/12) + 's';
+    $('turbineBlades').style.animationDuration = Math.max(.5, 3.4 - state.wind/10) + 's';
+    $('lightningLayer').classList.toggle('flash', effCond === 'storm');
+
+    const active = state.running || state.deployed;
+    const isNightLike = effCond === 'night' || effCond === 'storm';
+    document.querySelectorAll('.bldg-window').forEach((w,i) => w.classList.toggle('lit', isNightLike && (i % 3 !== 0 || Math.random() > .3)));
+    const streetOn = isNightLike && (!state.wiring.street || true);
+    ['lampBulb1','lampBulb2','lampBulb3'].forEach(id => $(id).classList.toggle('on', isNightLike));
+
+    // traffic light cycling handled by separate interval; here just ensure fault look
+    document.querySelectorAll('.tl-lamp').forEach(l => l.classList.toggle('fault-dim', state.networkFaultTicks>0));
+
+    const healthClass = state.cityComfort >= 70 ? '' : state.cityComfort >= 40 ? 'warn' : 'bad';
+    $('healthFlag').className = 'health-flag ' + healthClass;
+    $('healthFlag').textContent = !state.running && !state.deployed && state.tick===0 ? 'Standing By' :
+        state.cityComfort >= 70 ? 'City Stable' : state.cityComfort >= 40 ? 'City Stressed' : 'City Critical';
+
+    $('emergencyOverlay').classList.toggle('active', state.aqi > 200 || state.floodLevel > 75 || (state.eventName === 'Power Failure'));
+
+    // fan / devices
+    $('fanIcon').classList.toggle('active', state.fanOn);
+    $('drainFlow').classList.toggle('active', effCond === 'rain' || effCond === 'storm');
+    $('floodGate').classList.toggle('open', state.wiring.relay && state.floodLevel > 55);
+    $('sirenGroup').classList.toggle('active', (state.aqi > 200 || state.floodLevel > 70 || state.sensorFaultTicks>0) && state.wiring.siren);
+    $('towerRing').classList.toggle('active', state.networkFaultTicks === 0);
+    $('towerLed').setAttribute('fill', state.networkFaultTicks > 0 ? 'var(--red)' : 'var(--green)');
+    $('displayBoardText').textContent = state.wiring.display ? (state.fanOn ? 'COOLING ON' : (state.aqi>150 ? 'AQI ALERT' : 'CITY OK')) : '----';
+
+    // progress
+    const pct = Math.min(100, Math.round((state.tick/MAX_TICKS)*100));
+    $('barProgress').style.width = pct + '%';
+    $('miniProgressBar').style.width = pct + '%';
+    $('miniProgressLabel').textContent = `Tick ${state.tick} / ${MAX_TICKS}`;
+    animateStat('stProgressPct', pct, '%');
+    $('stProgressLabel').textContent = state.deployed ? 'Deployed — running live' : state.over ? 'Mission complete' : state.paused ? 'Paused' : state.running ? 'In progress' : 'Not started';
+    updateHeroGauge(pct);
+
+    $('twinTag').textContent = state.deployed ? 'Deployed' : state.paused ? 'Paused' : state.running ? 'Running' : state.over ? 'Complete' : 'Standby';
+    $('heroModeTag').textContent = $('twinTag').textContent;
+
+    document.querySelectorAll('.sensor-dot').forEach(s => s.classList.toggle('fault', state.sensorFaultTicks > 0));
+
+    $('thresholdVal').textContent = state.threshold + '°C';
+    updateCircuit();
+    $('mcuLed').setAttribute('fill', state.fanOn ? 'var(--cyan2)' : 'var(--green)');
+
+    $('deployBadge').classList.toggle('show', state.deployed);
+    $('btnRun').disabled = state.running || state.deployed;
+    $('btnPause').disabled = !state.running;
+    $('btnDeploy').disabled = !(state.over && !state.deployed);
+
+    // narrative timeline diffs
+    if (prevSnapshot.fanOn !== state.fanOn && prevSnapshot.fanOn !== undefined){
+        pushTimeline(state.fanOn ? 'Arduino activated relay — cooling fans started.' : 'Cooling fans stopped.', state.fanOn ? 'good' : null);
+    }
+    if (rComfort <= 40 && (prevSnapshot.rComfort||100) > 40){ pushTimeline('City comfort dropped into critical range.', 'alert'); }
+    if (rComfort >= 70 && (prevSnapshot.rComfort||0) < 70){ pushTimeline('City comfort stabilized above target.', 'good'); }
+    prevSnapshot.fanOn = state.fanOn; prevSnapshot.rComfort = rComfort;
+
+    pushHist();
+    drawSparklines();
+    refreshInspector();
+    refreshHoverTip();
+    renderArduinoFs();
+    updateAudio();
+}
+
+function updateCircuit(){
+    const w = state.wiring;
+    const sensorOk = state.sensorFaultTicks === 0;
+    $('cLine1').setAttribute('stroke', sensorOk ? 'var(--cyan2)' : 'var(--red)');
+    $('cNodeArd').setAttribute('stroke', 'var(--green)');
+    $('cLine2').setAttribute('stroke', w.relay ? 'var(--green)' : 'var(--border)');
+    $('cNodeRelay').setAttribute('stroke', w.relay ? 'var(--green)' : 'var(--muted2)');
+    $('cLine3').setAttribute('stroke', (w.relay && w.fan && state.fanOn) ? 'var(--cyan2)' : (w.relay && w.fan) ? 'var(--green)' : 'var(--border)');
+    $('cNodeFan').setAttribute('stroke', w.fan ? 'var(--green)' : 'var(--muted2)');
+}
+
+/* ═══════════════════════ TRAFFIC LIGHT CYCLE (always animating) ═══════════════════════ */
+let tlPhase = 0;
+function cycleTrafficLight(){
+    tlPhase = (tlPhase + 1) % 3;
+    const faulted = state.networkFaultTicks > 0;
+    $('tlRed').classList.toggle('on', faulted ? Math.random()>0.5 : tlPhase === 0);
+    $('tlAmber').classList.toggle('on', !faulted && tlPhase === 1);
+    $('tlGreen').classList.toggle('on', faulted ? Math.random()>0.5 : tlPhase === 2);
+}
+setInterval(cycleTrafficLight, 1400);
+cycleTrafficLight();
+
+/* ═══════════════════════ WIRING EVENTS ═══════════════════════ */
+function bindWire(id, key, cardId){
+    $(id).addEventListener('change', e => {
+        state.wiring[key] = e.target.checked;
+        $(cardId).classList.toggle('wired', e.target.checked);
+        log('arduino', `${cardId.replace('card','')} ${e.target.checked ? 'wired into circuit' : 'disconnected'}.`);
+        updateCircuit();
+    });
+}
+bindWire('wireRelay','relay','cardRelay');
+bindWire('wireFan','fan','cardFan');
+bindWire('wireStreet','street','cardStreet');
+bindWire('wireDisplay','display','cardDisplay');
+bindWire('wireLed','led','cardLed');
+bindWire('wireSiren','siren','cardSiren');
+
+$('thresholdSlider').addEventListener('input', e => {
+    state.threshold = parseInt(e.target.value, 10);
+    $('thresholdVal').textContent = state.threshold + '°C';
+});
+$('floodSafe').addEventListener('change', e => { state.floodSafe = e.target.checked; });
+
+/* ═══════════════════════ SIGNAL PARTICLE FX ═══════════════════════ */
+function fireParticle(fromEl, colorClass){
+    const scene = $('cityScene');
+    const sceneBox = scene.getBoundingClientRect();
+    const fromBox = fromEl.getBoundingClientRect();
+    const p = document.createElement('div');
+    p.className = 'signal-particle' + (colorClass ? ' ' + colorClass : '');
+    const startX = fromBox.left - sceneBox.left + fromBox.width/2;
+    const startY = fromBox.top - sceneBox.top + fromBox.height/2;
+    p.style.left = startX + 'px';
+    p.style.top = startY + 'px';
+    scene.appendChild(p);
+    const targetX = sceneBox.width * 0.42;
+    const targetY = sceneBox.height * 0.62;
+    requestAnimationFrame(() => {
+        p.style.transition = 'all 1s cubic-bezier(.3,.6,.3,1)';
+        p.style.left = targetX + 'px';
+        p.style.top = targetY + 'px';
+        p.style.opacity = '0.15';
+    });
+    setTimeout(() => p.remove(), 1050);
+}
+function pulseSensors(){
+    ['sensorTemp','sensorHum','sensorRain','sensorWind','sensorLdr','sensorAqi','sensorNoise','sensorFlood'].forEach((id,i) => {
+        setTimeout(() => { if($(id)) fireParticle($(id), 'blue'); }, i*80);
+    });
+}
+function fireCommandParticle(){
+    const board = $('boardMini'); if (board) fireParticle(board, 'orange');
+}
+function fireFaultParticle(){
+    const ids = ['sensorTemp','sensorHum','sensorRain','sensorWind','sensorLdr','sensorAqi','sensorNoise','sensorFlood'];
+    const id = ids[Math.floor(Math.random() * ids.length)];
+    if ($(id)) fireParticle($(id), 'red');
+}
+
+/* ═══════════════════════ EVENT TOAST ═══════════════════════ */
+function toast(msg){
+    const t = $('eventToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._h);
+    toast._h = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* ═══════════════════════ EVENT BUTTONS ═══════════════════════ */
+const EVENTS = {
+    heatwave:  { label: 'Heatwave', duration: 6, apply: s => { s.temp = 41; s.cloud = 5; s.rainProb = Math.min(s.rainProb,10);} },
+    rain:      { label: 'Heavy Rain', duration: 6, apply: s => { s.rainProb = 85; s.cloud = 90; s.floodLevel = Math.min(96, s.floodLevel+16);} },
+    storm:     { label: 'Storm Warning', duration: 5, apply: s => { s.rainProb = 95; s.wind = 46; s.cloud = 98; s.floodLevel = Math.min(96, s.floodLevel+22);} },
+    pooraqi:   { label: 'Poor Air Quality', duration: 6, apply: s => { s.aqi = 240; } },
+    powerfailure:{ label: 'Power Failure', duration: 4, apply: s => { s.powerReserve = Math.max(2, s.powerReserve-40); } },
+    highwind:  { label: 'High Wind', duration: 5, apply: s => { s.wind = 42; } },
+    floodwarning:{ label: 'Flood Warning', duration: 6, apply: s => { s.floodLevel = 82; } },
+    sensorfault:{ label: 'Sensor Failure', duration: 5, apply: s => { s.sensorFaultTicks = 5; } },
+    networkfailure:{ label: 'Network Failure', duration: 5, apply: s => { s.networkFaultTicks = 5; } },
+};
+document.querySelectorAll('.ev-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const ev = EVENTS[btn.dataset.ev];
+        if (!ev) return;
+        ev.apply(state);
+        state.eventName = ev.label;
+        state.eventTimer = ev.duration;
+        toast(`Event: ${ev.label}`);
+        log('alert', `${ev.label} triggered — the automation must adapt.`);
+        pushTimeline(`${ev.label} triggered.`, 'alert');
+        renderAll();
+    });
+});
+
+/* ═══════════════════════ SIMULATION TICK ═══════════════════════ */
+function tick(){
+    state.tick++;
+    const wasFanOn = state.fanOn;
+
+    if (state.eventTimer > 0){
+        state.eventTimer--;
+        if (state.eventTimer === 0){ log('system', `${state.eventName} has passed.`); pushTimeline(`${state.eventName} resolved — conditions normalizing.`, 'good'); state.eventName = null; }
+    } else {
+        state.temp += (Math.random()-0.5)*1.4;
+        state.temp = Math.max(10, Math.min(44, state.temp));
+        state.cloud += (Math.random()-0.5)*8;
+        state.cloud = Math.max(0, Math.min(100, state.cloud));
+        state.rainProb += (Math.random()-0.5)*6;
+        state.rainProb = Math.max(0, Math.min(100, state.rainProb));
+        state.wind += (Math.random()-0.5)*2;
+        state.wind = Math.max(0, Math.min(38, state.wind));
+        state.aqi += (Math.random()-0.5)*10;
+        state.aqi = Math.max(10, Math.min(300, state.aqi));
+        state.floodLevel = Math.max(0, state.floodLevel - 0.6 + (state.rainProb>60 ? 1.4 : 0));
+        state.noise = estimateNoise(state.wind, state.isDay);
+    }
+    if (state.sensorFaultTicks > 0) state.sensorFaultTicks--;
+    if (state.networkFaultTicks > 0) state.networkFaultTicks--;
+
+    // arduino decision
+    const wiringReady = state.wiring.relay && state.wiring.fan;
+    const sensorBlind = state.sensorFaultTicks > 0 && !state.wiring.siren;
+    let decideFan = state.fanOn;
+
+    if (!wiringReady){
+        decideFan = false;
+    } else if (sensorBlind){
+        if (state.tick % 6 === 0) log('alert', 'Sensor signal lost — Arduino cannot read temperature. Wire a siren to catch this sooner.');
+    } else {
+        if (state.sensorFaultTicks > 0 && state.wiring.siren){
+            if (state.tick % 3 === 0) log('alert', 'Siren sounding — sensor fault detected, cooling paused for safety.');
+            decideFan = false;
+        } else if (state.floodSafe && state.floodLevel >= 70){
+            if (decideFan) log('arduino', 'Flood-safe lockdown engaged — non-essential power cut, cooling OFF.');
+            decideFan = false;
+        } else if (state.powerReserve <= 0){
+            if (decideFan) log('alert', 'Power grid reserve empty — cooling cannot run.');
+            decideFan = false;
+        } else if (state.temp >= state.threshold){
+            if (!decideFan) log('arduino', `Temperature ${state.temp.toFixed(1)}°C above threshold ${state.threshold}°C — relay closed, cooling ON.`);
+            decideFan = true;
+        } else if (state.temp < state.threshold - 4){
+            if (decideFan) log('arduino', `Temperature recovered to ${state.temp.toFixed(1)}°C — cooling OFF.`);
+            decideFan = false;
+        }
+    }
+    state.fanOn = decideFan;
+    if (state.fanOn && !wasFanOn) fireCommandParticle();
+    if (state.sensorFaultTicks > 0 && state.tick % 3 === 0) fireFaultParticle();
+
+    if (state.fanOn && state.powerReserve > 0){
+        const efficiency = state.wiring.street ? 0.75 : 1;
+        const kwhPerTick = 4.4 * efficiency;
+        state.powerReserve = Math.max(0, state.powerReserve - kwhPerTick*0.9);
+        state.powerUsedKwh += kwhPerTick;
+        state.activeTicks++;
+        pulseSensors();
+    } else if (state.isDay) {
+        state.powerReserve = Math.min(100, state.powerReserve + 0.7); // solar/turbine trickle charge
+    }
+
+    if (state.fanOn && (state.eventName === 'Power Failure' || (state.floodSafe && state.floodLevel >= 70))){
+        state.wasteTicks++;
+        state.cityComfort = Math.max(0, state.cityComfort - 1.2);
+        if (state.wasteTicks === 3) log('alert', 'Cooling running against a safety lockdown — grid strain rising.');
+    }
+    if (!state.fanOn && state.temp >= state.threshold + 4){
+        state.overheatTicks++;
+    } else {
+        state.overheatTicks = Math.max(0, state.overheatTicks-1);
+    }
+
+    let target = 90;
+    const effTemp = state.fanOn ? state.temp - 5 : state.temp;
+    if (effTemp > 34) target -= 42; else if (effTemp > 30) target -= 24; else if (effTemp > 27) target -= 8;
+    if (state.aqi > 200) target -= 34; else if (state.aqi > 150) target -= 16; else if (state.aqi > 100) target -= 6;
+    if (state.floodLevel > 70) target -= 28; else if (state.floodLevel > 45) target -= 10;
+    if (state.noise > 85) target -= 6;
+    target = Math.max(5, Math.min(96, target));
+    state.cityComfort += (target - state.cityComfort) * 0.14;
+    state.cityComfort = Math.max(0, Math.min(100, state.cityComfort));
+    state.comfortHistory.push(state.cityComfort);
+
+    renderAll();
+
+    if (state.overheatTicks >= 7){
+        endMission(false, 'The city overheated — cooling never activated in time.');
+        return;
+    }
+    if (state.wasteTicks >= 8){
+        endMission(false, 'Cooling ran through repeated safety lockdowns — grid reserve collapsed.');
+        return;
+    }
+
+    if (state.tick >= MAX_TICKS){
+        endMission(state.cityComfort >= 55, null);
+    }
+}
+
+/* ═══════════════════════ RUN / PAUSE / RESET ═══════════════════════ */
+$('btnRun').addEventListener('click', () => {
+    if (state.running || state.deployed) return;
+    state.running = true; state.paused = false;
+    const m = MISSIONS[missionIdx];
+    log('system', 'Simulation started — mission clock running.');
+    log('arduino', `Automation rule set: activate cooling above ${state.threshold}°C${state.floodSafe ? ', flood-safe lockdown active' : ''}.`);
+    pushTimeline('Mission started — automation online.', 'good');
+    if (m.ev && EVENTS[m.ev]){
+        setTimeout(() => {
+            if (!state.running || state.over || state.paused) return;
+            const ev = EVENTS[m.ev];
+            ev.apply(state);
+            state.eventName = ev.label;
+            state.eventTimer = ev.duration;
+            toast(`Mission Event: ${ev.label}`);
+            log('alert', `${ev.label} triggered by mission scenario.`);
+            pushTimeline(`${ev.label} triggered by mission scenario.`, 'alert');
+            renderAll();
+        }, TICK_MS*3);
+    }
+    renderAll();
+    intervalRef = setInterval(tick, TICK_MS);
+});
+$('btnPause').addEventListener('click', () => {
+    if (!state.running) return;
+    state.paused = !state.paused;
+    if (state.paused){ clearInterval(intervalRef); intervalRef = null; log('system','Simulation paused.'); }
+    else { intervalRef = setInterval(tick, TICK_MS); log('system','Simulation resumed.'); }
+    renderAll();
+});
+$('btnReset').addEventListener('click', resetMission);
+function resetMission(){
+    clearInterval(intervalRef);
+    intervalRef = null;
+    const w = state.wiring, th = state.threshold, fs = state.floodSafe;
+    state = {
+        tick: 0, running: false, paused: false, deployed: false, over: false,
+        temp: state.temp, humidity: state.humidity, rainProb: state.rainProb, wind: state.wind, uv: state.uv, cloud: state.cloud, isDay: state.isDay,
+        aqi: state.aqi, noise: state.noise, floodLevel: 12,
+        cityComfort: 80, powerReserve: 64, fanOn: false, powerUsedKwh: 0,
+        overheatTicks: 0, wasteTicks: 0, activeTicks: 0, comfortHistory: [],
+        eventTimer: 0, eventName: null, sensorFaultTicks: 0, networkFaultTicks: 0,
+        threshold: th, floodSafe: fs, wiring: w
+    };
+    $('deployBadge').classList.remove('show');
+    $('aiCallout').classList.remove('show');
+    log('system', 'Mission reset. City restored to baseline conditions.');
+    pushTimeline('Mission reset.', null);
+    renderAll();
+}
+
+/* ═══════════════════════ END MISSION ═══════════════════════ */
+function endMission(success, failReason){
+    clearInterval(intervalRef);
+    intervalRef = null;
+    state.running = false;
+    state.over = true;
+    renderAll();
+
+    const avgComfort = state.comfortHistory.length ? Math.round(state.comfortHistory.reduce((a,b)=>a+b,0)/state.comfortHistory.length) : Math.round(state.cityComfort);
+    const baselinePower = MAX_TICKS * 4.4;
+    const powerSavedPct = Math.max(0, Math.round((1 - (state.powerUsedKwh / baselinePower)) * 100));
+    const autoEff = Math.round(Math.min(100, 100 - (state.wasteTicks*8) - (state.overheatTicks*8)));
+    const responseSec = Math.round((TICK_MS/1000) * (2 + Math.random()*2));
+    const envRating = state.aqi < 100 && state.floodLevel < 40 ? 'A' : state.aqi < 180 ? 'B' : 'C';
+    let score = Math.round(avgComfort*0.5 + Math.min(100,powerSavedPct)*0.3 + Math.max(0,autoEff)*0.2);
+    score = Math.max(0, Math.min(100, score));
+    const rating = score >= 90 ? 'S' : score >= 78 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
+
+    $('mPowerSaved').textContent = powerSavedPct + '%';
+    $('mAutoEff').textContent = Math.max(0,autoEff) + '%';
+    $('mResponse').textContent = responseSec + 's';
+    $('mEnvRating').textContent = envRating;
+    $('mScore').textContent = score;
+    $('mRating').textContent = rating;
+
+    const card = $('modalCard');
+    if (success){
+        card.classList.remove('fail');
+        $('modalIcon').innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        $('modalTitle').textContent = 'Mission Success';
+        $('modalSub').textContent = 'Your automation kept the city comfortable and used grid power wisely.';
+        log('ai', `Mission complete — score ${score}, rating ${rating}. Nicely engineered.`);
+        pushTimeline(`Mission complete — score ${score}, rating ${rating}.`, 'good');
+    } else {
+        card.classList.add('fail');
+        $('modalIcon').innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        $('modalTitle').textContent = 'Mission Failed';
+        $('modalSub').textContent = failReason || `City comfort finished at ${avgComfort}% — below the 55% stability line.`;
+        log('alert', `Mission failed — ${failReason || 'city comfort too low.'}`);
+        pushTimeline('Mission failed.', 'alert');
+    }
+    $('modalOverlay').classList.add('show');
+}
+
+$('btnModalClose').addEventListener('click', () => $('modalOverlay').classList.remove('show'));
+$('btnModalDeploy').addEventListener('click', deploy);
+$('btnDeploy').addEventListener('click', deploy);
+
+function deploy(){
+    if (!state.over) return;
+    $('modalOverlay').classList.remove('show');
+    state.deployed = true;
+    state.over = false;
+    log('system', 'Smart City deployed — automation now runs continuously with live weather.');
+    pushTimeline('Smart City deployed — continuous automation live.', 'good');
+    renderAll();
+    intervalRef = setInterval(() => { tick_deployLoop(); }, TICK_MS);
+    setInterval(() => { if (state.deployed && currentLat != null) loadWeather(currentLat, currentLon); }, 45000);
+}
+function tick_deployLoop(){
+    state.tick++;
+    state.temp += (Math.random()-0.5)*1.2;
+    state.temp = Math.max(10, Math.min(44, state.temp));
+    state.aqi += (Math.random()-0.5)*8;
+    state.aqi = Math.max(10, Math.min(300, state.aqi));
+    state.floodLevel = Math.max(0, state.floodLevel - 0.5 + (state.rainProb>60 ? 1.2 : 0));
+    const wiringReady = state.wiring.relay && state.wiring.fan;
+    if (wiringReady){
+        if (state.floodSafe && state.floodLevel >= 70){ state.fanOn = false; }
+        else if (state.powerReserve <= 0){ state.fanOn = false; }
+        else if (state.temp >= state.threshold){ state.fanOn = true; }
+        else if (state.temp < state.threshold - 4){ state.fanOn = false; }
+    } else { state.fanOn = false; }
+    if (state.fanOn && state.powerReserve > 0){
+        state.powerReserve = Math.max(0, state.powerReserve - 4);
+        state.powerUsedKwh += 4.4;
+        pulseSensors();
+    } else if (state.powerReserve < 60) {
+        state.powerReserve = Math.min(100, state.powerReserve + 0.5);
+    }
+    let target = 90;
+    const effTemp = state.fanOn ? state.temp - 5 : state.temp;
+    if (effTemp > 34) target -= 42; else if (effTemp > 30) target -= 24; else if (effTemp > 27) target -= 8;
+    if (state.aqi > 200) target -= 34; else if (state.aqi > 150) target -= 16;
+    state.cityComfort += (target - state.cityComfort) * 0.1;
+    state.cityComfort = Math.max(0, Math.min(100, state.cityComfort));
+    renderAll();
+}
+
+/* ═══════════════════════ AI EXPLAIN ═══════════════════════ */
+$('btnExplain').addEventListener('click', () => {
+    const items = [];
+    const w = state.wiring;
+    items.push('Environmental Analysis Complete.');
+    items.push(state.temp >= state.threshold ? `Temperature (${state.temp.toFixed(1)}°C) exceeded the ${state.threshold}°C threshold.` : `Temperature (${state.temp.toFixed(1)}°C) is within the safe band.`);
+    items.push(state.aqi > 150 ? `Air quality is degraded (AQI ${Math.round(state.aqi)}) — ventilation and outdoor activity should be limited.` : `Air quality is stable (AQI ${Math.round(state.aqi)}).`);
+    items.push(state.wind > 26 ? `Wind (${Math.round(state.wind)} km/h) is above the comfortable operating range for turbines.` : `Wind (${Math.round(state.wind)} km/h) is within acceptable range.`);
+    if (state.fanOn){
+        items.push(`Recommendation: Activate Cooling System — relay closed, fan bank drawing from the grid.`);
+    } else if (w.relay && w.fan) {
+        items.push(`Recommendation: Hold cooling OFF — temperature or a safety rule (flood-safe lockdown, empty reserve) is keeping it inactive.`);
+    } else {
+        items.push(`The cooling system can't run yet — it needs both the Relay and the Cooling Fan Bank wired into the circuit before Arduino can act on sensor data.`);
+    }
+    const list = $('aiCalloutList');
+    list.innerHTML = '';
+    items.forEach(t => { const li = document.createElement('li'); li.textContent = t; list.appendChild(li); });
+    const expectedKwh = (state.fanOn ? 4.4 : 0).toFixed(1);
+    const expectedDrop = state.fanOn ? (2 + Math.random()*3).toFixed(1) : '0.0';
+    $('aiMetricRow').innerHTML = `
+        <div class="ai-metric">Expected Energy<b>${expectedKwh} kWh</b></div>
+        <div class="ai-metric">Predicted Temp Drop<b>${expectedDrop}°C</b></div>
+        <div class="ai-metric">Grid Reserve<b>${Math.round(state.powerReserve)}%</b></div>`;
+    $('aiCallout').classList.add('show');
+    log('ai', 'Explain requested — reasoning summarized above the console.');
+});
+
+/* ═══════════════════════ SENSOR INSPECTOR ═══════════════════════ */
+const SENSOR_INFO = {
+    temp:  { name: 'Temperature Sensor', unit: '°C', pin: 'Digital · D2 (DHT22)', principle: 'Thermistor-based digital sensor reports ambient air temperature once per read cycle.', why: 'Drives the cooling threshold and heatwave detection across the city grid.' },
+    hum:   { name: 'Humidity Sensor', unit: '%', pin: 'Digital · D2 (DHT22, shared bus)', principle: 'Capacitive humidity element reports relative humidity alongside temperature.', why: 'High humidity raises perceived heat, feeding the comfort index model.' },
+    rain:  { name: 'Rain Sensor', unit: '%', pin: 'Analog · A1', principle: 'Resistive rain plate — falling water bridges conductive traces and lowers measured resistance.', why: 'Feeds flood-risk forecasting and drainage system activation.' },
+    wind:  { name: 'Wind Sensor', unit: 'km/h', pin: 'Analog · A2', principle: 'Cup anemometer converts rotational speed into a proportional voltage.', why: 'Protects the turbine and informs storm/high-wind alerts.' },
+    ldr:   { name: 'LDR · Light Sensor', unit: '% light', pin: 'Analog · A3', principle: 'Light-dependent resistor changes resistance with ambient light level, used to infer day/night.', why: 'Controls street lighting and the digital twin\'s day/night cycle.' },
+    aqi:   { name: 'Air Quality Sensor', unit: 'AQI', pin: 'Analog · A4 (MQ135)', principle: 'Metal-oxide gas sensor estimates particulate and gas concentration, mapped to an AQI index.', why: 'Triggers public health alerts and display board warnings above 150.' },
+    noise: { name: 'Noise Sensor', unit: 'dB', pin: 'Analog · A5', principle: 'Electret microphone module measures ambient sound pressure level.', why: 'Feeds the comfort index and helps flag traffic congestion.' },
+    flood: { name: 'Flood Level Sensor', unit: '%', pin: 'Analog · A6', principle: 'Ultrasonic distance sensor measures water level rise near the drainage grate.', why: 'Drives the flood gate and flood-safe power lockdown automation.' },
+};
+let inspectorActiveKey = null;
+function sensorLiveValue(key){
+    switch(key){
+        case 'temp': return state.temp.toFixed(1);
+        case 'hum': return Math.round(state.humidity);
+        case 'rain': return Math.round(state.rainProb);
+        case 'wind': return Math.round(state.wind);
+        case 'ldr': return Math.round(state.isDay ? Math.max(4, 100 - state.cloud) : 3);
+        case 'aqi': return Math.round(state.aqi);
+        case 'noise': return Math.round(state.noise);
+        case 'flood': return Math.round(state.floodLevel);
+    }
+    return '--';
+}
+function showSensorInspector(key){
+    const info = SENSOR_INFO[key]; if (!info) return;
+    inspectorActiveKey = key;
+    $('inspTag').textContent = 'Sensor Inspector';
+    refreshInspector();
+    $('inspectorOverlay').classList.add('show');
+    log('sensor', `${info.name} inspector opened — pin ${info.pin}.`);
+}
+function refreshInspector(){
+    if (!inspectorActiveKey) return;
+    const info = SENSOR_INFO[inspectorActiveKey]; if (!info) return;
+    const faulted = state.sensorFaultTicks > 0;
+    $('inspName').textContent = info.name;
+    $('inspValue').textContent = faulted ? '—' : sensorLiveValue(inspectorActiveKey);
+    $('inspUnit').textContent = info.unit;
+    const rows = [
+        ['Arduino Pin', info.pin],
+        ['Status', faulted ? '<span style="color:var(--red)">FAULT</span>' : '<span style="color:var(--green)">OK · Reading</span>'],
+        ['Working Principle', info.principle],
+    ];
+    $('inspRows').innerHTML = rows.map(r => `<div class="insp-row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join('');
+    $('inspNote').innerHTML = `<b>Why it matters:</b> ${info.why}`;
+}
+document.querySelectorAll('.sensor-dot[data-sensor]').forEach(dot => {
+    dot.addEventListener('click', () => showSensorInspector(dot.dataset.sensor));
+});
+$('inspClose').addEventListener('click', () => { $('inspectorOverlay').classList.remove('show'); inspectorActiveKey = null; });
+$('inspectorOverlay').addEventListener('click', e => { if (e.target.id === 'inspectorOverlay'){ $('inspectorOverlay').classList.remove('show'); inspectorActiveKey = null; } });
+
+/* ═══════════════════════ HOVER INSPECTION ═══════════════════════ */
+const HOVER_INFO = {
+    buildings: () => ({ title: 'City Buildings', rows: [['Occupancy Load', state.isDay ? 'High — daytime' : 'Low — night'], ['Building Lights', (!state.isDay) ? 'On' : 'Off'], ['Role', 'School · Hospital · Office cluster']] }),
+    trafficlight: () => ({ title: 'Traffic Signal', rows: [['Mode', state.networkFaultTicks>0 ? 'Fault — flashing' : 'Normal cycle'], ['Network', state.networkFaultTicks>0 ? 'Disconnected' : 'Connected'], ['Role', 'Intersection flow control']] }),
+    solar: () => ({ title: 'Solar Panel Array', rows: [['Power Output', (state.isDay ? Math.round(40 + (100 - state.cloud) * 0.6) : 0) + ' W'], ['Efficiency', state.isDay ? Math.round(70 + (100 - state.cloud) * 0.25) + '%' : '0% · night'], ['Status', state.isDay ? 'Generating' : 'Idle']] }),
+    weather: () => ({ title: 'Weather Station', rows: [['Wind Speed', Math.round(state.wind) + ' km/h'], ['Rain Probability', Math.round(state.rainProb) + '%'], ['Pressure (est.)', Math.round(1008 - state.wind * 0.4) + ' hPa'], ['UV Index', state.uv]] }),
+    turbine: () => ({ title: 'Wind Turbine', rows: [['Rotation Speed', Math.round(state.wind*3) + ' RPM'], ['Power Output', Math.round(Math.min(100,state.wind*3)) + ' W'], ['Status', state.wind > 4 ? 'Generating' : 'Idle'], ['Safety Cutoff', state.wind > 40 ? 'Engaged — high wind' : 'Normal']] }),
+    lake: () => ({ title: 'City Lake', rows: [['Water Level', Math.round(60 + state.floodLevel*0.3) + '%'], ['Role', 'Stormwater buffer & recreation'], ['Condition', state.floodLevel > 60 ? 'Rising' : 'Stable']] }),
+    drainage: () => ({ title: 'Drainage System', rows: [['Flow Status', (state.rainProb>50) ? 'Active' : 'Standby'], ['Flood Gate', (state.wiring.relay && state.floodLevel > 55) ? 'Open' : 'Closed'], ['Flood Level', Math.round(state.floodLevel) + '%']] }),
+    tower: () => ({ title: 'Communication Tower', rows: [['Network', state.networkFaultTicks>0 ? 'Offline' : 'Online'], ['Signal Strength', state.networkFaultTicks>0 ? '0%' : Math.round(80+Math.random()*15) + '%'], ['Siren', state.wiring.siren ? 'Wired' : 'Not wired']] }),
+    park: () => ({ title: 'Park & Trees', rows: [['Sway', state.wind >= 16 ? 'Strong — high wind' : 'Gentle breeze'], ['Role', 'Green cover & air filtration'], ['Air Quality Nearby', Math.max(8, Math.round(state.aqi*0.8))]] }),
+    fan: () => ({ title: 'Cooling Fan Bank', rows: [['Status', state.fanOn ? 'Running' : 'Idle'], ['Draw', state.fanOn ? '4.4 kWh/tick' : '0 kWh/tick'], ['Circuit Wired', (state.wiring.relay && state.wiring.fan) ? 'Yes' : 'No']] }),
+    display: () => ({ title: 'Public Display Board', rows: [['Wired', state.wiring.display ? 'Yes' : 'No'], ['Current Message', state.wiring.display ? (state.fanOn ? 'COOLING ON' : 'CITY OK') : '----'], ['Role', 'Public status broadcast']] }),
+    streetlight: () => ({ title: 'Street Light', rows: [['Status', (!state.isDay) ? 'On' : 'Off'], ['Driver Wired', state.wiring.street ? 'Yes — dimming enabled' : 'No — fixed brightness'], ['Role', 'Road & pedestrian safety lighting']] }),
+};
+let hoverKey = null;
+function positionHoverTip(e){
+    const tip = $('hoverTip');
+    let x = e.clientX + 16, y = e.clientY + 16;
+    const maxX = window.innerWidth - 224, maxY = window.innerHeight - 110;
+    if (x > maxX) x = e.clientX - 224;
+    if (y > maxY) y = e.clientY - 110;
+    tip.style.left = Math.max(6, x) + 'px';
+    tip.style.top = Math.max(6, y) + 'px';
+}
+function refreshHoverTip(e){
+    if (!hoverKey || !HOVER_INFO[hoverKey]) return;
+    const data = HOVER_INFO[hoverKey]();
+    $('htTitle').textContent = data.title;
+    $('htRows').innerHTML = data.rows.map(r => `<div class="ht-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+    if (e) positionHoverTip(e);
+}
+document.querySelectorAll('.inspect-hoverable[data-inspect]').forEach(el => {
+    el.addEventListener('mouseenter', e => { hoverKey = el.dataset.inspect; refreshHoverTip(e); $('hoverTip').classList.add('show'); });
+    el.addEventListener('mousemove', positionHoverTip);
+    el.addEventListener('mouseleave', () => { hoverKey = null; $('hoverTip').classList.remove('show'); });
+});
+
+/* ═══════════════════════ LIVE TELEMETRY SPARKLINES ═══════════════════════ */
+const HIST_LEN = 40;
+const hist = { temp: [], hum: [], aqi: [], rain: [], wind: [], power: [] };
+function pushHist(){
+    hist.temp.push(state.temp); hist.hum.push(state.humidity); hist.aqi.push(state.aqi);
+    hist.rain.push(state.rainProb); hist.wind.push(state.wind); hist.power.push(state.powerReserve);
+    Object.keys(hist).forEach(k => { if (hist[k].length > HIST_LEN) hist[k].shift(); });
+}
+function sparkPath(arr, min, max){
+    if (arr.length < 2) return null;
+    const w = 100, h = 34;
+    const pts = arr.map((v, i) => {
+        const x = i / (arr.length - 1) * w;
+        const t = Math.max(0, Math.min(1, (v - min) / ((max - min) || 1)));
+        return [x, (h - t * h) + 1];
+    });
+    const line = 'M' + pts.map(p => p.join(',')).join(' L');
+    return { line, fill: line + ` L${w},${h + 1} L0,${h + 1} Z` };
+}
+function drawSparklines(){
+    const specs = [
+        ['temp', 8, 46, 'sparkTemp', 'sparkTempFill', 'tcTemp', '°C'],
+        ['hum', 0, 100, 'sparkHum', 'sparkHumFill', 'tcHum', '%'],
+        ['aqi', 0, 300, 'sparkAqi', 'sparkAqiFill', 'tcAqi', ''],
+        ['rain', 0, 100, 'sparkRain', 'sparkRainFill', 'tcRain', '%'],
+        ['wind', 0, 46, 'sparkWind', 'sparkWindFill', 'tcWind', ' km/h'],
+        ['power', 0, 100, 'sparkPower', 'sparkPowerFill', 'tcPower', '%'],
+    ];
+    specs.forEach(([key, min, max, lineId, fillId, valId, unit]) => {
+        const p = sparkPath(hist[key], min, max);
+        if (p){ $(lineId).setAttribute('d', p.line); $(fillId).setAttribute('d', p.fill); }
+        const last = hist[key][hist[key].length - 1];
+        if (last != null) $(valId).textContent = Math.round(last) + unit;
+    });
+}
+
+/* ═══════════════════════ IOT CLOUD STATUS WIDGET ═══════════════════════ */
+let iotPacketCount = 0;
+function updateIotWidget(){
+    const online = (state.running || state.deployed) && state.networkFaultTicks === 0;
+    $('iotDot').classList.toggle('off', !online);
+    $('iotArduino').innerHTML = online ? '<span class="led"></span>Online' : '<span class="led off"></span>Offline';
+    $('iotCloud').innerHTML = state.networkFaultTicks>0 ? '<span class="led off"></span>Disconnected' : '<span class="led"></span>Connected';
+    if (online) iotPacketCount += Math.floor(Math.random() * 4) + 1;
+    $('iotPackets').textContent = iotPacketCount.toLocaleString();
+    $('iotMqtt').textContent = online ? 'publishing' : 'idle';
+    $('iotSync').textContent = online ? 'synced' : 'idle';
+    $('iotLatency').textContent = online ? (Math.round(28 + Math.random() * 70) + ' ms') : '-- ms';
+    $('iotApi').innerHTML = online ? '200 OK' : '<span class="v amber">standby</span>';
+}
+$('iotHead').addEventListener('click', () => $('iotWidget').classList.toggle('collapsed'));
+setInterval(updateIotWidget, 1400);
+
+/* ═══════════════════════ ARDUINO FULLSCREEN VISUALIZER ═══════════════════════ */
+$('boardMini').addEventListener('dblclick', () => { $('arduinoFsOverlay').classList.add('show'); renderArduinoFs(); });
+$('afsClose').addEventListener('click', () => $('arduinoFsOverlay').classList.remove('show'));
+$('arduinoFsOverlay').addEventListener('click', e => { if (e.target.id === 'arduinoFsOverlay') $('arduinoFsOverlay').classList.remove('show'); });
+function renderArduinoFs(){
+    const w = state.wiring;
+    const dataActive = state.running || state.deployed;
+    const relayOn = w.relay && state.fanOn;
+    const faulted = state.sensorFaultTicks > 0;
+    $('fsLedTx').setAttribute('fill', dataActive ? 'var(--cyan2)' : 'var(--muted2)');
+    $('fsLedRx').setAttribute('fill', dataActive ? 'var(--green)' : 'var(--muted2)');
+    $('fsLedStatus').setAttribute('fill', faulted ? 'var(--red)' : (dataActive ? 'var(--green)' : 'var(--muted2)'));
+    $('fsLedRelay').setAttribute('fill', relayOn ? 'var(--cyan2)' : 'var(--muted2)');
+    $('fsLedGpio1').setAttribute('fill', w.relay ? 'var(--green)' : 'var(--muted2)');
+    $('fsLedGpio2').setAttribute('fill', dataActive ? 'var(--cyan2)' : 'var(--muted2)');
+    $('fsLedGpio3').setAttribute('fill', w.fan ? 'var(--green)' : 'var(--muted2)');
+    $('gpioDotIn').classList.toggle('active', dataActive);
+    $('gpioDotOut').classList.toggle('active', relayOn);
+    $('legPower').className = 'led on-green';
+    $('legTx').className = 'led' + (dataActive ? ' on-cyan' : '');
+    $('legTxTxt').textContent = dataActive ? 'Streaming sensor data' : 'Idle';
+    $('legRx').className = 'led' + (dataActive ? ' on-green' : '');
+    $('legRxTxt').textContent = dataActive ? 'Acknowledging commands' : 'Idle';
+    $('legRelay').className = 'led' + (relayOn ? ' on-cyan' : '');
+    $('legRelayTxt').textContent = relayOn ? 'Closed — fans powered' : 'Open';
+    $('legStatus').className = 'led' + (faulted ? ' on-red' : (dataActive ? ' on-green' : ''));
+    $('legStatusTxt').textContent = faulted ? 'Fault detected' : (dataActive ? 'Nominal' : 'Standby');
+    $('legFault').className = 'led' + (faulted ? ' on-amber' : '');
+    $('legFaultTxt').textContent = faulted ? 'Sensor signal lost' : 'None';
+}
+
+/* ═══════════════════════ AMBIENT AUDIO ═══════════════════════ */
+let audioCtx = null, muted = true, masterGain, windGain, rainGain, fanGain, fanOsc;
+function initAudio(){
+    if (audioCtx) return;
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain(); masterGain.gain.value = 0; masterGain.connect(audioCtx.destination);
+
+        const bufSize = 2 * audioCtx.sampleRate;
+        const noiseBuffer = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const windSrc = audioCtx.createBufferSource(); windSrc.buffer = noiseBuffer; windSrc.loop = true;
+        const windFilter = audioCtx.createBiquadFilter(); windFilter.type = 'bandpass'; windFilter.frequency.value = 500; windFilter.Q.value = 0.6;
+        windGain = audioCtx.createGain(); windGain.gain.value = 0;
+        windSrc.connect(windFilter); windFilter.connect(windGain); windGain.connect(masterGain); windSrc.start();
+
+        const rainSrc = audioCtx.createBufferSource(); rainSrc.buffer = noiseBuffer; rainSrc.loop = true;
+        const rainFilter = audioCtx.createBiquadFilter(); rainFilter.type = 'highpass'; rainFilter.frequency.value = 2200;
+        rainGain = audioCtx.createGain(); rainGain.gain.value = 0;
+        rainSrc.connect(rainFilter); rainFilter.connect(rainGain); rainGain.connect(masterGain); rainSrc.start();
+
+        fanOsc = audioCtx.createOscillator(); fanOsc.type = 'sawtooth'; fanOsc.frequency.value = 95;
+        fanGain = audioCtx.createGain(); fanGain.gain.value = 0;
+        fanOsc.connect(fanGain); fanGain.connect(masterGain); fanOsc.start();
+    } catch(e){ audioCtx = null; }
+}
+function setMuted(m){
+    muted = m;
+    $('muteToggle').classList.toggle('muted', muted);
+    if (audioCtx && masterGain) masterGain.gain.setTargetAtTime(muted ? 0 : 0.5, audioCtx.currentTime, 0.35);
+}
+$('muteToggle').addEventListener('click', () => {
+    if (!audioCtx) initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    setMuted(!muted);
+});
+function blip(freq, dur, type, gainVal){
+    if (!audioCtx || muted) return;
+    const o = audioCtx.createOscillator(); o.type = type || 'square'; o.frequency.value = freq;
+    const g = audioCtx.createGain(); g.gain.value = 0.0001;
+    o.connect(g); g.connect(masterGain);
+    const t = audioCtx.currentTime;
+    g.gain.linearRampToValueAtTime(gainVal || 0.15, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.02);
+}
+function playRelayClick(){ blip(1200, 0.06, 'square', 0.12); }
+function playSirenBeep(){ blip(2400, 0.12, 'square', 0.1); }
+function playTowerPing(){
+    if (!audioCtx || muted) return;
+    blip(1600, 0.05, 'sine', 0.03);
+}
+let pingTimer = null;
+function scheduleTowerPing(){
+    clearTimeout(pingTimer);
+    pingTimer = setTimeout(() => { if (!muted) playTowerPing(); scheduleTowerPing(); }, 6000 + Math.random() * 8000);
+}
+scheduleTowerPing();
+let prevFanOnAudio = false;
+function updateAudio(){
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const active = state.running || state.deployed;
+    if (windGain) windGain.gain.setTargetAtTime(muted ? 0 : (active ? Math.min(0.09, state.wind / 38 * 0.09) : 0), now, 0.4);
+    const isRaining = active && state.rainProb >= 55;
+    if (rainGain) rainGain.gain.setTargetAtTime(muted ? 0 : (isRaining ? 0.05 : 0), now, 0.6);
+    if (fanGain){
+        fanGain.gain.setTargetAtTime(muted ? 0 : (state.fanOn ? 0.06 : 0), now, 0.3);
+        if (fanOsc) fanOsc.frequency.setTargetAtTime(state.fanOn ? 95 + Math.random() * 4 : 95, now, 0.5);
+    }
+    if (state.fanOn !== prevFanOnAudio && active){ playRelayClick(); }
+    prevFanOnAudio = state.fanOn;
+    if (state.sensorFaultTicks > 0 && state.wiring.siren && state.tick % 3 === 0) playSirenBeep();
+}
+
+/* ═══════════════════════ MANUAL COLLAPSE ═══════════════════════ */
+$('manualHead').addEventListener('click', () => {
+    const panel = $('manualPanel');
+    const collapsed = panel.classList.toggle('collapsed');
+    $('manualToggleBtn').setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+});
+
+/* ═══════════════════════ INIT ═══════════════════════ */
+applyMission();
+pushTimeline('Environmental Control Center initialized.', null);
+updateIotWidget();
+renderAll();
+
+})();
+</script>
+</body>
+</html>
