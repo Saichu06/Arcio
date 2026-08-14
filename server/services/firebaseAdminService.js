@@ -18,35 +18,87 @@ let dbInstance = null;
 
 function initAdmin() {
   if (appInstance) return appInstance;
+
   const existingApps = getApps();
+
   if (existingApps.length) {
     appInstance = existingApps[0];
     return appInstance;
   }
 
-  const CRED_REL_PATH = process.env.FIREBASE_ADMIN_CREDENTIALS || path.join('server', 'credentials', 'firebase-admin.json');
-  const CREDENTIALS_PATH = path.isAbsolute(CRED_REL_PATH) ? CRED_REL_PATH : path.join(__dirname, '..', '..', CRED_REL_PATH);
+  const credentialsJson = process.env.FIREBASE_ADMIN_CREDENTIALS_JSON;
 
   let serviceAccount = null;
-  try {
-    if (fs.existsSync(CREDENTIALS_PATH)) {
-      serviceAccount = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
+
+  // Production / Vercel: credentials from environment variable
+  if (credentialsJson) {
+    try {
+      serviceAccount = JSON.parse(credentialsJson);
+
+      console.log('[FIREBASE ADMIN ENV]', {
+        exists: true,
+        projectId: serviceAccount.project_id || 'unknown',
+        clientEmail: serviceAccount.client_email || 'unknown',
+        hasPrivateKey: Boolean(serviceAccount.private_key),
+      });
+    } catch (err) {
+      throw new Error(
+        `Invalid FIREBASE_ADMIN_CREDENTIALS_JSON: ${err.message}`
+      );
     }
-  } catch (err) {
-    console.warn('[FIREBASE ADMIN] Could not load service account JSON file:', err.message);
+  }
+
+  // Local development fallback
+  if (!serviceAccount) {
+    const CRED_REL_PATH =
+      process.env.FIREBASE_ADMIN_CREDENTIALS ||
+      path.join('server', 'credentials', 'firebase-admin.json');
+
+    const CREDENTIALS_PATH = path.isAbsolute(CRED_REL_PATH)
+      ? CRED_REL_PATH
+      : path.join(__dirname, '..', '..', CRED_REL_PATH);
+
+    try {
+      if (fs.existsSync(CREDENTIALS_PATH)) {
+        serviceAccount = JSON.parse(
+          fs.readFileSync(CREDENTIALS_PATH, 'utf8')
+        );
+      }
+    } catch (err) {
+      console.warn(
+        '[FIREBASE ADMIN] Could not load service account JSON file:',
+        err.message
+      );
+    }
   }
 
   try {
     if (serviceAccount) {
-      appInstance = initializeApp({ credential: cert(serviceAccount) });
-      console.log(`✓ Firebase Admin initialized for project: ${serviceAccount.project_id || 'arcio-srm'} using service account.`);
+      appInstance = initializeApp({
+        credential: cert(serviceAccount),
+      });
+
+      console.log(
+        `✓ Firebase Admin initialized for project: ${
+          serviceAccount.project_id || 'arcio-srm'
+        } using service account.`
+      );
     } else {
-      appInstance = initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID || 'arcio-srm' });
-      console.log(`✓ Firebase Admin initialized for project: ${process.env.FIREBASE_PROJECT_ID || 'arcio-srm'}`);
+      appInstance = initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID || 'arcio-srm',
+      });
+
+      console.log(
+        `✓ Firebase Admin initialized for project: ${
+          process.env.FIREBASE_PROJECT_ID || 'arcio-srm'
+        }`
+      );
     }
   } catch (err) {
     console.error('[FIREBASE ADMIN INIT ERROR]', err.message);
+    throw err;
   }
+
   return appInstance;
 }
 
