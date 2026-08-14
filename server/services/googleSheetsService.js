@@ -20,16 +20,43 @@ let sheetsClient = null;
 function getSheetsClient() {
   if (sheetsClient) return sheetsClient;
 
-  if (!fs.existsSync(CREDENTIALS_PATH)) {
-    throw new Error(`Google service account file missing at ${CREDENTIALS_PATH}`);
+  const credentialsJson = process.env.GOOGLE_SHEETS_CREDENTIALS_JSON;
+
+  let authOptions;
+
+  if (credentialsJson) {
+    try {
+      const credentials = JSON.parse(credentialsJson);
+
+      authOptions = {
+        credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      };
+    } catch (err) {
+      throw new Error(
+        `Invalid GOOGLE_SHEETS_CREDENTIALS_JSON: ${err.message}`
+      );
+    }
+  } else if (fs.existsSync(CREDENTIALS_PATH)) {
+    // Local development fallback
+    authOptions = {
+      keyFile: CREDENTIALS_PATH,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    };
+  } else {
+    throw new Error(
+      'Google Sheets credentials not configured. ' +
+      'Set GOOGLE_SHEETS_CREDENTIALS_JSON in the environment.'
+    );
   }
 
-  const auth = new google.auth.GoogleAuth({
-    keyFile: CREDENTIALS_PATH,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  const auth = new google.auth.GoogleAuth(authOptions);
+
+  sheetsClient = google.sheets({
+    version: 'v4',
+    auth,
   });
 
-  sheetsClient = google.sheets({ version: 'v4', auth });
   return sheetsClient;
 }
 
