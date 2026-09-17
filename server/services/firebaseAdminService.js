@@ -257,6 +257,26 @@ async function getUserProfile(uid) {
   return null;
 }
 
+/**
+ * Retrieves the count of registered student profiles from the Firestore 'users' collection.
+ * Uses Firestore Count Aggregation for maximum performance and minimal bandwidth,
+ * falling back to document snapshot sizing if aggregation is not supported.
+ */
+async function getRegisteredStudentCount() {
+  const db = getAdminDb();
+  if (!db) {
+    throw new Error('Firestore database instance is not available.');
+  }
+  try {
+    const snapshot = await db.collection('users').count().get();
+    return snapshot.data().count;
+  } catch (err) {
+    console.warn('[FIRESTORE COUNT] Count aggregation fallback to document scan:', err.message);
+    const snap = await db.collection('users').get();
+    return snap.size;
+  }
+}
+
 module.exports = {
   get auth() { return getAdminAuth(); },
   get db() { return getAdminDb(); },
@@ -264,4 +284,6 @@ module.exports = {
   resolveRegNoToEmail,
   registerStudentAccount,
   getUserProfile,
+  getRegisteredStudentCount,
 };
+

@@ -26,6 +26,7 @@ const {
   resolveRegNoToEmail,
   registerStudentAccount,
   getUserProfile,
+  getRegisteredStudentCount,
 } = firebaseService;
 
 console.log('[FIREBASE SERVICE]', {
@@ -278,6 +279,42 @@ api.get('/firebase-config', (_req, res) => {
 // GET /api/experiments
 api.get('/experiments', (_req, res) => {
   res.json(EXPERIMENTS_DATA);
+});
+
+// GET /api/stats/users
+api.get('/stats/users', async (_req, res) => {
+  try {
+    const count = await getRegisteredStudentCount();
+    res.json({
+      status: 200,
+      count
+    });
+  } catch (err) {
+    console.error('[API ERROR] stats/users:', err.message);
+    res.status(500).json({
+      status: 500,
+      error: 'Failed to retrieve registered student count from database.'
+    });
+  }
+});
+
+// GET /api/stats/summary
+api.get('/stats/summary', async (_req, res) => {
+  try {
+    const count = await getRegisteredStudentCount();
+    res.json({
+      status: 200,
+      students: count,
+      experiments: EXPERIMENTS_DATA?.experiments?.length || 10,
+      advancedModules: 3
+    });
+  } catch (err) {
+    console.error('[API ERROR] stats/summary:', err.message);
+    res.status(500).json({
+      status: 500,
+      error: 'Failed to retrieve platform statistics.'
+    });
+  }
 });
 
 // GET /api/experiments/:id

@@ -739,6 +739,94 @@
       }
     }
 
+    .home-description {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-size: clamp(12px, 1.2vw, 15px);
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      line-height: 1.4;
+      max-width: 580px;
+      margin: 8px auto 6px;
+      opacity: 0;
+      animation: fadeIn .6s ease forwards;
+      animation-delay: .7s;
+      transition: opacity .35s ease, transform .35s ease;
+      text-shadow: 0 0 20px rgba(94, 234, 212, 0.15);
+    }
+
+    body.light .home-description {
+      color: #0F172A;
+      text-shadow: none;
+    }
+
+    .home-description.vanish {
+      opacity: 0 !important;
+      transform: translateY(6px);
+    }
+
+    /* Standalone student-count credibility badge */
+    .student-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      background: rgba(10, 17, 32, 0.85);
+      border: 1px solid rgba(94, 234, 212, 0.24);
+      border-radius: 100px;
+      padding: 7px 18px;
+      margin: 8px auto 4px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 26px rgba(56, 189, 248, 0.16);
+      opacity: 0;
+      animation: fadeIn .6s ease forwards;
+      animation-delay: .85s;
+      transition: opacity .35s ease, transform .35s ease;
+    }
+
+    body.light .student-badge {
+      background: rgba(240, 244, 255, 0.92);
+      border-color: rgba(8, 145, 178, 0.24);
+      box-shadow: 0 6px 20px rgba(14, 40, 60, 0.08);
+    }
+
+    .student-badge.vanish {
+      opacity: 0 !important;
+      transform: translateY(8px);
+    }
+
+    .student-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34D399;
+      box-shadow: 0 0 8px #34D399;
+      animation: blink 2s infinite;
+      flex-shrink: 0;
+    }
+
+    .student-badge-count {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 16.5px;
+      color: var(--cyan, #5EEAD4);
+      text-shadow: 0 0 16px rgba(94, 234, 212, .3);
+      line-height: 1;
+    }
+
+    body.light .student-badge-count {
+      color: #0891B2;
+      text-shadow: none;
+    }
+
+    .student-badge-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--muted, #6B7DA0);
+    }
+
     .tagline {
       font-family: 'JetBrains Mono', monospace;
       font-size: 9.5px;
@@ -866,6 +954,77 @@
       box-shadow: 0 0 18px rgba(94, 234, 212, .1);
     }
 
+    .home-feedback-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 5px 14px;
+      background: rgba(10, 17, 32, 0.65);
+      border: 1px solid rgba(94, 234, 212, 0.12);
+      border-radius: 100px;
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      animation: fadeIn .6s ease forwards;
+      animation-delay: 1.25s;
+      transition: opacity .35s ease, transform .35s ease;
+    }
+
+    body.light .home-feedback-wrap {
+      background: rgba(240, 244, 255, 0.85);
+      border-color: rgba(8, 145, 178, 0.18);
+    }
+
+    .home-feedback-wrap.vanish {
+      opacity: 0 !important;
+      transform: translateY(8px);
+    }
+
+    .home-feedback-txt {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted, #6B7DA0);
+    }
+
+    body.light .home-feedback-txt {
+      color: #4A5A7A;
+    }
+
+    .home-feedback-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan, #5EEAD4);
+      text-decoration: none;
+      padding: 3px 10px;
+      background: rgba(94, 234, 212, 0.1);
+      border: 1px solid rgba(94, 234, 212, 0.28);
+      border-radius: 100px;
+      transition: all .2s ease;
+      cursor: pointer;
+    }
+
+    .home-feedback-btn:hover {
+      background: rgba(94, 234, 212, 0.22);
+      border-color: var(--cyan, #5EEAD4);
+      transform: translateY(-1px);
+    }
+
+    body.light .home-feedback-btn {
+      color: #0891B2;
+      background: rgba(8, 145, 178, 0.08);
+      border-color: rgba(8, 145, 178, 0.25);
+    }
+
+    body.light .home-feedback-btn:hover {
+      background: rgba(8, 145, 178, 0.16);
+      border-color: #0891B2;
+    }
+
     .mini-metrics {
       display: flex;
       gap: 7px;
@@ -915,100 +1074,6 @@
       font-size: 8px;
       font-weight: 600;
       color: var(--cyan2);
-    }
-
-    .sim-preview {
-      margin-top: 12px;
-      opacity: 0;
-      animation: fadeIn .7s ease forwards;
-      animation-delay: 1.15s;
-      transition: opacity .35s ease;
-    }
-
-    .sim-preview.vanish {
-      opacity: 0 !important;
-    }
-
-    .sim-card {
-      background: rgba(7, 13, 24, .93);
-      backdrop-filter: blur(14px);
-      border: 1px solid rgba(94, 234, 212, .19);
-      border-radius: 11px;
-      padding: 9px 13px;
-      width: 210px;
-      text-align: left;
-    }
-
-    .sim-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 7px;
-      border-bottom: 1px solid rgba(94, 234, 212, .09);
-      padding-bottom: 6px;
-    }
-
-    .sim-dots {
-      display: flex;
-      gap: 4px;
-    }
-
-    .sim-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
-
-    .sim-title {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 7.5px;
-      font-weight: 600;
-      letter-spacing: .1em;
-      color: rgba(234, 241, 255, .42);
-      text-transform: uppercase;
-    }
-
-    .sim-body {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 8.5px;
-      line-height: 1.65;
-      color: rgba(234, 241, 255, .68);
-    }
-
-    .sim-key {
-      color: rgba(107, 125, 160, .75);
-    }
-
-    .sim-val {
-      color: #34D399;
-    }
-
-    .sim-val-off {
-      color: var(--muted);
-    }
-
-    .sim-led {
-      display: inline-block;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #34D399;
-      box-shadow: 0 0 8px #34D399, 0 0 14px rgba(52, 211, 153, .4);
-      animation: ledPulse 1.4s ease-in-out infinite;
-      vertical-align: middle;
-      margin-right: 2px;
-    }
-
-    @keyframes ledPulse {
-
-      0%,
-      100% {
-        box-shadow: 0 0 8px #34D399, 0 0 14px rgba(52, 211, 153, .4);
-      }
-
-      50% {
-        box-shadow: 0 0 12px #34D399, 0 0 26px rgba(52, 211, 153, .6);
-      }
     }
 
     .status {
@@ -1306,15 +1371,6 @@
     body.light .mini-m {
       background: rgba(240, 244, 255, .9);
       border-color: rgba(8, 145, 178, .15);
-    }
-
-    body.light .sim-card {
-      background: rgba(230, 237, 250, .97);
-      border-color: rgba(8, 145, 178, .2);
-    }
-
-    body.light .sim-body {
-      color: rgba(15, 23, 42, .75);
     }
 
     body.light .eyebrow {
@@ -1780,6 +1836,29 @@
         font-size: 18px;
       }
     }
+
+    /* ── RESPONSIVE: STUDENT BADGE ── */
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+        padding: 14px 16px 4px;
+      }
+
+      .col-creators,
+      .col-mentors {
+        display: none;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .student-badge {
+        padding: 6px 14px;
+      }
+
+      .student-badge-label {
+        font-size: 8.5px;
+      }
+    }
   </style>
 </head>
 
@@ -2146,6 +2225,17 @@
                   </circle>
                 </svg></span>
             </h1>
+            <div class="home-description" id="homeDescription">
+              An interactive virtual IoT laboratory for learning, experimenting, and exploring Arduino technology.
+            </div>
+
+            <!-- Standalone credibility metric: REAL Firebase-derived student count -->
+            <div class="student-badge" id="studentBadge">
+              <span class="student-badge-dot"></span>
+              <span class="student-badge-count" id="statStudentCount">—</span>
+              <span class="student-badge-label">Students using ARCIO</span>
+            </div>
+
             <div class="tagline" id="homeTagline">DESIGN &bull; SIMULATE &bull; ANALYZE</div>
             <div class="sub-label" id="homeSubLabel">No hardware required</div>
             <div class="typing-wrap" id="homeTyping"><span id="typingText"></span><span class="typing-cursor"></span>
@@ -2162,6 +2252,18 @@
                   </svg></span>
               </button>
             </div>
+            <!-- Student Feedback CTA -->
+            <div class="home-feedback-wrap" id="homeFeedbackWrap">
+              <span class="home-feedback-txt">Any concerns? Let us know.</span>
+              <a href="YOUR_GOOGLE_FORM_URL_HERE" class="home-feedback-btn" id="homeFeedbackBtn" target="_blank"
+                rel="noopener noreferrer">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+                Share Feedback
+              </a>
+            </div>
             <div class="mini-metrics" id="miniMetrics">
               <div class="mini-m">
                 <div class="mini-dot"></div><span class="mini-label">TEMP</span><span class="mini-val"
@@ -2174,26 +2276,6 @@
               <div class="mini-m">
                 <div class="mini-dot" style="background:#818CF8;box-shadow:0 0 6px #818CF8;"></div><span
                   class="mini-label">SIG</span><span class="mini-val" id="mSig">−42dBm</span>
-              </div>
-            </div>
-            <div class="sim-preview" id="simPreview">
-              <div class="sim-card">
-                <div class="sim-header">
-                  <div class="sim-dots">
-                    <div class="sim-dot" style="background:#FF5F56;"></div>
-                    <div class="sim-dot" style="background:#FFBD2E;"></div>
-                    <div class="sim-dot" style="background:#27C93F;"></div>
-                  </div>
-                  <span class="sim-title">simulator · preview</span>
-                </div>
-                <div class="sim-body">
-                  <div><span class="sim-key">Device </span>: Arduino UNO</div>
-                  <div><span class="sim-key">Input </span>: <span class="sim-val" id="swState">Switch ON</span></div>
-                  <div><span class="sim-key">GPIO13 </span>: <span class="sim-val" id="gpioState">HIGH</span></div>
-                  <div style="margin-top:4px;border-top:1px solid rgba(94,234,212,.09);padding-top:4px;"><span
-                      class="sim-key">Output </span>: <span class="sim-led" id="ledDot"></span><span class="sim-val"
-                      id="ledState">LED ON</span></div>
-                </div>
               </div>
             </div>
           </div>
@@ -2324,10 +2406,6 @@
     const lats = ['14ms', '11ms', '16ms', '12ms', '13ms', '10ms', '15ms'];
     let mi = 0;
     setInterval(() => { mi = (mi + 1) % temps.length; document.getElementById('mTemp').textContent = temps[mi] + '°C'; document.getElementById('mHum').textContent = hums[mi % hums.length] + '%'; document.getElementById('mSig').textContent = sigs[mi % sigs.length]; document.getElementById('stLatency').textContent = lats[mi % lats.length]; }, 2600);
-
-    // ── SIM CARD TOGGLE
-    let simOn = true;
-    setInterval(() => { simOn = !simOn; document.getElementById('swState').textContent = simOn ? 'Switch ON' : 'Switch OFF'; document.getElementById('swState').className = simOn ? 'sim-val' : 'sim-val-off'; document.getElementById('gpioState').textContent = simOn ? 'HIGH' : 'LOW'; document.getElementById('gpioState').className = simOn ? 'sim-val' : 'sim-val-off'; document.getElementById('ledState').textContent = simOn ? 'LED ON' : 'LED OFF'; document.getElementById('ledState').className = simOn ? 'sim-val' : 'sim-val-off'; document.getElementById('ledDot').style.display = simOn ? 'inline-block' : 'none'; }, 3200);
 
     // ══════════════════════════════════════════
     // LAUNCH SEQUENCE ENGINE
@@ -2585,12 +2663,14 @@
       launchRunning = true;
 
       const homeWM = document.getElementById('homeWordmark');
+      const hDesc = document.getElementById('homeDescription');
+      const studentBadge = document.getElementById('studentBadge');
+      const hFeedback = document.getElementById('homeFeedbackWrap');
       const colC = document.getElementById('colCreators');
       const colM = document.getElementById('colMentors');
       const ficons = document.getElementById('floatIcons');
       const btnRow = document.getElementById('btnRow');
       const miniM = document.getElementById('miniMetrics');
-      const simP = document.getElementById('simPreview');
       const hTagline = document.getElementById('homeTagline');
       const hSub = document.getElementById('homeSubLabel');
       const hTyping = document.getElementById('homeTyping');
@@ -2599,8 +2679,10 @@
       // Instant: hide non-profile UI
       ficons.classList.add('gone');
       btnRow.classList.add('vanish');
-      miniM.classList.add('vanish');
-      simP.classList.add('vanish');
+      if (hDesc) hDesc.classList.add('vanish');
+      if (studentBadge) studentBadge.classList.add('vanish');
+      if (hFeedback) hFeedback.classList.add('vanish');
+      if (miniM) miniM.classList.add('vanish');
       hTagline.classList.add('vanish');
       hSub.classList.add('vanish');
       hTyping.classList.add('vanish');
@@ -2811,9 +2893,42 @@
     <span id="authUserName">Account</span>
   </button>
 
-  <!-- Firebase Auth (ES Module CDN) -->
+  <!-- Firebase Auth & ARCIO Modules (ES Module CDN) -->
   <script type="module">
     import { initAuthObserver, logoutUser, registerUser, loginUser, loginWithGoogle, completeGoogleProfile } from '/assets/js/auth.js';
+    import { FEEDBACK_FORM_URL } from '/assets/js/arcio-config.js';
+
+    // ── Wire Feedback Button URL
+    const feedbackBtn = document.getElementById('homeFeedbackBtn');
+    if (feedbackBtn) {
+      feedbackBtn.href = FEEDBACK_FORM_URL;
+    }
+
+    // ── Fetch Real Verified Student Count from Firebase
+    async function loadPlatformStats() {
+      const studentStatEl = document.getElementById('statStudentCount');
+      if (!studentStatEl) return;
+
+      // Loading state
+      studentStatEl.textContent = '—';
+
+      try {
+        const res = await fetch('/api/stats/users');
+        if (!res.ok) throw new Error('Stats API returned ' + res.status);
+        const data = await res.json();
+        if (typeof data.count === 'number') {
+          studentStatEl.textContent = data.count;
+        } else {
+          studentStatEl.textContent = '—';
+        }
+      } catch (err) {
+        console.warn('[STATS] Could not retrieve registered student count from database:', err.message);
+        // Clean unavailable state — NO fake fallback count
+        studentStatEl.textContent = '—';
+      }
+    }
+
+    loadPlatformStats();
 
     // ── Panel switching helpers
     function showPanel(id) {
