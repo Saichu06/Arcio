@@ -3,7 +3,7 @@
 // Lightweight, responsive, theme-aware floating navigation assistant
 // =============================================================================
 
-import { CHATBOT_SUGGESTED_PROMPTS, CHATBOT_FALLBACK_RESPONSE, queryChatbot } from './chatbot-knowledge.js';
+import { CHATBOT_SUGGESTED_PROMPTS, queryChatbot, resetChatbotContext } from './chatbot-knowledge.js';
 import { FEEDBACK_FORM_URL } from './arcio-config.js';
 
 let isChatbotInitialized = false;
@@ -380,6 +380,34 @@ export function initChatbot() {
       border-color: rgba(8, 145, 178, 0.4);
       color: #0891B2;
     }
+
+    /* Header button group */
+    .arcio-chat-header-actions { display: flex; align-items: center; gap: 2px; }
+
+    /* Typing indicator */
+    .arcio-typing { display: inline-flex; gap: 4px; padding: 12px 14px; }
+    .arcio-typing span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--cyan, #5EEAD4); opacity: 0.4;
+      animation: arcioTyping 1s infinite ease-in-out;
+    }
+    .arcio-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .arcio-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes arcioTyping {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* Follow-up chips + action link under a bot answer */
+    .arcio-followups { align-self: flex-start; max-width: 92%; margin-top: -4px; }
+    .arcio-action-link {
+      display: inline-block; margin-top: 8px; padding: 5px 12px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; text-decoration: none;
+      background: rgba(94, 234, 212, 0.14); border: 1px solid rgba(94, 234, 212, 0.4);
+      color: var(--cyan, #5EEAD4);
+    }
+    body.light .arcio-action-link { color: #0891B2; border-color: rgba(8, 145, 178, 0.4); background: rgba(8, 145, 178, 0.1); }
+    .arcio-msg-bot em { font-style: italic; opacity: 0.9; }
   `;
   document.head.appendChild(style);
 
@@ -413,26 +441,28 @@ export function initChatbot() {
             <div class="arcio-chat-sub">Virtual Manual &amp; Navigator</div>
           </div>
         </div>
-        <button class="arcio-chat-close-btn" id="arcioChatCloseBtn" aria-label="Close Help Chat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <!-- Messages Body -->
-      <div class="arcio-chat-body" id="arcioChatBody">
-        <!-- Initial Welcome Message -->
-        <div class="arcio-msg arcio-msg-bot">
-          Hello! 👋 I am your <strong>ARCIO Virtual Assistant</strong>. Ask me anything about using the virtual IoT laboratory, simulator, or experiments:
-          <div class="arcio-chips-wrap" id="arcioChipsWrap"></div>
+        <div class="arcio-chat-header-actions">
+          <button class="arcio-chat-close-btn" id="arcioChatClearBtn" aria-label="Clear chat" title="Clear chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 .49-4"></path>
+            </svg>
+          </button>
+          <button class="arcio-chat-close-btn" id="arcioChatCloseBtn" aria-label="Close Help Chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       </div>
 
+      <!-- Messages Body -->
+      <div class="arcio-chat-body" id="arcioChatBody" role="log" aria-live="polite"></div>
+
       <!-- Input Footer -->
       <div class="arcio-chat-footer">
-        <input type="text" class="arcio-chat-input" id="arcioChatInput" placeholder="Ask about experiments, certificate, simulator..." autocomplete="off" />
+        <input type="text" class="arcio-chat-input" id="arcioChatInput" placeholder="Ask about labs, wiring, XP, certificate..." autocomplete="off" maxlength="200" />
         <button class="arcio-chat-send-btn" id="arcioChatSendBtn" aria-label="Send message">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -445,81 +475,129 @@ export function initChatbot() {
 
   document.body.appendChild(root);
 
-  // 3. Render Quick Chips
-  const chipsWrap = document.getElementById('arcioChipsWrap');
-  CHATBOT_SUGGESTED_PROMPTS.forEach(prompt => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'arcio-chip';
-    chip.textContent = prompt;
-    chip.addEventListener('click', () => {
-      sendUserMessage(prompt);
-    });
-    chipsWrap.appendChild(chip);
-  });
-
-  // 4. Panel Toggle Logic
+  // 3. Element refs
   const launcher = document.getElementById('arcioChatLauncher');
   const panel = document.getElementById('arcioChatPanel');
   const closeBtn = document.getElementById('arcioChatCloseBtn');
+  const clearBtn = document.getElementById('arcioChatClearBtn');
   const chatInput = document.getElementById('arcioChatInput');
   const sendBtn = document.getElementById('arcioChatSendBtn');
   const body = document.getElementById('arcioChatBody');
 
-  function openChat() {
-    panel.classList.add('open');
-    chatInput.focus();
-  }
-
-  function closeChat() {
-    panel.classList.remove('open');
-  }
-
-  launcher.addEventListener('click', () => {
-    if (panel.classList.contains('open')) {
-      closeChat();
-    } else {
-      openChat();
-    }
-  });
-
-  closeBtn.addEventListener('click', closeChat);
-
-  // 5. Message Formatting & Sending Logic
+  // 4. Message helpers
   function formatResponseText(text) {
-    let html = text
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+      .replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,]|$)/g, '$1<em>$2</em>')
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\n/g, '<br/>');
-    return html;
+  }
+
+  function scrollDown() { body.scrollTop = body.scrollHeight; }
+
+  function makeChips(prompts) {
+    const wrap = document.createElement('div');
+    wrap.className = 'arcio-chips-wrap';
+    prompts.forEach(prompt => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'arcio-chip';
+      chip.textContent = prompt;
+      chip.addEventListener('click', () => sendUserMessage(prompt));
+      wrap.appendChild(chip);
+    });
+    return wrap;
   }
 
   function appendMessage(sender, text) {
     const msg = document.createElement('div');
     msg.className = `arcio-msg arcio-msg-${sender}`;
-    if (sender === 'bot') {
-      msg.innerHTML = formatResponseText(text);
-    } else {
-      msg.textContent = text;
-    }
+    if (sender === 'bot') msg.innerHTML = formatResponseText(text);
+    else msg.textContent = text;
     body.appendChild(msg);
-    body.scrollTop = body.scrollHeight;
+    scrollDown();
+    return msg;
   }
 
+  function appendBotResponse(res) {
+    const msg = appendMessage('bot', res.text);
+    if (res.action === 'feedback' && typeof FEEDBACK_FORM_URL === 'string' && /^https?:\/\//.test(FEEDBACK_FORM_URL)) {
+      const a = document.createElement('a');
+      a.className = 'arcio-action-link';
+      a.href = FEEDBACK_FORM_URL;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = 'Open feedback form ↗';
+      msg.appendChild(document.createElement('br'));
+      msg.appendChild(a);
+    }
+    if (res.followups && res.followups.length) {
+      const holder = document.createElement('div');
+      holder.className = 'arcio-followups';
+      holder.appendChild(makeChips(res.followups));
+      body.appendChild(holder);
+    }
+    scrollDown();
+  }
+
+  function showTyping() {
+    const el = document.createElement('div');
+    el.className = 'arcio-msg arcio-msg-bot arcio-typing';
+    el.innerHTML = '<span></span><span></span><span></span>';
+    body.appendChild(el);
+    scrollDown();
+    return el;
+  }
+
+  function renderWelcome() {
+    body.innerHTML = '';
+    const msg = document.createElement('div');
+    msg.className = 'arcio-msg arcio-msg-bot';
+    msg.innerHTML = 'Hello! 👋 I am your <strong>ARCIO Virtual Assistant</strong>. Ask me about the labs, wiring, XP, your certificate, the Playground or your account. If something is outside ARCIO, I\'ll tell you I don\'t know:';
+    msg.appendChild(makeChips(CHATBOT_SUGGESTED_PROMPTS));
+    body.appendChild(msg);
+  }
+
+  // 5. Panel toggle
+  function openChat() { panel.classList.add('open'); chatInput.focus(); }
+  function closeChat() { panel.classList.remove('open'); }
+
+  launcher.addEventListener('click', () => (panel.classList.contains('open') ? closeChat() : openChat()));
+  closeBtn.addEventListener('click', closeChat);
+  clearBtn.addEventListener('click', () => { resetChatbotContext(); renderWelcome(); chatInput.focus(); });
+  panel.addEventListener('keydown', e => { if (e.key === 'Escape') closeChat(); });
+
+  // 6. Sending
+  let busy = false;
   function sendUserMessage(text) {
     const userText = (text || chatInput.value || '').trim();
-    if (!userText) return;
+    if (!userText || busy) return;
+
+    // remove old follow-up chips so only the latest ones stay clickable
+    body.querySelectorAll('.arcio-followups').forEach(el => el.remove());
 
     appendMessage('user', userText);
     chatInput.value = '';
+    busy = true;
 
-    // Small realistic typing delay
+    const typing = showTyping();
     setTimeout(() => {
-      const response = queryChatbot(userText);
-      appendMessage('bot', response);
-    }, 150);
+      let res;
+      try {
+        res = queryChatbot(userText);
+      } catch (err) {
+        console.error('[ARCIO chatbot]', err);
+        res = { text: "Sorry, I don't know — something went wrong on my side. Please try again.", followups: [] };
+      }
+      typing.remove();
+      appendBotResponse(res);
+      busy = false;
+    }, 320);
   }
 
+  renderWelcome();
   sendBtn.addEventListener('click', () => sendUserMessage());
 
   chatInput.addEventListener('keydown', (e) => {
