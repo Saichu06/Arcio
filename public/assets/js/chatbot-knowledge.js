@@ -350,14 +350,14 @@ export const CHATBOT_KNOWLEDGE = [
     id: "who_built",
     title: "Who built ARCIO?",
     keywords: ["who made arcio", "who built arcio", "who created arcio", "who developed arcio", "developers", "developer", "team", "creators", "made by", "lead developer", "behind arcio", "who is the developer", "who are the developers", "saicharan", "rithika"],
-    answer: "ARCIO was built by student developers from **SRM CSE (Batch 2028)**: **Saicharan A S** (Lead Developer) and **Rithika** (Developer).\nFaculty mentors: **Deeba K** (Assoc. Prof., CSE) and **Dr. D. Karthikeyan** (Assoc. Prof., EEE).",
+    answer: "ARCIO was built by student developers from **SRM CSE (Batch 2028)**: **Saicharan A S** (Lead Developer) and **Rithika** (Developer).\nFaculty mentors: **Dr. Deeba K** (Assoc. Prof., CSE) and **Dr. D. Karthikeyan** (Assoc. Prof., EEE).",
     next: ["Who are the faculty mentors?", "What technology is ARCIO built with?", "What is ARCIO?"]
   },
   {
     id: "mentors",
     title: "Who are the faculty mentors?",
     keywords: ["mentor", "mentors", "faculty mentor", "faculty", "guide", "professor", "who guided", "deeba", "karthikeyan", "mentored by", "teacher", "supervisor"],
-    answer: "ARCIO is mentored by **Deeba K** (Associate Professor, CSE) and **Dr. D. Karthikeyan** (Associate Professor, EEE) at SRM Institute of Science and Technology. Their profile links are on the ARCIO home page.",
+    answer: "ARCIO is mentored by **Dr. Deeba K** (Associate Professor, CSE) and **Dr. D. Karthikeyan** (Associate Professor, EEE) at SRM Institute of Science and Technology. Their profile links are on the ARCIO home page.",
     next: ["Who built ARCIO?", "What is ARCIO?"]
   },
   {
