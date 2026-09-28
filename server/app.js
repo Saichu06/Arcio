@@ -419,6 +419,11 @@ app.get('/dashboard.html', (_req, res) => {
   res.redirect(301, '/dashboard');
 });
 
+// /manual.html → /manual
+app.get('/manual.html', (_req, res) => {
+  res.redirect(301, '/manual');
+});
+
 // /exp/exp1.html → /exp/exp1
 app.get('/exp/:id.html', (req, res) => {
   const { id } = req.params;
@@ -459,6 +464,14 @@ app.get('/advance/:module.html', (req, res) => {
 app.get('/dashboard', (_req, res) => {
   res.sendFile(
     path.join(STATIC_ROOT, 'dashboard.html')
+  );
+});
+
+// ── Clean manual route ────────────────────────────────────────────────────────
+
+app.get('/manual', (_req, res) => {
+  res.sendFile(
+    path.join(STATIC_ROOT, 'manual.html')
   );
 });
 

@@ -6,6 +6,10 @@
       "destination": "/dashboard.html"
     },
     {
+      "source": "/manual",
+      "destination": "/manual.html"
+    },
+    {
       "source": "/exp/(.*)",
       "destination": "/exp/$1.html"
     },
@@ -15,3 +19,4 @@
     }
   ]
 }
+
