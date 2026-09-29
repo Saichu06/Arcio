@@ -8,7 +8,7 @@
  * Replace the string below with your actual Google Form URL when ready.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-export const FEEDBACK_FORM_URL = "YOUR_GOOGLE_FORM_URL_HERE";
+export const FEEDBACK_FORM_URL = "https://forms.gle/6z8yy9o4Q2sQtRRR7";
 
 // Global window exposure for non-module scripts
 if (typeof window !== 'undefined') {
